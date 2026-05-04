@@ -53,6 +53,7 @@ import { readMaskedConfig, writeConfig } from './media-config.js';
 import { readAppConfig, writeAppConfig } from './app-config.js';
 import {
   buildProjectArchive,
+  buildBatchArchive,
   decodeMultipartFilename,
   deleteProjectFile,
   ensureProject,
@@ -1931,6 +1932,43 @@ export async function startServer({ port = 7456, host = process.env.OD_BIND_HOST
     } catch (err) {
       const code = err && err.code;
       const status = code === 'ENOENT' || code === 'ENOTDIR' ? 404 : 400;
+      sendApiError(
+        res,
+        status,
+        status === 404 ? 'FILE_NOT_FOUND' : 'BAD_REQUEST',
+        String(err?.message || err),
+      );
+    }
+  });
+
+  // Batch archive: accepts a list of file names and returns a ZIP of just
+  // those files. Used by the Design Files panel multi-select download.
+  app.post('/api/projects/:id/archive/batch', async (req, res) => {
+    try {
+      const { files } = req.body || {};
+      if (!Array.isArray(files) || files.length === 0) {
+        sendApiError(res, 400, 'BAD_REQUEST', 'files must be a non-empty array');
+        return;
+      }
+      const { buffer } = await buildBatchArchive(
+        PROJECTS_DIR,
+        req.params.id,
+        files,
+      );
+      const project = getProject(db, req.params.id);
+      const fileSlug = sanitizeArchiveFilename(project?.name || req.params.id) || 'project';
+      const filename = `${fileSlug}.zip`;
+      const asciiFallback =
+        filename.replace(/[^\x20-\x7e]/g, '_').replace(/"/g, '_') || 'project.zip';
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
+      );
+      res.send(buffer);
+    } catch (err) {
+      const code = err && err.code;
+      const status = code === 'ENOENT' ? 404 : 400;
       sendApiError(
         res,
         status,
