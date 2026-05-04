@@ -3403,6 +3403,7 @@ code {
   border-bottom: 1px solid var(--border);
   background: var(--bg-panel);
   overflow-x: auto;
+  overflow-y: hidden;
   flex-wrap: nowrap;
   height: 44px;
   position: sticky;
