@@ -10,6 +10,9 @@ import os from 'node:os';
 import { composeSystemPrompt } from './prompts/system.js';
 import { createCommandInvocation } from '@open-design/platform';
 import {
+  checkPromptArgvBudget,
+  checkWindowsCmdShimCommandLineBudget,
+  checkWindowsDirectExeCommandLineBudget,
   detectAgents,
   getAgentDef,
   isKnownModel,
@@ -2671,6 +2674,27 @@ export async function startServer({ port = 7456, host = process.env.OD_BIND_HOST
         : null;
     const agentOptions = { model: safeModel, reasoning: safeReasoning };
 
+    // Pre-flight the composed prompt against any argv-byte budget the
+    // adapter declared (only DeepSeek TUI today — its CLI doesn't accept
+    // a `-` stdin sentinel, so the prompt has to ride argv). Doing this
+    // before bin resolution means the test harness pins the guard
+    // independently of whether the adapter binary happens to be on PATH
+    // in the CI environment, and the user gets the actionable
+    // adapter-named error even if /api/agents hadn't refreshed yet.
+    const promptBudgetError = checkPromptArgvBudget(def, composed);
+    if (promptBudgetError) {
+      design.runs.emit(
+        run,
+        'error',
+        createSseErrorPayload(
+          promptBudgetError.code,
+          promptBudgetError.message,
+          { retryable: false },
+        ),
+      );
+      return design.runs.finish(run, 'failed', 1, null);
+    }
+
     const resolvedBin = resolveAgentBin(agentId);
 
     // If detection can't find the binary, surface a friendly SSE error
@@ -2698,6 +2722,62 @@ export async function startServer({ port = 7456, host = process.env.OD_BIND_HOST
       agentOptions,
       { cwd: effectiveCwd },
     );
+
+    // Second-pass budget check that knows about the Windows `.cmd` shim
+    // wrap. The pre-buildArgs `checkPromptArgvBudget` only looks at the
+    // raw composed prompt; on Windows an npm-installed adapter resolves
+    // to e.g. `deepseek.cmd`, the spawn path goes through `cmd.exe /d /s
+    // /c "<inner>"`, and `quoteForWindowsCmdShim` doubles every embedded
+    // `"` plus wraps any whitespace/special-char arg in outer quotes —
+    // so a quote-heavy prompt that fit under `maxPromptArgBytes` can
+    // still expand past CreateProcess's 32_767-char cap. Fail fast with
+    // the same `AGENT_PROMPT_TOO_LARGE` shape so the SSE error path
+    // doesn't have to special-case it.
+    const cmdShimBudgetError = checkWindowsCmdShimCommandLineBudget(
+      def,
+      resolvedBin,
+      args,
+    );
+    if (cmdShimBudgetError) {
+      design.runs.emit(
+        run,
+        'error',
+        createSseErrorPayload(
+          cmdShimBudgetError.code,
+          cmdShimBudgetError.message,
+          { retryable: false },
+        ),
+      );
+      return design.runs.finish(run, 'failed', 1, null);
+    }
+
+    // Companion guard for non-shim Windows installs (e.g. a cargo-built
+    // `deepseek.exe` rather than the npm `.cmd` shim). Direct `.exe`
+    // spawns skip the cmd.exe wrap above, but Node/libuv still composes
+    // a CreateProcess `lpCommandLine` by walking each argv element
+    // through `quote_cmd_arg`, which escapes every embedded `"` as `\"`
+    // and doubles backslashes adjacent to quotes. A quote-heavy prompt
+    // under `maxPromptArgBytes` can expand past the 32_767-char kernel
+    // cap there too, so the cmd-shim early-return alone would let those
+    // users hit a generic `spawn ENAMETOOLONG`.
+    const directExeBudgetError = checkWindowsDirectExeCommandLineBudget(
+      def,
+      resolvedBin,
+      args,
+    );
+    if (directExeBudgetError) {
+      design.runs.emit(
+        run,
+        'error',
+        createSseErrorPayload(
+          directExeBudgetError.code,
+          directExeBudgetError.message,
+          { retryable: false },
+        ),
+      );
+      return design.runs.finish(run, 'failed', 1, null);
+    }
+
     const send = (event, data) => design.runs.emit(run, event, data);
 
     const odMediaEnv = {
