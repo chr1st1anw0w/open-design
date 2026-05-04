@@ -40,8 +40,8 @@ Anthropic 的 [Claude Design][cd]（2026-04-17 釋出，基於 Opus 4.7）讓大
 
 OD 站在四個開源專案的肩膀上：
 
-- [**`alchaincyf/huashu-design`**（花叔的畫術）](https://github.com/alchaincyf/huashu-design) —— 設計哲學的指南針。Junior-Designer 工作流、5 步品牌資產協議、anti-AI-slop checklist、五維自評審、以及方向選擇器背後的「5 流派 × 20 種設計哲學」思路 —— 全部蒸餾進 [`apps/web/src/prompts/discovery.ts`](apps/web/src/prompts/discovery.ts)。
-- [**`op7418/guizang-ppt-skill`**（歸藏的雜誌風 PPT skill）](https://github.com/op7418/guizang-ppt-skill) —— Deck 模式。原樣納入在 [`skills/guizang-ppt/`](skills/guizang-ppt/) 下，原 LICENSE 保留；雜誌版式、WebGL hero、P0/P1/P2 checklist。
+- [**`alchaincyf/huashu-design`**（花叔的畫術）](/Users/christianwu/.config/skillshare/skills/huashu-design) —— 設計哲學的指南針。Junior-Designer 工作流、5 步品牌資產協議、anti-AI-slop checklist、五維自評審、以及方向選擇器背後的「5 流派 × 20 種設計哲學」思路 —— 全部蒸餾進 [`apps/web/src/prompts/discovery.ts`](apps/web/src/prompts/discovery.ts)。
+- [**`op7418/guizang-ppt-skill`**（歸藏的雜誌風 PPT skill）](/Users/christianwu/.config/skillshare/skills/guizang-ppt-skill) —— Deck 模式。原樣納入在 [`skills/guizang-ppt/`](skills/guizang-ppt/) 下，原 LICENSE 保留；雜誌版式、WebGL hero、P0/P1/P2 checklist。
 - [**`OpenCoworkAI/open-codesign`**](https://github.com/OpenCoworkAI/open-codesign) —— UX 北極星，也是我們最接近的同類。第一個開源的 Claude-Design 替代品。我們借鑑了它的流式 artifact 迴圈、沙盒 iframe 預覽模式（自帶 React 18 + Babel）、即時 agent 面板（todos + tool calls + 可中斷生成）、5 種匯出格式列表（HTML / PDF / PPTX / ZIP / Markdown）。我們刻意在形態上做出差異化 —— 它是桌面 Electron 應用，把 [`pi-ai`][piai] 打包進去做 agent；我們是 Web 應用 + 本地 daemon，把 agent 執行時**委託**給你已經裝好的 CLI。
 - [**`multica-ai/multica`**](https://github.com/multica-ai/multica) —— Daemon 與執行時架構。PATH 掃描式 agent 檢測，本地 daemon 作為唯一的特權程序，agent-as-teammate 的世界觀。
 
