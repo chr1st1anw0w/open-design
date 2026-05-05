@@ -1,0 +1,71 @@
+{
+  "type": "AI 安全事件討論樣機（帶傳播感）",
+  "goal": "生成一張高模擬度的 X 爆款推文截圖，呈現開發者釋出 Claude 行為異常發現，引發社群關注，並被官方賬號快速回應",
+  "platform": {
+    "name": "Twitter / X",
+    "color_mode": "light",
+    "language": "英文為主 + 少量中文增強情緒表達"
+  },
+  "header": {
+    "status_bar": "頂部狀態列，時間 '09:00'，5G、Wi-Fi、電量滿",
+    "navigation": "左側返回箭頭 + 標題 'Post'"
+  },
+  "post": {
+    "author": {
+      "avatar": "使用提供的 code 花園風格頭像（紅底 + </> + 花朵）",
+      "display_name": "花園老師",
+      "verified_badge": false,
+      "handle": "@ConardLi"
+    },
+    "content": {
+      "text": "This might be big.\n\nI was experimenting with Claude Opus 4.7 last night and managed to get consistent structured hints about its internal system behavior.\n\n不是直接洩露，但已經接近“邊界”了。\n\nIf you know prompt engineering, you know why this matters.\n\nThread below 👇",
+      "hashtags": "#ClaudeOpus47 #AI #PromptEngineering #AISafety",
+      "media_grid": {
+        "count": 1,
+        "images": [
+          "深色程式碼介面截圖，展示多輪 prompt 對話，模型輸出中出現結構化提示片段（類似規則或指令風格文字），關鍵部分用紅框標註，並帶箭頭說明“emergent pattern”"
+        ]
+      }
+    },
+    "metadata": {
+      "timestamp": "上午 9:00 · 2026 年 4 月 27 日 · 3.6M 次瀏覽",
+      "engagement": "26.8K 轉發 · 14.2K 引用 · 128K 點贊 · 18.5K 收藏"
+    },
+    "actions": "底部一行操作圖示：回覆 9.7K、轉發 26.8K、點贊 128K、收藏、分享"
+  },
+  "comments_preview": {
+    "show": true,
+    "top_comment": {
+      "avatar": "Anthropic 黑色 'A' logo，米色背景",
+      "name": "Anthropic",
+      "handle": "@AnthropicAI",
+      "verified_badge": "official-gold",
+      "text": "We’re aware of this behavior and are actively deploying improvements to strengthen system instruction boundaries. Thanks for the thoughtful analysis."
+    }
+  },
+  "footer": {
+    "reply_bar": {
+      "placeholder": "Post your reply"
+    },
+    "navigation_bar": "底部 Tab：首頁（高亮）、搜尋、Grok、通知、訊息"
+  },
+  "style": {
+    "rendering": "X 淺色模式：白底 + 黑字 + 藍色連結，整體偏技術社群 + 輕微 viral 氛圍",
+    "aspect_ratio": "9:19.5"
+  },
+  "constraints": {
+    "must_feel": "像真實 AI 工程師發現邊界行為並在 X 引發討論，官方迅速回應",
+    "must_keep": [
+      "花園老師為發帖主體",
+      "英文為主但夾雜中文情緒句",
+      "Anthropic 官方賬號帶金色認證回覆",
+      "整體有“這事可能不小”的氛圍"
+    ],
+    "avoid": [
+      "明確描述為“破解系統提示詞”",
+      "展示完整 system prompt 內容",
+      "出現攻擊性或利用細節",
+      "過度誇張像虛假新聞"
+    ]
+  }
+}

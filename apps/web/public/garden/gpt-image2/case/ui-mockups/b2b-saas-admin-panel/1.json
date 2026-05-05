@@ -1,0 +1,81 @@
+{
+  "type": "企業級 SaaS 後台網頁樣機",
+  "goal": "生成一張高保真 B2B SaaS 管理後台截圖，強調資料表排版、側邊欄導航與清晰的視覺層級",
+  "branding": {
+    "logo": "{branding_logo:幾何形狀組合 (藍色系)}",
+    "primary_color": "{primary_color:#1890FF}",
+    "font_family": "{font_family:Inter, sans-serif}"
+  },
+  "navigation": {
+    "sidebar_mode": "{sidebar_mode:Expanded (展開狀態)}",
+    "active_item": "{active_menu_item:Dashboard}",
+    "menu_items": [
+      "Dashboard",
+      "Users",
+      "Analytics",
+      "Settings",
+      "Billing"
+    ],
+    "topbar_elements": [
+      "Global Search Bar",
+      "Notification Bell (with unread badge)",
+      "User Avatar"
+    ]
+  },
+  "dashboard_content": {
+    "kpi_cards": [
+      {
+        "title": "Total Users",
+        "value": "12,450",
+        "trend": "+5.2%",
+        "trend_color": "green"
+      },
+      {
+        "title": "MRR",
+        "value": "$45.2K",
+        "trend": "+1.2%",
+        "trend_color": "green"
+      },
+      {
+        "title": "Churn Rate",
+        "value": "2.1%",
+        "trend": "-0.5%",
+        "trend_color": "red"
+      }
+    ],
+    "data_table": {
+      "title": "Recent Users",
+      "columns": [
+        "ID",
+        "Employee Name",
+        "Role",
+        "Status",
+        "Last Login",
+        "Actions"
+      ],
+      "row_count": 5,
+      "status_tags": {
+        "Active": "{status_active:綠色背景 + 綠色文字}",
+        "Inactive": "{status_inactive:灰色背景 + 灰色文字}",
+        "Pending": "{status_pending:橘色背景 + 橘色文字}"
+      },
+      "actions": [
+        "Edit Icon",
+        "Delete Icon (Trash)"
+      ]
+    }
+  },
+  "style_guidelines": {
+    "theme": "{theme_mode:Light Mode}",
+    "background": "{background_color:#F5F7FA}",
+    "card_background": "{card_background:#FFFFFF}",
+    "border_radius": "{border_radius:8px}",
+    "shadows": "{shadows:subtle soft drop shadows on cards}"
+  },
+  "constraints": {
+    "must_keep": [
+      "表格對齊工整，間距均勻",
+      "具備高密度資訊排版的專業感，避免過大留白"
+    ]
+  }
+}

@@ -1,0 +1,186 @@
+{
+  "type": "工程感流程圖 / 決策圖",
+  "goal": "生成 16:9 帶泳道退款業務點陣圖，用於財務與研發對齊",
+  "canvas": {
+    "aspect_ratio": "16:9",
+    "background": "deep slate #0F172A with subtle 1px grid #1E293B at 32px spacing",
+    "outer_padding": "60px"
+  },
+  "title_strip": {
+    "title": "訂單退款稽核流程",
+    "subtitle": "原路退 · 可部分退",
+    "position": "top-left"
+  },
+  "flow_direction": "top-to-bottom",
+  "nodes": {
+    "count": "12",
+    "items": [
+      {
+        "id": "S",
+        "type": "start_end",
+        "label": "開始",
+        "lane": "User"
+      },
+      {
+        "id": "I1",
+        "type": "io",
+        "label": "使用者在訂單詳情點申請退款+原因碼",
+        "lane": "User"
+      },
+      {
+        "id": "P1",
+        "type": "process",
+        "label": "BFF 組裝 refund_request DTO",
+        "lane": "Merchant BFF"
+      },
+      {
+        "id": "D1",
+        "type": "decision",
+        "label": "距簽收 < 7d 且品類可退？",
+        "lane": "order-service"
+      },
+      {
+        "id": "P2",
+        "type": "process",
+        "label": "寫 refund_cases 表 PENDING",
+        "lane": "order-service"
+      },
+      {
+        "id": "D2",
+        "type": "decision",
+        "label": "申請額 ≤ 可退餘額？",
+        "lane": "order-service"
+      },
+      {
+        "id": "P3",
+        "type": "process",
+        "label": "呼叫 payment-adapter 原路預檢",
+        "lane": "payment-adapter"
+      },
+      {
+        "id": "D3",
+        "type": "decision",
+        "label": "微信 支付閘道器返回可退？",
+        "lane": "payment-adapter"
+      },
+      {
+        "id": "P4",
+        "type": "process",
+        "label": "財務人工複核高風險 SKU",
+        "lane": "Finance"
+      },
+      {
+        "id": "P5",
+        "type": "process",
+        "label": "標記 APPROVED 並非同步呼叫退款 API",
+        "lane": "payment-adapter"
+      },
+      {
+        "id": "P6",
+        "type": "process",
+        "label": "通知使用者與寫審計日誌",
+        "lane": "Merchant BFF"
+      },
+      {
+        "id": "E",
+        "type": "start_end",
+        "label": "結束",
+        "lane": "User"
+      }
+    ]
+  },
+  "swim_lanes": {
+    "enabled": "true",
+    "lanes": [
+      "User",
+      "Merchant BFF",
+      "order-service",
+      "payment-adapter",
+      "Finance"
+    ]
+  },
+  "edges": {
+    "items": [
+      {
+        "from": "S",
+        "to": "I1"
+      },
+      {
+        "from": "I1",
+        "to": "P1"
+      },
+      {
+        "from": "P1",
+        "to": "D1"
+      },
+      {
+        "from": "D1",
+        "to": "E",
+        "label": "No (關閉)"
+      },
+      {
+        "from": "D1",
+        "to": "P2",
+        "label": "Yes"
+      },
+      {
+        "from": "P2",
+        "to": "D2"
+      },
+      {
+        "from": "D2",
+        "to": "E",
+        "label": "No"
+      },
+      {
+        "from": "D2",
+        "to": "P3",
+        "label": "Yes"
+      },
+      {
+        "from": "P3",
+        "to": "D3"
+      },
+      {
+        "from": "D3",
+        "to": "P4",
+        "label": "需人工"
+      },
+      {
+        "from": "D3",
+        "to": "P5",
+        "label": "自動"
+      },
+      {
+        "from": "P4",
+        "to": "P5"
+      },
+      {
+        "from": "P5",
+        "to": "P6"
+      },
+      {
+        "from": "P6",
+        "to": "E"
+      }
+    ],
+    "edge_style": {
+      "exception_branch": {
+        "enabled": "false"
+      }
+    }
+  },
+  "legend": {
+    "enabled": true,
+    "position": "bottom-right"
+  },
+  "constraints": {
+    "must_keep": [
+      "泳道豎列均分",
+      "微信 為對外支付品牌用語"
+    ],
+    "avoid": [
+      "decision 非菱形"
+    ]
+  }
+}

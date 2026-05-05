@@ -1,0 +1,62 @@
+{
+  "type": "步驟教程資訊圖",
+  "goal": "7 個清晰步驟讓讀者在家就能安全開練, 提醒量力而行",
+  "canvas": {
+    "aspect_ratio": "3:4 portrait",
+    "background": "warm cream #FAF6EE, subtle paper grain 5% opacity"
+  },
+  "header": {
+    "main_title": "新手家庭健身 7 步入門(無器械起步)",
+    "subtitle": "每次 20–30 分鐘 · 先學動作質量再談強度",
+    "optional_finished_image": "右上角 圓角方框: 做平板支撐的剪影+綠色對勾"
+  },
+  "palette": {
+    "primary": "mint #6BBF90",
+    "secondary": "coral #E07A5F",
+    "neutral": "deep brown #4A3A2E",
+    "rule": "3 主色, 每步小插畫同一扁平手繪風"
+  },
+  "layout": {
+    "style": "vertical-zigzag",
+    "options_explained": {
+      "use": "奇數步偏左, 偶數步偏右, 用弧箭頭串聯"
+    }
+  },
+  "steps": {
+    "count": "7",
+    "structure_per_step": [
+      "大圓形編號章",
+      "4–8 字加粗小標題",
+      "簡筆人物或器材圖示(瑜伽墊/椅子)",
+      "1–2 行說明(不超過此行數)"
+    ],
+    "items": [
+      "01 清場地: 半平米防滑墊, 移走雜物, 換運動鞋",
+      "02 關節熱身: 肩環繞、貓牛式、半蹲畫圈各 1 分鐘",
+      "03 呼吸: 鼻吸 4 拍, 口緩呼 6 拍, 全程記呼吸不分屏",
+      "04 蹲起基礎: 椅子坐站 12 次×2 組, 膝蓋不內扣",
+      "05 上肢推: 牆姿俯臥撐或跪姿, 8–10 次×2 組",
+      "06 核心: 死蟲式或側板各 20 秒×2, 不憋氣",
+      "07 冷身: 前屈拉伸大腿後側、胸擴胸各 20 秒, 喝溫水"
+    ]
+  },
+  "connectors": {
+    "style": "hand-drawn curved arrows with 2pt stroke in neutral brown",
+    "rule": "步與步間可加小小腳印"
+  },
+  "footer": {
+    "tip": "若胸痛、眩暈、關節銳痛, 立即停練並就醫。孕婦與術後人群需遵醫囑。",
+    "credit": "家庭健身小抄·可發微信家庭群與好友"
+  },
+  "constraints": {
+    "must_keep": [
+      "7 個編號風格一致",
+      "每步插畫同風",
+      "無菱形決策框"
+    ],
+    "avoid": [
+      "Helvetica 純排字",
+      "把步驟寫成 12 行長文"
+    ]
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "type": "5 格混合風格拼貼",
+  "goal": "生成一張多風格拼貼圖，同一中國女性為唯一主體，僅畫風變化，中央格最大",
+  "subject": {
+    "description": "同一位東亞女性，約 28 歲，齊肩直黑髮，細眉，米白棉質襯衫，雙手自然交疊於腹前，表情平靜帶淺笑。禁止更換髮型與衣色以便跨格識別。",
+    "consistency_rule": "五格中五官比例與衣款一致，僅渲染手法不同"
+  },
+  "layout": {
+    "format": "中央大格 + 四角小格，整體襯於淺米灰紙紋",
+    "panel_count": 5,
+    "label_position": "每格下緣居中",
+    "label_design": "9pt 等寬大寫英文 + 中文小標，黑字白底小圓角條"
+  },
+  "panels": [
+    {
+      "position": "center",
+      "style": "高解析度影棚柔光攝影，白背景，可辨膚質與布褶",
+      "label": "PHOTO · 寫真"
+    },
+    {
+      "position": "top-left",
+      "style": "現代日式 anime 賽璐璐，清晰線稿、平塗、腮紅線",
+      "label": "ANIME · 日漫"
+    },
+    {
+      "position": "top-right",
+      "style": "大寫意淺絳水墨，留白煙霧感，僅面部略烘染赭石",
+      "label": "INK · 水墨"
+    },
+    {
+      "position": "bottom-left",
+      "style": "古典油畫，倫勃朗式側光，深褐底，厚塗筆觸可見",
+      "label": "OIL · 油畫"
+    },
+    {
+      "position": "bottom-right",
+      "style": "賽博朋克，霓虹品紅與電青邊光，輕微故障紋理與細網格 HUD，僅作氛圍不擋臉",
+      "label": "CYBER · 賽博"
+    }
+  ],
+  "global_constraints": {
+    "background": "整張大底為統一 #F2EFE8 細顆粒紙感，小格間 10px 淺灰縫",
+    "spacing": "白縫錨定，避免每格自設無關底色"
+  },
+  "constraints": {
+    "must_keep": [
+      "五格中一眼為同人不同畫風而非五人",
+      "賽博格不過度加面罩與義體，保持面部可辨",
+      "標籤不壓五官中央"
+    ],
+    "avoid": [
+      "某一格變男性或變童裝",
+      "水墨格出現對話方塊漫畫符號",
+      "中央格過暗淹沒識別錨"
+    ]
+  }
+}

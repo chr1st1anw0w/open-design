@@ -1,0 +1,65 @@
+{
+  "type": "品牌識別系統板",
+  "goal": "生成一張可作為 VI summary 的品牌板，3:4 豎版，四宮格分割槽清晰",
+  "brand": {
+    "name": "清籬",
+    "tagline": "一味草木，半日清歡",
+    "industry": "新中式衝飲與草本小罐茶",
+    "personality": "剋制、溫潤、可信賴、略文人氣質"
+  },
+  "regions": {
+    "logo": {
+      "position": "左上大區 約 40% 寬",
+      "primary_logo": "「清」字作行書骨架，與三片簡筆籬葉組成圓形章；橫排字標為「清籬」二字 + 英文 CHING LI 全大寫 3pt 行",
+      "secondary_logos": [
+        "純圖形圓形章（無字）",
+        "豎排「清 / 籬」與圓章左右組合",
+        "深綠底反白一版"
+      ],
+      "background_test": "左半淺米底 + 右半深松綠底各放一版主組合"
+    },
+    "color_palette": {
+      "position": "右上",
+      "primary": [
+        "#2F4F4F 松煙綠",
+        "#C7B89E 米湯白"
+      ],
+      "secondary": [
+        "#8C9A8E 鼠尾草灰綠",
+        "#1A1A1A 墨點黑"
+      ],
+      "swatch_design": "圓角色塊 + HEX + 中文名 + 5% 白細邊"
+    },
+    "typography": {
+      "position": "左下",
+      "headline_font": "中文為類似思源宋的 modern serif 橫排，英文襯線為 Cormorant 氣質",
+      "body_font": "中文為類似 PingFang 的 clean sans 正文 9pt 演示",
+      "demo_block": "Aa 清茶回甘 · Brew calm，0123456789，一行長條款假文佔位"
+    },
+    "applications": {
+      "position": "右下",
+      "mockups": [
+        "名片正反面，正面大面積留白 + 松煙綠細邊，反面小圓章",
+        "牛皮紙小罐茶包裝筒頂視 + 標貼",
+        "微信公眾號封面圖 16:9 縮略：茶湯顯微距 + 一句話標題位"
+      ]
+    }
+  },
+  "style": {
+    "art_style": "現代極簡品牌板，淺米背景 + 5% 噪點，細灰 8px 基線格作為裝飾",
+    "grid": "淡灰 1pt 線僅出現在 logo 與色板區外沿"
+  },
+  "aspect_ratio": "3:4",
+  "constraints": {
+    "must_keep": [
+      "色板內 HEX 數字清晰可讀，≤6 主色",
+      "四個區塊邊界不糊在一起",
+      "mockup 光照統一為左上 45° 軟光"
+    ],
+    "avoid": [
+      "書法字與幾何 logo 在 mockup 上亂縮放變形",
+      "同屏 >2 個字型家族",
+      "國潮紅金大面積喧賓"
+    ]
+  }
+}

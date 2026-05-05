@@ -1,0 +1,282 @@
+{
+  "type": "技術系統架構圖（暗色工程感）",
+  "goal": "生成一張 618 大促期秒殺與下單鏈路的總覽點陣圖，強調 CDN/邊緣、業務微服務、訊息與資料層的分層，以及主從與快取的職責邊界",
+  "canvas": {
+    "aspect_ratio": "16:9",
+    "background": "deep slate #0F172A with subtle 1px grid lines #1E293B at 32px spacing",
+    "outer_padding": "60px"
+  },
+  "title_strip": {
+    "title": "NimbusMart 電商 · 秒殺下單 · 技術架構",
+    "subtitle": "sharded + cache-aside + async settle · 華東生產",
+    "position": "top-left, large mono font (JetBrains Mono / SF Mono), light gray text"
+  },
+  "color_semantics": {
+    "rule": "顏色按'角色'編碼，不按'技術'編碼",
+    "palette": [
+      {
+        "role": "User / Client / Edge",
+        "color": "cyan #22D3EE",
+        "use_for": "終端使用者、Web、Mobile、CLI"
+      },
+      {
+        "role": "Gateway / API / BFF",
+        "color": "blue #60A5FA",
+        "use_for": "API 閘道器、負載均衡、CDN、BFF"
+      },
+      {
+        "role": "Business Services",
+        "color": "emerald #34D399",
+        "use_for": "微服務、應用層、業務邏輯"
+      },
+      {
+        "role": "Data / Persistence",
+        "color": "violet #A78BFA",
+        "use_for": "資料庫、快取、物件儲存、搜尋"
+      },
+      {
+        "role": "Middleware / Queue",
+        "color": "orange #FB923C",
+        "use_for": "MQ、Kafka、Redis Stream、Pub/Sub"
+      },
+      {
+        "role": "Infra / Platform",
+        "color": "amber #FBBF24",
+        "use_for": "K8s、容器執行時、雲平臺"
+      },
+      {
+        "role": "Security / Auth",
+        "color": "rose #FB7185",
+        "use_for": "鑑權、金鑰、審計、防火牆"
+      },
+      {
+        "role": "External / 3rd Party",
+        "color": "slate #94A3B8",
+        "use_for": "外部 SaaS、第三方 API"
+      }
+    ]
+  },
+  "regions": {
+    "rule": "用大虛線框包圍屬於同一'部署單元'的節點，框上方有 region label",
+    "items": [
+      {
+        "id": "R1",
+        "label": "Edge · CDN 與 L7 入口",
+        "color_border": "cyan dashed"
+      },
+      {
+        "id": "R2",
+        "label": "Service Mesh · 訂單 / 庫存 / 支付",
+        "color_border": "emerald dashed"
+      },
+      {
+        "id": "R3",
+        "label": "Data · 主從、快取、訊息",
+        "color_border": "violet dashed"
+      }
+    ]
+  },
+  "nodes": {
+    "count_total": 12,
+    "items": [
+      {
+        "id": "N1",
+        "label": "顧客終端 (H5/小程式)",
+        "role": "User / Client / Edge",
+        "region": "R1"
+      },
+      {
+        "id": "N2",
+        "label": "阿里雲 CDN (靜態 + 防刷)",
+        "role": "Gateway / API / BFF",
+        "region": "R1"
+      },
+      {
+        "id": "N3",
+        "label": "Nginx + OpenResty (limit_req)",
+        "role": "Gateway / API / BFF",
+        "region": "R1"
+      },
+      {
+        "id": "N4",
+        "label": "Order Service",
+        "role": "Business Services",
+        "region": "R2"
+      },
+      {
+        "id": "N5",
+        "label": "Inventory Service",
+        "role": "Business Services",
+        "region": "R2"
+      },
+      {
+        "id": "N6",
+        "label": "Payment Service",
+        "role": "Business Services",
+        "region": "R2"
+      },
+      {
+        "id": "N7",
+        "label": "Risk Engine (反作弊)",
+        "role": "Security / Auth",
+        "region": "R2"
+      },
+      {
+        "id": "N8",
+        "label": "RabbitMQ (order.exchange)",
+        "role": "Middleware / Queue",
+        "region": "R3"
+      },
+      {
+        "id": "N9",
+        "label": "Redis Cluster (庫存熱點)",
+        "role": "Data / Persistence",
+        "region": "R3"
+      },
+      {
+        "id": "N10",
+        "label": "MySQL 8 主",
+        "role": "Data / Persistence",
+        "region": "R3"
+      },
+      {
+        "id": "N11",
+        "label": "MySQL 8 從 (只讀)",
+        "role": "Data / Persistence",
+        "region": "R3"
+      },
+      {
+        "id": "N12",
+        "label": "微信支付閘道器回撥入口",
+        "role": "External / 3rd Party",
+        "region": "R1"
+      }
+    ]
+  },
+  "node_style": {
+    "shape": "rounded rectangle, corner radius 8px",
+    "size": "auto-fit text + 24px horizontal padding, ~ 140px wide × 56px tall typical",
+    "fill": "background color of role × 12% opacity (semi-transparent)",
+    "border": "1.5px solid in role color (full opacity)",
+    "label": "label text in JetBrains Mono / SF Mono 12pt, color = role color (lighter shade) for readability on dark bg",
+    "icon": "small icon in top-left corner of node (optional, generic geometric glyph for the role — circle for service, cylinder for DB, hex for queue)"
+  },
+  "edges": {
+    "items": [
+      {
+        "from": "N1",
+        "to": "N2",
+        "style": "sync",
+        "label": "HTTPS"
+      },
+      {
+        "from": "N2",
+        "to": "N3",
+        "style": "sync",
+        "label": "回源"
+      },
+      {
+        "from": "N3",
+        "to": "N4",
+        "style": "sync",
+        "label": "POST /v1/orders"
+      },
+      {
+        "from": "N4",
+        "to": "N7",
+        "style": "sync",
+        "label": "score"
+      },
+      {
+        "from": "N4",
+        "to": "N5",
+        "style": "sync",
+        "label": "reserve"
+      },
+      {
+        "from": "N5",
+        "to": "N9",
+        "style": "sync",
+        "label": "DECR stock:{sku}"
+      },
+      {
+        "from": "N4",
+        "to": "N8",
+        "style": "async",
+        "label": "order.created"
+      },
+      {
+        "from": "N8",
+        "to": "N6",
+        "style": "async",
+        "label": "pay.task"
+      },
+      {
+        "from": "N4",
+        "to": "N10",
+        "style": "sync",
+        "label": "INSERT orders"
+      },
+      {
+        "from": "N5",
+        "to": "N10",
+        "style": "sync",
+        "label": "行鎖釦減"
+      },
+      {
+        "from": "N6",
+        "to": "N10",
+        "style": "sync",
+        "label": "UPDATE pay_status"
+      },
+      {
+        "from": "N11",
+        "to": "N4",
+        "style": "sync",
+        "label": "SELECT 訂單快照"
+      },
+      {
+        "from": "N12",
+        "to": "N3",
+        "style": "async",
+        "label": "notify_url POST"
+      }
+    ],
+    "sync_call": {
+      "style": "solid line 1.5px in slate #64748B, with small filled triangle arrowhead at the target end",
+      "use_for": "同步請求 / 呼叫"
+    },
+    "async_event": {
+      "style": "dashed line 1.5px in slate #64748B, with hollow triangle arrowhead",
+      "use_for": "非同步事件 / 訊息釋出訂閱 / 回撥"
+    },
+    "data_flow_label": {
+      "rule": "edges 上可選標小標籤，用 mono 字型 9pt，背景與畫布融合"
+    },
+    "rule_routing": "儘量正交（水平 / 垂直）走線；如果必須斜線，控制在 ≤ 30°；邊不要穿過節點"
+  },
+  "legend": {
+    "enabled": true,
+    "position": "bottom-right",
+    "content": "color → role mapping (8 swatches), and edge style → meaning (sync solid vs async dashed)",
+    "style": "small panel with semi-transparent background, mono font 10pt"
+  },
+  "constraints": {
+    "must_keep": [
+      "暗色背景 + 細 grid",
+      "顏色按 role 編碼",
+      "節點統一圓角和尺寸基線",
+      "等寬字型（mono）貫穿全圖",
+      "edges 不穿過節點，標籤不與邊重疊",
+      "區域虛線框顏色與區域含義匹配",
+      "legend 必須畫出"
+    ],
+    "avoid": [
+      "彩虹色 / 高飽和霓虹色",
+      "用 emoji 當節點圖示",
+      "3D 立方體 / 透視效果 / 玻璃質感",
+      "節點超過 15 個",
+      "聲稱可匯出 SVG"
+    ]
+  }
+}

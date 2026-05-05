@@ -1,0 +1,92 @@
+{
+  "type": "擬物風應用圖示集",
+  "goal": "單張 4×3 格展示 12 枚可打包上架主題商店級別的擬物應用圖示，英文兩至八字母小標籤在圖示下方",
+  "theme": "個人效率與輕娛樂綜合（無真實 Apple 或第三方商標）",
+  "style": {
+    "rendering": "skeuomorphic 3D + 柔光 + 1px 上沿高光 + 深柔影",
+    "material": "玻璃高光層 + 不鏽鋼拉絲 + 少量皮革與紙上 UV 光",
+    "color_palette": "奶油灰底+天藍+訊號綠+軟橙+石墨黑",
+    "shape_base": "圓角方形約 24% 圓度，同視角等距"
+  },
+  "layout": {
+    "grid": "4x3",
+    "icon_count": 12,
+    "spacing": "16px 等效留白",
+    "background": "淺亞麻紙紋或淡灰布紋，無強圖案",
+    "label_below": true,
+    "label_style": "10pt 系統灰無襯線，居中"
+  },
+  "icons": [
+    {
+      "id": 1,
+      "concept": "牛皮信封口微張露出白信紙一角+紅色蠟封點",
+      "label": "Mail"
+    },
+    {
+      "id": 2,
+      "concept": "金屬環日曆翻至今日+紅色圓釘",
+      "label": "Cal"
+    },
+    {
+      "id": 3,
+      "concept": "黃色便籤本+深灰鉛筆橫放",
+      "label": "Notes"
+    },
+    {
+      "id": 4,
+      "concept": "復古銀色旁軸機身+大玻璃鍍膜反光",
+      "label": "Camera"
+    },
+    {
+      "id": 5,
+      "concept": "黑膠唱片半出紙套+橙色中心標",
+      "label": "Music"
+    },
+    {
+      "id": 6,
+      "concept": "摺紙地圖+紅頭針+輕微隆起地形",
+      "label": "Maps"
+    },
+    {
+      "id": 7,
+      "concept": "半球雲圖+小太陽+雨滴貼層可切換",
+      "label": "Weather"
+    },
+    {
+      "id": 8,
+      "concept": "白色算器按鍵可按壓感+小液晶反綠",
+      "label": "Calc"
+    },
+    {
+      "id": 9,
+      "concept": "圓形金屬錶盤+夜光點",
+      "label": "Clock"
+    },
+    {
+      "id": 10,
+      "concept": "鍍鉻齒輪+中心螺絲高光",
+      "label": "Prefs"
+    },
+    {
+      "id": 11,
+      "concept": "立體愛心+心電細線",
+      "label": "Health"
+    },
+    {
+      "id": 12,
+      "concept": "棕色車縫線皮夾+露出一角卡片",
+      "label": "Wallet"
+    }
+  ],
+  "constraints": {
+    "must_keep": [
+      "12 枚同主光左上 45°、同底邊對齊",
+      "全盤色數不超過 6 種主色+黑白灰"
+    ],
+    "avoid": [
+      "與 iOS 官方圖示 1:1 撞臉",
+      "標籤拼寫錯誤",
+      "單格資訊密度過高"
+    ]
+  }
+}

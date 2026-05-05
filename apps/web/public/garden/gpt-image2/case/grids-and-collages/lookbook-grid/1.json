@@ -1,0 +1,77 @@
+{
+  "type": "7 日穿搭 lookbook",
+  "goal": "生成一張可發小紅書 / Instagram 的 7 日 lookbook 資訊圖，3:4",
+  "title_block": {
+    "main_title": "一週穿什麼 · 時代巡演系靈感",
+    "subtitle": "7 days · sequins & knits",
+    "position": "頂部居中"
+  },
+  "subject": {
+    "model": "年輕女性，金色長卷發，五官為原創動漫感偏寫真，不追求與任何真人畫素級一致；身材勻稱偏修長",
+    "consistency": "7 格內為同一人、同臉型與髮型"
+  },
+  "layout": {
+    "format": "上 4 格 + 下 3 格錯位，格間 8px 髮絲線",
+    "panel_count": 7,
+    "panel_design": {
+      "label_top": "DAY 1 / MON 至 SUN 大寫，角落小號",
+      "outfit_caption": "每格下緣一行短英文風格名 + 中文 4 至 6 字"
+    }
+  },
+  "outfits": [
+    {
+      "day": 1,
+      "label": "MON",
+      "style": "亮片短上衣 + 高腰闊腿黑褲 + 細跟靴，舞臺反光背景"
+    },
+    {
+      "day": 2,
+      "label": "TUE",
+      "style": "奶油白粗針織 cardi + 牛仔喇叭褲 + 棕皮帶，暖室內窗光"
+    },
+    {
+      "day": 3,
+      "label": "WED",
+      "style": "酒紅絲絨迷你裙 + 過膝長靴，劇院幕布前"
+    },
+    {
+      "day": 4,
+      "label": "THU",
+      "style": "黑白條紋 T + 卡其百慕大短褲 + 復古運動鞋，城市街拍"
+    },
+    {
+      "day": 5,
+      "label": "FRI",
+      "style": "墨綠絲質襯衫 + 黑直筒西褲 + 小方巾，輕正式晚餐場景"
+    },
+    {
+      "day": 6,
+      "label": "SAT",
+      "style": "格紋迷你連衣裙 + 牛仔外套繫腰 + 白球鞋，公園草坪"
+    },
+    {
+      "day": 7,
+      "label": "SUN",
+      "style": "灰連帽衛衣 + 軟褲 + 羊毛襪居家，咖啡杯小道具，鬆弛感"
+    }
+  ],
+  "style": {
+    "art_style": "日雜時尚平拍 + 米色無縫紙 + 輕後期顆粒",
+    "color_palette": "米白、黑、金閃點綴、低飽和紅綠"
+  },
+  "footer": {
+    "summary": "工作日少量亮片點綴，週末回到針織與軟材質"
+  },
+  "aspect_ratio": "3:4",
+  "constraints": {
+    "must_keep": [
+      "7 格同一人可識別，服裝差異明顯不重複",
+      "每格有全身或膝上全身，不裁頭",
+      "主色板不摻熒光粉綠"
+    ],
+    "avoid": [
+      "7 人七張臉",
+      "格內小字多過兩行"
+    ]
+  }
+}

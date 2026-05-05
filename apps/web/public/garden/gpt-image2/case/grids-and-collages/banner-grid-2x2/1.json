@@ -1,0 +1,62 @@
+{
+  "type": "2x2 課程 banner 套裝",
+  "goal": "生成一組 4 張統一風格的硬體 campaign banner，整體 1:1 外框，2×2 等分，白縫分隔",
+  "brand": {
+    "name": "Apple · Vision 系列",
+    "logo_position": "每格左上角小蘋果符號 + 次行小字 'Vision Pro 2'（非官方、僅為視覺演練）",
+    "primary_color": "#F5F5F7",
+    "secondary_color": "#1D1D1F"
+  },
+  "layout": {
+    "format": "2x2 grid",
+    "panel_count": 4,
+    "gap": "16px 冷白微分隔 + 1px 髮絲線",
+    "panel_aspect_ratio": "4:5",
+    "overall_aspect_ratio": "1:1"
+  },
+  "panels": [
+    {
+      "position": "top-left",
+      "course": "空間辦公",
+      "headline": "多窗協作，一抬眼就對齊",
+      "visual": "使用者佩戴頭顯的剪影，半空中懸浮多枚半透明視窗，一支 Apple Pencil 狀指標虛影",
+      "cta": "瞭解效率"
+    },
+    {
+      "position": "top-right",
+      "course": "空間音訊創作",
+      "headline": "把混音臺放進客廳空氣裡",
+      "visual": "抽象環形聲場與發光推子軌道圍繞沙發場景",
+      "cta": "觀看短片"
+    },
+    {
+      "position": "bottom-left",
+      "course": "空間健身",
+      "headline": "教練在面前一米處示範",
+      "visual": "客廳地毯上的人做深蹲，AR 等身教練輪廓線稿疊在前方",
+      "cta": "預約體驗"
+    },
+    {
+      "position": "bottom-right",
+      "course": "遠端在場",
+      "headline": "對方的目光方向，對得上你",
+      "visual": "多人 FaceTime 風格圓角卡片懸浮成弧形牆，主視角人物眼神交會強調",
+      "cta": "加入候補名單"
+    }
+  ],
+  "style": {
+    "art_style": "蘋果風極簡 3D 渲染 + 亞光金屬與磨砂玻璃 + 大留白",
+    "typography": "中文西文統一使用類似 SF 的無襯線，標題 10 字內"
+  },
+  "constraints": {
+    "must_keep": [
+      "四格白底/淺灰與深字對比一致，CTA 藥丸按鈕同位置（右下或下中）",
+      "每格可獨立成稿，不依賴其他三格才讀懂",
+      "標題每行 ≤ 12 字"
+    ],
+    "avoid": [
+      "四格用四種無關插畫語言",
+      "單格出現超過 1 個主 CTA 文案"
+    ]
+  }
+}

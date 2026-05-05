@@ -1,0 +1,64 @@
+{
+  "type": "動漫立項 Pitch Board",
+  "goal": "生成一張都市玄幻向網路動畫單頁 pitch，強調在地城市氣質與可動畫化分季結構",
+  "ip": {
+    "title": "江聲異聞錄",
+    "title_localized": "WHISPERS OF THE RIVERSCape",
+    "tagline": "水記得每一句謊言",
+    "logline": "能聽見建築記憶的年輕律師，被一樁跨江大橋案拖入水下古城的契印戰爭，他必須在法條與妖契之間，選擇讓城市繼續假裝正常。",
+    "genre": "都市玄幻 / 律政懸疑 / 季番 12 話"
+  },
+  "regions": {
+    "main_kv": {
+      "position": "上半 58%",
+      "content": "夜雨江面，大橋懸索在霧中發冷白光，水下半透明古城闕影與現代表面投影重疊，前景男主撐透明傘背對鏡頭、西裝下襬被風掀起，水紋形成淡淡契印光紋",
+      "style": "寫実背景 + anime 人物 + 電影色分級青橙"
+    },
+    "character_cards": {
+      "position": "左下",
+      "count": "3",
+      "items": [
+        "江澄 · 主角 · 律師 / 可讀取構築物「記憶殘響」",
+        "商瀾 · 對手律師 · 實為契印會代理人，與主角舊同學關係",
+        "老船孃 · 引導者 · 江底擺渡人、身份成謎"
+      ],
+      "card_design": "豎長圓角卡 + 胸像 + 名 + 雙身份小字"
+    },
+    "world_setting": {
+      "position": "右下",
+      "content": "地表現代律所線與地下江契線雙線敘事，每 3 話解鎖一座「記憶碼頭」。",
+      "extras": [
+        "小地圖：兩江交匯 + 三處標註點",
+        "三道具：法典、溼契紙、老船票"
+      ]
+    },
+    "title_block": {
+      "position": "頂部居中大標題區",
+      "components": [
+        "江聲異聞錄 大字",
+        "英文副題雙行小寫混排"
+      ]
+    },
+    "footer_meta": {
+      "position": "底欄",
+      "content": "RIVER GHOST PICTURES · bible one-pager 2026"
+    }
+  },
+  "style": {
+    "art_style": "近寫實場景 + anime 角色 + 雨與體積霧",
+    "color_palette": "雨灰、江綠、路燈琥珀、內透藍",
+    "typography": "宋黑混排、英文短詞全小寫加字距"
+  },
+  "aspect_ratio": "3:4",
+  "constraints": {
+    "must_keep": [
+      "城市可辨為山城江景氣質但不復刻商標建築",
+      "logline 與主視覺情緒一致",
+      "分割槽網格對齊"
+    ],
+    "avoid": [
+      "過度血腥或恐怖特寫",
+      "標題區域超過兩種字型家族"
+    ]
+  }
+}

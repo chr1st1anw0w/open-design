@@ -1,0 +1,46 @@
+{
+  "type": "中英對照文化海報",
+  "goal": "生成 3:4 豎版文化展覽主視覺，可用於主海報、請柬、線上首圖，雙語不是簡單機翻要語氣體面",
+  "languages": {
+    "primary": "中文",
+    "secondary": "英文"
+  },
+  "title_block": {
+    "main_zh": "照見之間",
+    "main_en": "BETWEEN THE TWO HANDS",
+    "subtitle_zh": "當代東方與西方工藝互鑑年展",
+    "subtitle_en": "A Contemporary Survey of East-West Craft",
+    "alignment": "左上與左中分塊左對齊，主標題在豎向黃金分割偏上，英文副行寬度不超過中文標題寬",
+    "hierarchy_rule": "中文主標題 > 英文主行 > 中文副題 > 英文副題 > 元資訊行"
+  },
+  "meta": {
+    "date": "2026.5.1 - 2026.6.15",
+    "venue": "西岸美術館 · 上海",
+    "presenter": "X MUSEUM ALLIANCE 聯合策展"
+  },
+  "main_visual": {
+    "description": "右下 45% 區域為低多邊形山水剪影與直尺圓規線條疊壓，不模仿任何單一藝術家 signature，用硃砂色塊、墨線、留白呼吸",
+    "position": "右下大區，上緣與主標題中軸大致齊平、不穿過標題字"
+  },
+  "design": {
+    "primary_color": "#9B2B2A 硃砂",
+    "background_color": "#F0E6D4 古紙",
+    "zh_font": "現代宋體，標題用字重 700，正文 400",
+    "en_font": "Cormorant Garamond 或等氣質 modern serif 僅用於主副英文行，元資訊可換為 Source Serif 4 小號",
+    "grid": "12 欄柵格，主標題站 1-6 欄，主視覺 7-12 欄，終稿不顯示格線"
+  },
+  "aspect_ratio": "3:4",
+  "constraints": {
+    "must_keep": [
+      "中文字型與拉丁字型形態明顯不同源，不共用同一檔案混排",
+      "英譯在語義上與中文展覽名呼應而不是硬譯每個字",
+      "留白不低於畫面 20%",
+      "色數 ≤3 大面積色"
+    ],
+    "avoid": [
+      "中文標題用西文無襯線直接充當",
+      "英副題字號接近中文主題",
+      "在角落堆二維碼與六個贊助 logo（如需要可另做物料）"
+    ]
+  }
+}

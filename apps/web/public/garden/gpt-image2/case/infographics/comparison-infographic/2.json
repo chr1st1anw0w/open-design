@@ -1,0 +1,61 @@
+{
+  "type": "雙列對比資訊圖",
+  "goal": "在膳食語境下講清兩種日常飲品的差異, 不製造焦慮",
+  "canvas": {
+    "aspect_ratio": "3:4 portrait",
+    "background": "cream #FAF3E8",
+    "split_line": "中縫一杯豎切, 左燕麥奶色 #D8C1A0, 右乳白 #F5F5F0, 中縫有細線+小 'VS' 圓標"
+  },
+  "header": {
+    "main_title": "燕麥奶 vs 牛奶: 7 個維度別盲選",
+    "subtitle": "乳糖不耐/環保/控脂/健身蛋白需求——先看錶再決定囤哪一種"
+  },
+  "columns": [
+    {
+      "id": "left",
+      "name": "燕麥奶(強化鈣維生素款)",
+      "color_theme": "燕麥金 #A67C52 + 深咖字",
+      "header_visual": "插吸管紙盒側視簡畫+燕麥粒線稿",
+      "tagline": "植物、多數零乳糖(注意生產線)、咖啡友好"
+    },
+    {
+      "id": "right",
+      "name": "全脂牛乳(巴氏/高溫殺菌)",
+      "color_theme": "白瓶+靛字 #1B2538",
+      "header_visual": "玻璃奶瓶弧線+小奶牛簡筆",
+      "tagline": "完全蛋白、天然鈣、脂溶性維生素載體"
+    }
+  ],
+  "comparison_rows": {
+    "count": "7",
+    "structure": "中列維度+左右對比, 可 ✓/△/– 與顏色淺底",
+    "items": [
+      "完全蛋白 PDCAAS",
+      "鈣與 D 強化(讀配料表)",
+      "飽和脂肪與總熱量(每 250mL 示意級)",
+      "升糖/飽腹主觀差異(不當作醫學結論)",
+      "單價與可得性(超商常見度)",
+      "環境足跡(水/土/氣層面定性)",
+      "咖啡拉花/茶拿鐵適配(foam 質感)"
+    ],
+    "marker_style": "對勾+三角+短橫+淺琥珀高亮'需試喝'",
+    "highlight_winner_per_row": "true, 不固定同一側贏, 以客觀符號為準"
+  },
+  "footer": {
+    "verdict": "補蛋白優先牛奶; 乳糖不適或要換口味時可用燕麥奶+均衡膳食。看配料表, 不迷信包裝文案。",
+    "winner_badge": {
+      "enabled": "false",
+      "label": "",
+      "position": "left"
+    }
+  },
+  "constraints": {
+    "must_keep": [
+      "中列維度名居中, 每行同高",
+      "不出現具體疾病療效承諾"
+    ],
+    "avoid": [
+      "用極埠號否定任一飲品"
+    ]
+  }
+}

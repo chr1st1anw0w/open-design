@@ -1,0 +1,66 @@
+{
+  "type": "動漫立項 Pitch Board",
+  "goal": "生成一張國產回合制 RPG 對外 pitch 單頁，資訊分割槽清晰、可直接印 deck 首頁",
+  "ip": {
+    "title": "星樞編年史",
+    "title_localized": "Chronicle of the Astral Spindle",
+    "tagline": "改寫星軌者，自為人間立法",
+    "logline": "在人造星空之下，符師少女與廢鐵機甲騎士結伴穿越摺疊城邦，向篡奪天樞的教團索回一夜真正的黑夜。",
+    "genre": "東方科幻 / 公路冒險 / 回合制 RPG"
+  },
+  "regions": {
+    "main_kv": {
+      "position": "上半約 60%",
+      "content": "青金夜幕下巨型齒輪狀空間站懸於雲海，前景三人小隊逆風前行：持符籙長幡的少女、提光束騎槍覆蓋鏽甲的青年、掌浮動八卦盤的獸耳學者；遠處城市霓虹呈環形梯田狀",
+      "style": "電影級 anime 厚塗 + 體積霧 + 高對比邊緣光"
+    },
+    "character_cards": {
+      "position": "左下 35% 寬",
+      "count": "3",
+      "items": [
+        "離昭 · 符師 · 可改寫區域性重力場，但每戰消耗「記憶絲」",
+        "沈鑄 · 巡遊騎士 · 駕駛可拼接模組機甲，前重灌偵查",
+        "見潮 · 天樞學者 · 獸耳、推演敵回合意圖，團隊大腦"
+      ],
+      "card_design": "圓角方卡：胸像 + 名 + 一句定位"
+    },
+    "world_setting": {
+      "position": "右下 35% 寬",
+      "content": "「樞城」為多層摺疊都市，晝夜由天樞教團發放；主矛盾為被剝奪的星空權與地底舊神殘渣。",
+      "extras": [
+        "縮略地形圖：三層環形城區 + 一條垂直電梯井",
+        "三圖示：符籙、機甲插槽、星軌條資源"
+      ]
+    },
+    "title_block": {
+      "position": "頂距上緣 4% 居中",
+      "components": [
+        "主標題行「星樞編年史」",
+        "副行 Chronicle of the Astral Spindle 略小全大寫",
+        "tagline 斜體中文小字"
+      ]
+    },
+    "footer_meta": {
+      "position": "最底 3%",
+      "content": "NEBULA PULSE STUDIO · 單頁概覽 2026 · 本頁為創作演練檔案"
+    }
+  },
+  "style": {
+    "art_style": "現代 anime 半寫實 + 厚塗 + 深空青與熔金對撞",
+    "color_palette": "#0A1628 深靛、#3EC9FF 電青、#C9A227 星金、#E8DCCD 月白",
+    "typography": "中文標題有襯線感 + 英文無襯線混排，正文 8pt 級灰色"
+  },
+  "aspect_ratio": "3:4",
+  "constraints": {
+    "must_keep": [
+      "KV 區不低於畫面高度 50%",
+      "三角色卡視覺風格統一、線寬一致",
+      "含 tagline 與 logline 文案區，不得只剩圖畫"
+    ],
+    "avoid": [
+      "區塊擠佔 KV 至低於 40%",
+      "同屏主色超過 4 大色塊",
+      "角色卡與 KV 中人物設計不一致"
+    ]
+  }
+}

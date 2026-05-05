@@ -1,0 +1,55 @@
+{
+  "type": "VTuber / 主播預告封面",
+  "goal": "生成一張可愛粉系女性 VTuber 雜談直播開播預告封面，整體像真實 YouTube / Bilibili 直播縮圖",
+  "platform": "Bilibili 直播 / YouTube Live 通用",
+  "aspect_ratio": "16:9",
+  "style": "二次元 anime 風格，高飽和度可愛粉系，閃光、愛心、星星裝飾",
+  "character": {
+    "description": "棕粉色雙丸子頭動漫女孩，琥珀色大眼，眼下一顆小痣，溫柔微笑",
+    "outfit": "粉色和服 + 白色女僕圍裙，胸前蝴蝶結，髮飾是櫻花 + 小鈴鐺",
+    "pose": "右手輕抓粉色裝飾麥克風靠近嘴邊，左手做出比心手勢",
+    "position": "畫面右側 2/5"
+  },
+  "layout": {
+    "background": "粉色 → 香檳金漸變背景 + 漂浮閃光、心形泡泡、蝴蝶結點綴",
+    "text_sections": [
+      {
+        "type": "頂部絲帶",
+        "text": "今晚 21 點開播！一起來聊聊吧 ♡"
+      },
+      {
+        "type": "主標題",
+        "text": "櫻粉雜談",
+        "decorations": "標題左右各一個大桃子插畫與五角星，使用珠光描邊粉色字 + 白底黑描邊大字"
+      },
+      {
+        "type": "中間絲帶",
+        "text": "想和大家度過開心的時光♡"
+      },
+      {
+        "type": "底部要點",
+        "items": [
+          "✿ 新人友好",
+          "✿ 禮物多多回收",
+          "✿ ROMO 一起來"
+        ]
+      },
+      {
+        "type": "底部說話框",
+        "text": "評論大歡迎♪ 一起多聊聊吧～"
+      }
+    ]
+  },
+  "platform_marks": {
+    "handle": "@櫻粉ちゃんSakuPink",
+    "live_badge": "左上角紅色 'LIVE 即將開播' 徽章"
+  },
+  "constraints": {
+    "must_feel": "像真實 VTuber 主播預告封面，而不是同人插畫",
+    "avoid": [
+      "出現暗黑或冷色背景",
+      "角色表情冷漠",
+      "文字超過 3 行密集堆疊"
+    ]
+  }
+}

@@ -1,0 +1,156 @@
+{
+  "type": "工程感技術思維導圖（放射式 mind map）",
+  "goal": "生成一張暗色 grid 底紋的前端工程師技能腦圖，中央強調 TypeScript/瀏覽器平臺，主分支 6 條、分支色一致貫穿子節點，mono 等寬小卡",
+  "canvas": {
+    "aspect_ratio": "16:9",
+    "background": "deep slate #0F172A with subtle 1px grid #1E293B at 32px spacing",
+    "outer_padding": "60px"
+  },
+  "title_strip": {
+    "title": "Web 前端能力圖譜（交付級）",
+    "subtitle": "TypeScript 優先 · 2026",
+    "position": "top-left, JetBrains Mono / SF Mono, light gray"
+  },
+  "central_node": {
+    "label": "Frontend\nEngineer",
+    "shape": "rounded rectangle (corner radius 16px)",
+    "size": "260×120px",
+    "fill": "amber #FBBF24 × 18% opacity",
+    "border": "2px solid amber #FBBF24",
+    "label_style": "mono bold 16pt, centered, light text",
+    "position": "image center"
+  },
+  "primary_branches": {
+    "count": 6,
+    "items": [
+      {
+        "id": "B1",
+        "label": "Languages",
+        "color": "cyan #22D3EE",
+        "angle_position": "top-left"
+      },
+      {
+        "id": "B2",
+        "label": "Frameworks",
+        "color": "blue #60A5FA",
+        "angle_position": "top-right"
+      },
+      {
+        "id": "B3",
+        "label": "State & Data",
+        "color": "emerald #34D399",
+        "angle_position": "right"
+      },
+      {
+        "id": "B4",
+        "label": "Build & Tooling",
+        "color": "violet #A78BFA",
+        "angle_position": "bottom-right"
+      },
+      {
+        "id": "B5",
+        "label": "Testing",
+        "color": "rose #FB7185",
+        "angle_position": "bottom-left"
+      },
+      {
+        "id": "B6",
+        "label": "Perf & RUM",
+        "color": "orange #FB923C",
+        "angle_position": "left"
+      }
+    ],
+    "branch_node_style": {
+      "shape": "rounded rectangle (corner radius 10px)",
+      "size": "180×56px",
+      "fill": "branch color × 14% opacity",
+      "border": "1.5px solid branch color",
+      "label": "mono bold 13pt, centered, light text",
+      "position": "evenly distributed around central node, ~ radius 380-440px"
+    },
+    "connector_style": "thick branch-colored line 2px from central node to primary node, slight curve"
+  },
+  "secondary_nodes": {
+    "rule": "每個 primary 下掛 4-6 個 secondary，沿主分支方向呈樹枝狀展開",
+    "items_per_primary": {
+      "B1": [
+        "TypeScript 5.6（satisfies / infer 進階）",
+        "JavaScript ES2024+（Iterator helpers）",
+        "CSS（grid/subgrid, @layer, color-mix）",
+        "平臺 API（Fetch, BroadcastChannel, File System Access 許可權模型）"
+      ],
+      "B2": [
+        "React 19 / Next.js App Router (RSC 心智)",
+        "Vue 3.5 組合式 + Vapor 模式",
+        "跨端：React Native 新架構 / Expo SDK 53",
+        "Web Components + Lit 3（設計系統外溢）"
+      ],
+      "B3": [
+        "TanStack Query 5 + 樂觀更新 / 去重",
+        "Zustand 輕量 + XState 複雜狀態",
+        "tRPC 或 OpenAPI-typed 客戶端",
+        "GraphQL（persisted query + 複雜快取）"
+      ],
+      "B4": [
+        "Vite / Rolldown 遷移評估",
+        "pnpm workspace + Changesets 版本策略",
+        "ESLint 9 flat config + TypeScript-ESLint 嚴格集",
+        "CI：Playwright sharding + 報告歸檔"
+      ],
+      "B5": [
+        "Vitest 單測 + happy-dom 環境",
+        "Playwright trace / codegen / 可訪問性斷言",
+        "Storybook 8 + 視覺迴歸與 a11y",
+        "MSW 2 攔截 OpenAPI 契約"
+      ],
+      "B6": [
+        "Core Web Vitals：INP 優先、long tasks 切分",
+        "OpenTelemetry 瀏覽器 + RUM 關聯 trace_id",
+        "Bundle：rollup-plugin-visualizer + source-map 審計",
+        "Image：AVIF/ WebP2、priority hints、responsive srcset"
+      ]
+    },
+    "secondary_node_style": {
+      "shape": "rounded rectangle (corner radius 8px)",
+      "size": "auto-fit text + 12px padding, ~ 140×40px typical",
+      "fill": "branch color × 8% opacity",
+      "border": "1.2px solid branch color (slightly desaturated)",
+      "label": "mono regular 11pt"
+    },
+    "connector_style": "thin branch-colored line 1.2px from primary to secondary, curved"
+  },
+  "tertiary_nodes": {
+    "enabled": false,
+    "rule": "不展開第三層以避免擁擠；若畫布中心仍顯空可在 B3 的 tRPC 下點出 zod 模式"
+  },
+  "highlights": {
+    "must_know": {
+      "enabled": true,
+      "rule": "對三項加 ★ 與加粗 2.5px 邊框：'★ TypeScript 5.6'、'★ React 19 / Next'、'★ OpenTelemetry 瀏覽器 + RUM'",
+      "starred_literal": [
+        "★ TypeScript 5.6",
+        "★ React 19 / Next.js App Router",
+        "★ OpenTelemetry + RUM"
+      ]
+    }
+  },
+  "legend": {
+    "enabled": true,
+    "position": "bottom-right",
+    "content": "branch 色 → 六大域；星標 → 崗位硬門檻；連線粗細 → 主 / 次層級",
+    "style": "small panel, semi-transparent bg, mono 10pt"
+  },
+  "constraints": {
+    "must_keep": [
+      "中央節點唯一、居中、字號最大",
+      "每條主分支一色到底",
+      "等寬字型、暗色細 grid、節點層級大中小分明",
+      "放射均勻，避免全擠在右上象限"
+    ],
+    "avoid": [
+      "用 emoji 當節點主圖示",
+      "三級全展開",
+      "聲稱是 XMind 可開啟原始檔"
+    ]
+  }
+}

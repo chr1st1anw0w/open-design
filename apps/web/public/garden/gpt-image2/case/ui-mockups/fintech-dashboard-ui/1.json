@@ -1,0 +1,70 @@
+{
+  "type": "金融科技數據看板樣機",
+  "goal": "生成一張具備未來感與精緻資料視覺化的 Fintech Dashboard，突顯金融數據的專業感與現代設計趨勢",
+  "device_context": "{device_context:iPad Pro / Tablet Landscape}",
+  "user_portfolio": {
+    "greeting": "{greeting:Good evening, Alex}",
+    "total_balance": "{total_balance:$1,245,000.00}",
+    "currency": "{currency:USD}",
+    "daily_change": "{daily_change:+$4,250 (1.2%)}"
+  },
+  "data_visualization": {
+    "chart_type": "{chart_type:Smooth Area Chart (平滑面積圖)}",
+    "timeframe_tabs": [
+      "1D",
+      "1W",
+      "1M",
+      "1Y",
+      "ALL"
+    ],
+    "active_tab": "{active_timeframe:1M}",
+    "chart_style": {
+      "line_color": "{chart_line_color:#00E5FF}",
+      "fill_gradient": "{chart_fill_gradient:cyan to transparent}",
+      "tooltip": "{chart_tooltip:Floating dark tooltip showing $42,500 on Oct 12}"
+    }
+  },
+  "components": {
+    "quick_actions": [
+      {
+        "icon": "Send",
+        "label": "Transfer",
+        "style": "Primary Button (Purple gradient)"
+      },
+      {
+        "icon": "Receive",
+        "label": "Request",
+        "style": "Secondary Outline"
+      }
+    ],
+    "recent_activity": {
+      "title": "Recent Transactions",
+      "items": [
+        {
+          "merchant": "Apple Store",
+          "amount": "-$1,200",
+          "status": "Completed",
+          "icon": "Apple Logo"
+        },
+        {
+          "merchant": "Stripe Payout",
+          "amount": "+$5,400",
+          "status": "Completed",
+          "icon": "Bank"
+        },
+        {
+          "merchant": "AWS Cloud",
+          "amount": "-$450",
+          "status": "Pending",
+          "icon": "Server"
+        }
+      ]
+    }
+  },
+  "style_guidelines": {
+    "theme": "{theme_mode:Dark Mode}",
+    "background": "{background_color:Deep navy or pure black (#0F172A)}",
+    "glassmorphism": "{glassmorphism:true (Cards have blur backdrop and semi-transparent borders)}",
+    "accents": "{accents:Neon Cyan and Electric Purple}"
+  }
+}
