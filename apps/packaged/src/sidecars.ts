@@ -30,6 +30,15 @@ import type { PackagedNamespacePaths } from "./paths.js";
 const require = createRequire(import.meta.url);
 const PACKAGED_CHILD_ENV_ALLOWLIST = ["HOME", "LANG", "LC_ALL", "LOGNAME", "TMPDIR", "USER"] as const;
 
+function shouldForwardPackagedChildEnv(key: string, includeProviderSecrets = false): boolean {
+  return (
+    PACKAGED_CHILD_ENV_ALLOWLIST.includes(
+      key as (typeof PACKAGED_CHILD_ENV_ALLOWLIST)[number],
+    ) ||
+    (includeProviderSecrets && (key.endsWith("_API_KEY") || key.endsWith("_TOKEN")))
+  );
+}
+
 export type PackagedSidecarHandle = {
   close(): Promise<void>;
   daemon: DaemonStatusSnapshot;
@@ -138,11 +147,12 @@ function resolvePackagedPathEnv(basePath = process.env.PATH ?? ""): string {
   return [...new Set(candidates.filter((entry) => entry.length > 0))].join(delimiter);
 }
 
-function resolvePackagedChildBaseEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+function resolvePackagedChildBaseEnv(env: NodeJS.ProcessEnv = process.env,includeProviderSecrets = false,): NodeJS.ProcessEnv {
   const baseEnv: NodeJS.ProcessEnv = {};
-  for (const key of PACKAGED_CHILD_ENV_ALLOWLIST) {
-    const value = env[key];
-    if (value != null && value.length > 0) baseEnv[key] = value;
+  for (const [key, value] of Object.entries(env)) {
+    if (value != null && value.length > 0 && shouldForwardPackagedChildEnv(key, includeProviderSecrets)) {
+      baseEnv[key] = value;
+    }
   }
   return baseEnv;
 }
@@ -181,7 +191,7 @@ async function spawnSidecarChild(options: {
     base: options.paths.runtimeRoot,
     contract: OPEN_DESIGN_SIDECAR_CONTRACT,
     extraEnv: {
-      ...resolvePackagedChildBaseEnv(),
+      ...resolvePackagedChildBaseEnv(process.env, options.app === APP_KEYS.DAEMON),
       ...options.env,
       NODE_ENV: "production",
       PATH: resolvePackagedPathEnv(),
