@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>工業戰情中心 - 杰銳計畫</title>
+<style>
+  :root {
+    --bg-dark: #0f172a;
+    --card-bg: #1e293b;
+    --border: #334155;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+
+    /* Industrial Status Colors */
+    --status-ok: #10b981;
+    --status-alert: #ef4444;
+    --status-warn: #f59e0b;
+    --status-standby: #3b82f6;
+
+    --font-display: "Orbitron", "Noto Sans TC", sans-serif;
+    --font-data: "JetBrains Mono", monospace;
+  }
+
+  body {
+    background: var(--bg-dark);
+    color: var(--text-main);
+    font-family: var(--font-display);
+    margin: 0;
+    padding: 20px;
+    overflow-x: hidden;
+  }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+
+  .logo { font-size: 20px; font-weight: 800; letter-spacing: 2px; color: var(--status-standby); }
+  .system-info { text-align: right; font-family: var(--font-data); font-size: 14px; }
+
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 4px; height: 100%;
+  }
+
+  .card.ok::after { background: var(--status-ok); }
+  .card.alert::after { background: var(--status-alert); }
+  .card.warn::after { background: var(--status-warn); }
+
+  .card-label { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+  .card-value { font-size: 36px; font-weight: 700; font-family: var(--font-data); }
+  .card-unit { font-size: 14px; margin-left: 4px; color: var(--text-muted); }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+  }
+
+  .chart-area {
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .machine-status {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+
+  .machine-status th {
+    text-align: left;
+    color: var(--text-muted);
+    font-size: 12px;
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .machine-status td {
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+
+  .status-pill {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .pill-ok { background: rgba(16, 185, 129, 0.2); color: var(--status-ok); border: 1px solid var(--status-ok); }
+  .pill-alert { background: rgba(239, 68, 68, 0.2); color: var(--status-alert); border: 1px solid var(--status-alert); }
+  .pill-warn { background: rgba(245, 158, 11, 0.2); color: var(--status-warn); border: 1px solid var(--status-warn); }
+
+  .progress-bg { background: #334155; height: 8px; border-radius: 4px; margin-top: 12px; }
+  .progress-fill { height: 100%; border-radius: 4px; }
+
+  @media (max-width: 1200px) {
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .main-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">XUAN-YE TECH / 杰銳計畫</div>
+  <div class="system-info">
+    <div>廠區：台中精機 A7 區</div>
+    <div>班別：晚班 (18:00 - 02:00)</div>
+    <div id="clock">2025-05-05 14:45:22</div>
+  </div>
+</header>
+
+<div class="kpi-row">
+  <div class="card ok">
+    <div class="card-label">整體設備效率 OEE</div>
+    <div class="card-value">88.4<span class="card-unit">%</span></div>
+    <div class="progress-bg"><div class="progress-fill" style="width: 88.4%; background: var(--status-ok);"></div></div>
+  </div>
+  <div class="card ok">
+    <div class="card-label">目前生產達成率</div>
+    <div class="card-value">1,240<span class="card-unit">/ 1,500</span></div>
+    <div class="progress-bg"><div class="progress-fill" style="width: 82.6%; background: var(--status-standby);"></div></div>
+  </div>
+  <div class="card alert">
+    <div class="card-label">異常機台數</div>
+    <div class="card-value">2<span class="card-unit">UNIT</span></div>
+  </div>
+  <div class="card warn">
+    <div class="card-label">預測維修警示</div>
+    <div class="card-value">3<span class="card-unit">DEVICE</span></div>
+  </div>
+</div>
+
+<div class="main-grid">
+  <div class="card chart-area">
+    <div style="display:flex; justify-content:space-between; align-items:center">
+      <h3>即時機台狀態監控</h3>
+      <span style="font-size:12px; color:var(--text-muted)">更新頻率: 10s</span>
+    </div>
+    <table class="machine-status">
+      <thead>
+        <tr>
+          <th>機台編號</th>
+          <th>型號</th>
+          <th>目前狀態</th>
+          <th>稼動率</th>
+          <th>操作員</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>CNC-A01</td>
+          <td>MAZAK-Variaxis</td>
+          <td><span class="status-pill pill-ok">生產中</span></td>
+          <td style="font-family:var(--font-data)">94.2%</td>
+          <td>張永健</td>
+        </tr>
+        <tr>
+          <td>CNC-A02</td>
+          <td>MAZAK-Variaxis</td>
+          <td><span class="status-pill pill-alert">主軸過熱</span></td>
+          <td style="font-family:var(--font-data)">12.5%</td>
+          <td>林小華</td>
+        </tr>
+        <tr>
+          <td>CNC-A03</td>
+          <td>FANUC-Robodrill</td>
+          <td><span class="status-pill pill-warn">刀具壽命預警</span></td>
+          <td style="font-family:var(--font-data)">88.7%</td>
+          <td>王大同</td>
+        </tr>
+        <tr>
+          <td>ROBOT-01</td>
+          <td>KUKA-KR60</td>
+          <td><span class="status-pill pill-ok">生產中</span></td>
+          <td style="font-family:var(--font-data)">99.1%</td>
+          <td>AUTO</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>良率統計 (Quality)</h3>
+    <div style="height: 250px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.2); border-radius: 4px; margin: 20px 0;">
+      <span style="color: var(--text-muted)">[ 這裡將顯示良率圓餅圖 ]</span>
+    </div>
+    <div style="display:flex; justify-content: space-between; font-size: 14px;">
+      <span>合格品: 1,225</span>
+      <span style="color: var(--status-alert)">不良品: 15</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  function updateTime() {
+    const now = new Date();
+    document.getElementById('clock').textContent = now.getFullYear() + '-' +
+      String(now.getMonth() + 1).padStart(2, '0') + '-' +
+      String(now.getDate()).padStart(2, '0') + ' ' +
+      String(now.getHours()).padStart(2, '0') + ':' +
+      String(now.getMinutes()).padStart(2, '0') + ':' +
+      String(now.getSeconds()).padStart(2, '0');
+  }
+  setInterval(updateTime, 1000);
+</script>
+</body>
+</html>
