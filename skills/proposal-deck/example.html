@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>計畫提案書 - 杰銳計畫</title>
+<style>
+  :root {
+    --primary: #1e40af;
+    --secondary: #64748b;
+    --accent: #f59e0b;
+    --text-dark: #0f172a;
+    --text-light: #475569;
+    --bg-light: #f8fafc;
+    --white: #ffffff;
+    --font-sans: "Inter", "Noto Sans TC", sans-serif;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    color: var(--text-dark);
+    line-height: 1.7;
+    margin: 0;
+    padding: 0;
+    background: var(--bg-light);
+  }
+
+  .page {
+    max-width: 900px;
+    margin: 40px auto;
+    background: var(--white);
+    padding: 80px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+  }
+
+  header {
+    border-bottom: 4px solid var(--primary);
+    padding-bottom: 40px;
+    margin-bottom: 60px;
+  }
+
+  .tag {
+    display: inline-block;
+    background: var(--primary);
+    color: white;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    letter-spacing: 1px;
+  }
+
+  h1 { font-size: 36px; margin: 0; line-height: 1.2; }
+  h1 span { display: block; font-size: 18px; color: var(--secondary); margin-top: 8px; font-weight: 400; }
+
+  section { margin-bottom: 60px; }
+
+  h2 {
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  h2::before {
+    content: '';
+    width: 32px;
+    height: 4px;
+    background: var(--accent);
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+  }
+
+  .content-box {
+    background: #f1f5f9;
+    padding: 24px;
+    border-radius: 8px;
+  }
+
+  .content-box h3 { margin-top: 0; font-size: 18px; color: var(--primary); }
+
+  .stat-card {
+    text-align: center;
+    padding: 30px;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+  }
+
+  .stat-value { font-size: 48px; font-weight: 800; color: var(--primary); line-height: 1; }
+  .stat-label { font-size: 14px; color: var(--secondary); margin-top: 8px; }
+
+  .roadmap {
+    position: relative;
+    padding-left: 32px;
+    border-left: 2px solid #e2e8f0;
+  }
+
+  .roadmap-item { position: relative; margin-bottom: 32px; }
+  .roadmap-item::before {
+    content: '';
+    position: absolute;
+    left: -41px;
+    top: 8px;
+    width: 16px;
+    height: 16px;
+    background: var(--white);
+    border: 3px solid var(--primary);
+    border-radius: 50%;
+  }
+
+  .roadmap-date { font-weight: 700; color: var(--primary); font-size: 14px; }
+  .roadmap-title { font-weight: 600; font-size: 18px; }
+
+  footer {
+    text-align: center;
+    font-size: 12px;
+    color: var(--secondary);
+    margin-top: 80px;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 20px;
+  }
+
+  @media (max-width: 768px) {
+    .page { padding: 40px 20px; }
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="tag">PROPOSAL / 計畫提案</div>
+    <h1>杰銳計畫：智慧製造轉型方案<span>Jie-Rui Project: Smart Manufacturing Transformation</span></h1>
+  </header>
+
+  <section>
+    <h2>現況分析 / Problem</h2>
+    <div class="grid-2">
+      <div>
+        <p>
+          台灣中小型製造業目前面臨勞動力短缺、生產數據孤島以及設備老舊難以監控等三大挑戰。
+          目前的生產排程仍依賴經驗法則，缺乏數據支撐，導致資源浪費與交期不穩定。
+        </p>
+      </div>
+      <div class="content-box">
+        <h3>核心痛點 Pain Points</h3>
+        <ul>
+          <li>數據採集自動化程度低 (&lt; 20%)</li>
+          <li>異常回應時間超過 60 分鐘</li>
+          <li>ERP 與現場數據脫節</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>解決方案 / Solution</h2>
+    <p>
+      透過「雲端戰情中心」與「AI 預測性維修」雙管齊下，實現工廠資訊透明化與自動化預警。
+    </p>
+    <div class="grid-2" style="margin-top: 24px;">
+      <div class="content-box">
+        <h3>全方位監控 Edge-to-Cloud</h3>
+        <p>部署高效能閘道器，即時採集 CNC 機台數據並同步至雲端儀表板。</p>
+      </div>
+      <div class="content-box">
+        <h3>智慧排程 AI Scheduler</h3>
+        <p>基於歷史數據優化派工規則，提升設備稼動率。</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>預期效益 / KPI & ROI</h2>
+    <div class="grid-2">
+      <div class="stat-card">
+        <div class="stat-value">25%</div>
+        <div class="stat-label">稼動率提升 (OEE Gain)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">15%</div>
+        <div class="stat-label">維護成本降低 (Cost Saving)</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>執行時程 / Roadmap</h2>
+    <div class="roadmap">
+      <div class="roadmap-item">
+        <div class="roadmap-date">Q3 2025</div>
+        <div class="roadmap-title">基礎建設與數據接入</div>
+        <p>完成全廠機台聯網與基礎資料庫建置。</p>
+      </div>
+      <div class="roadmap-item">
+        <div class="roadmap-date">Q4 2025</div>
+        <div class="roadmap-title">戰情中心上線</div>
+        <p>視覺化儀表板正式啟用，導入即時預警系統。</p>
+      </div>
+      <div class="roadmap-item">
+        <div class="roadmap-date">Q1 2026</div>
+        <div class="roadmap-title">AI 模型優化與全廠導入</div>
+        <p>啟動預測性維修模型，完成全體員工培訓。</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    煊燁科技 Xuan-Ye Technology · 2025 商業機密文件
+  </footer>
+</div>
+</body>
+</html>

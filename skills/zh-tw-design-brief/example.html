@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>設計簡報 - 雲端戰情中心</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --muted: #666666;
+    --paper: #ffffff;
+    --line: #e5e5e5;
+    --accent: #0052cc;
+    --accent-soft: #eaf2ff;
+    --display: "Inter", "Noto Sans TC", sans-serif;
+    --mono: "JetBrains Mono", monospace;
+  }
+  body {
+    font-family: var(--display);
+    color: var(--ink);
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    background: #f9f9f9;
+  }
+  .wrap {
+    max-width: 800px;
+    margin: 40px auto;
+    background: var(--paper);
+    padding: 60px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    border-radius: 12px;
+  }
+  header {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 20px;
+    margin-bottom: 40px;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  h1 {
+    font-size: 32px;
+    margin: 0;
+    font-weight: 800;
+  }
+  .meta {
+    display: flex;
+    gap: 40px;
+    margin-top: 24px;
+    font-size: 14px;
+  }
+  .meta b {
+    display: block;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  section {
+    margin-bottom: 48px;
+  }
+  h2 {
+    font-size: 20px;
+    border-left: 4px solid var(--accent);
+    padding-left: 16px;
+    margin-bottom: 20px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .card {
+    padding: 20px;
+    background: var(--accent-soft);
+    border-radius: 8px;
+  }
+  .card h3 {
+    margin: 0 0 12px 0;
+    font-size: 16px;
+  }
+  ul {
+    padding-left: 20px;
+    margin: 0;
+  }
+  li {
+    margin-bottom: 8px;
+  }
+  .token-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .token-table th, .token-table td {
+    text-align: left;
+    padding: 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .color-swatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    margin-right: 8px;
+  }
+  footer {
+    margin-top: 60px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 12px;
+    display: flex;
+    justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Design Brief / 設計簡報</div>
+    <h1>雲端戰情中心系統升級</h1>
+    <div class="meta">
+      <div><b>客戶名稱</b> 煊燁科技 (Xuan-Ye Tech)</div>
+      <div><b>專案類別</b> 工業物聯網 (IIoT)</div>
+      <div><b>日期</b> 2025年3月10日</div>
+    </div>
+  </header>
+
+  <section>
+    <h2>專案概述</h2>
+    <p>
+      目前的戰情中心介面面臨資訊過載、數據視覺化不直覺以及行動裝置適配性差的問題。
+      本次設計目標是為製造業管理者打造一個具備高度可讀性、即時性監控且能快速決策的雲端管理平台。
+      我們需要整合 ERP 與 MES 系統的原始數據，轉化為直覺的關鍵績效指標 (KPI)。
+    </p>
+  </section>
+
+  <section>
+    <h2>設計目標</h2>
+    <ul>
+      <li><strong>數據直覺化：</strong> 讓使用者能在 3 秒內判斷當前生產線的運行狀態（正常/異常/待機）。</li>
+      <li><strong>多終端一致性：</strong> 確保從辦公室桌機到現場平板都能獲得相同的視覺體驗與數據準確度。</li>
+      <li><strong>降低認知負荷：</strong> 重新梳理資訊層級，隱藏非必要的背景數據，僅在需要時提供展開細節。</li>
+      <li><strong>智慧警示：</strong> 強化異常狀態的視覺動態效果，確保問題能被立即發現。</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>品牌個性</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>專業穩定 Professional</h3>
+        <p>採用冷色調與幾何線條，傳遞製造業對精準與穩定的核心需求。</p>
+      </div>
+      <div class="card">
+        <h3>數據導向 Data-Driven</h3>
+        <p>以資訊層級為核心，移除多餘的裝飾性元素，回歸純粹的內容。</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Design Tokens 初步定義</h2>
+    <table class="token-table">
+      <thead>
+        <tr>
+          <th>Token 名稱</th>
+          <th>數值 / 描述</th>
+          <th>預覽</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Color / Status / Success</td>
+          <td>#10B981 (綠色) - 正常運行</td>
+          <td><span class="color-swatch" style="background: #10B981;"></span></td>
+        </tr>
+        <tr>
+          <td>Color / Status / Alert</td>
+          <td>#EF4444 (紅色) - 設備故障</td>
+          <td><span class="color-swatch" style="background: #EF4444;"></span></td>
+        </tr>
+        <tr>
+          <td>Color / Status / Warning</td>
+          <td>#F59E0B (橙色) - 預測性維修提醒</td>
+          <td><span class="color-swatch" style="background: #F59E0B;"></span></td>
+        </tr>
+        <tr>
+          <td>Font / Heading / Hero</td>
+          <td>Bold / 32px / Noto Sans TC</td>
+          <td>Aa</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>交付物清單</h2>
+    <ul>
+      <li>高真度互動原型 (Figma Prototype)</li>
+      <li>全系統設計規範文件 (Design System Documentation)</li>
+      <li>主要戰情看板介面 (Desktop & Tablet)</li>
+      <li>Icon Set 與 圖表組件庫</li>
+    </ul>
+  </section>
+
+  <footer>
+    <span>ARA-DESIGN-STUDIO · Confidential</span>
+    <span>v1.0 Internal Review</span>
+  </footer>
+</div>
+</body>
+</html>
