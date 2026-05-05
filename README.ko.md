@@ -639,7 +639,7 @@ daemon 부팅 시 `PATH`에서 자동 감지됩니다. 설정 필요 없음. 스
 | [GitHub Copilot CLI](https://github.com/features/copilot/cli) | `copilot` | `copilot-stream-json`(타입 이벤트) | `copilot -p <prompt> --allow-all-tools --output-format json [--model …] [--add-dir …]` |
 | [Hermes](https://github.com/eqlabs/hermes) | `hermes` | `acp-json-rpc`(Agent Client Protocol) | `hermes acp --accept-hooks` |
 | Kimi CLI | `kimi` | `acp-json-rpc` | `kimi acp` |
-| [Pi](https://github.com/mariozechner/pi-ai) | `pi` | `pi-rpc`(stdio JSON-RPC) | `pi --mode rpc --no-session [--model …] [--thinking …]`(prompt는 RPC `prompt` 명령으로 전송) |
+| [Pi](https://github.com/mariozechner/pi-ai) | `pi` | `pi-rpc`(stdio JSON-RPC) | `pi --mode rpc [--model …] [--thinking …]`(prompt는 RPC `prompt` 명령으로 전송) |
 | **OpenAI 호환 BYOK** | n/a | SSE 통과 | `POST /api/proxy/stream` → `<baseUrl>/v1/chat/completions`; loopback / link-local / RFC1918에 대한 SSRF 차단 |
 
 새 CLI 추가는 [`apps/daemon/src/agents.ts`](apps/daemon/src/agents.ts)에 항목 하나 추가하는 것입니다. 스트리밍 형식은 `claude-stream-json`, `copilot-stream-json`, `json-event-stream`(CLI별 `eventParser`와 함께), `acp-json-rpc`, `pi-rpc`, `plain` 중 하나입니다.

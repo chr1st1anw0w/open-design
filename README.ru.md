@@ -646,7 +646,7 @@ OD не заканчивается на коде. Тот же чатовый sur
 | Kimi CLI | `kimi` | `acp-json-rpc` | `kimi acp` |
 | [Kiro CLI](https://kiro.dev) | `kiro-cli` | `acp-json-rpc` | `kiro-cli acp` |
 | [Mistral Vibe CLI](https://github.com/mistralai/mistral-vibe) | `vibe-acp` | `acp-json-rpc` | `vibe-acp` |
-| [Pi](https://github.com/mariozechner/pi-ai) | `pi` | `pi-rpc` (stdio JSON-RPC) | `pi --mode rpc --no-session [--model …] [--thinking …]` (prompt отправляется как RPC-команда `prompt`) |
+| [Pi](https://github.com/mariozechner/pi-ai) | `pi` | `pi-rpc` (stdio JSON-RPC) | `pi --mode rpc [--model …] [--thinking …]` (prompt отправляется как RPC-команда `prompt`) |
 | **OpenAI-compatible BYOK** | n/a | SSE pass-through | `POST /api/proxy/stream` → `<baseUrl>/v1/chat/completions`; SSRF-защита от loopback / link-local / RFC1918 |
 
 Добавить новый CLI — это одна запись в [`apps/daemon/src/agents.ts`](apps/daemon/src/agents.ts). Формат стрима выбирается из `claude-stream-json`, `copilot-stream-json`, `json-event-stream` (с отдельным `eventParser` на CLI), `acp-json-rpc`, `pi-rpc` или `plain`.

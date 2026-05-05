@@ -641,7 +641,7 @@ Beim daemon Boot automatisch aus `PATH` erkannt. Keine Konfiguration nötig. Str
 | [GitHub Copilot CLI](https://github.com/features/copilot/cli) | `copilot` | `copilot-stream-json` (typed events) | `copilot -p <prompt> --allow-all-tools --output-format json [--model …] [--add-dir …]` |
 | [Hermes](https://github.com/eqlabs/hermes) | `hermes` | `acp-json-rpc` (Agent Client Protocol) | `hermes acp --accept-hooks` |
 | Kimi CLI | `kimi` | `acp-json-rpc` | `kimi acp` |
-| [Pi](https://github.com/mariozechner/pi-ai) | `pi` | `pi-rpc` (stdio JSON-RPC) | `pi --mode rpc --no-session [--model …] [--thinking …]` (Prompt als RPC-`prompt` Befehl gesendet) |
+| [Pi](https://github.com/mariozechner/pi-ai) | `pi` | `pi-rpc` (stdio JSON-RPC) | `pi --mode rpc [--model …] [--thinking …]` (Prompt als RPC-`prompt` Befehl gesendet) |
 | **OpenAI-compatible BYOK** | n/a | SSE pass-through | `POST /api/proxy/stream` → `<baseUrl>/v1/chat/completions`; SSRF-guarded against loopback / link-local / RFC1918 |
 
 Eine neue CLI ist ein Eintrag in [`apps/daemon/src/agents.ts`](apps/daemon/src/agents.ts). Streaming Format ist eines von `claude-stream-json`, `copilot-stream-json`, `json-event-stream` (mit per-CLI `eventParser`), `acp-json-rpc`, `pi-rpc` oder `plain`.

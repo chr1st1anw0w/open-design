@@ -647,7 +647,7 @@ Detectados automaticamente do `PATH` no boot do daemon. Sem config necessária. 
 | Kimi CLI | `kimi` | `acp-json-rpc` | `kimi acp` |
 | [Kiro CLI](https://kiro.dev) | `kiro-cli` | `acp-json-rpc` | `kiro-cli acp` |
 | [Mistral Vibe CLI](https://github.com/mistralai/mistral-vibe) | `vibe-acp` | `acp-json-rpc` | `vibe-acp` |
-| [Pi](https://github.com/mariozechner/pi-ai) | `pi` | `pi-rpc` (stdio JSON-RPC) | `pi --mode rpc --no-session [--model …] [--thinking …]` (prompt enviado como comando RPC `prompt`) |
+| [Pi](https://github.com/mariozechner/pi-ai) | `pi` | `pi-rpc` (stdio JSON-RPC) | `pi --mode rpc [--model …] [--thinking …]` (prompt enviado como comando RPC `prompt`) |
 | **BYOK multi-provider** | n/a | Normalização SSE | `POST /api/proxy/{provider}/stream` → Anthropic / OpenAI-compatible / Azure OpenAI / Gemini; com guarda SSRF contra loopback / link-local / RFC1918 |
 
 Adicionar um novo CLI é uma entrada em [`apps/daemon/src/agents.ts`](apps/daemon/src/agents.ts). O formato de stream é um de `claude-stream-json`, `copilot-stream-json`, `json-event-stream` (com `eventParser` por CLI), `acp-json-rpc`, `pi-rpc` ou `plain`.
