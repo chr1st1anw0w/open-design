@@ -341,6 +341,62 @@ The daemon owns one hidden folder at the repo root. Everything in it is gitignor
 
 Full file map, scripts, and troubleshooting → [`QUICKSTART.md`](QUICKSTART.md).
 
+## Running the Project
+
+Open Design can run as a web app in your browser or as an Electron desktop application. Both modes share the same local daemon + web architecture.
+
+### Web / Localhost (Default)
+
+```bash
+# Foreground mode — keeps the lifecycle command in the foreground (logs written to files)
+pnpm tools-dev run web
+
+# View recent logs:
+pnpm tools-dev logs
+
+# Background mode — daemon + web run as background processes
+pnpm tools-dev start web
+```
+
+By default, `tools-dev` binds to available ephemeral ports and prints the actual URLs on startup. To use fixed ports from a stopped state:
+
+```bash
+pnpm tools-dev run web --daemon-port 17456 --web-port 17573
+```
+
+If daemon/web are already running, use `restart` to switch ports in the existing session:
+
+```bash
+pnpm tools-dev restart --daemon-port 17456 --web-port 17573
+```
+
+### Desktop / Electron
+
+```bash
+# Start daemon + web + desktop in the background
+pnpm tools-dev
+
+# Check desktop status
+pnpm tools-dev inspect desktop status
+
+# Take a screenshot of the desktop app
+pnpm tools-dev inspect desktop screenshot --path /tmp/open-design.png
+```
+
+The desktop app discovers the web URL automatically via sidecar IPC — no port guessing required.
+
+### Other Useful Commands
+
+| Command | What it does |
+|---|---|
+| `pnpm tools-dev status` | Show running sidecar statuses |
+| `pnpm tools-dev logs` | Show daemon/web/desktop log tails |
+| `pnpm tools-dev stop` | Stop all running sidecars |
+| `pnpm tools-dev restart` | Stop then restart all sidecars |
+| `pnpm tools-dev check` | Status + recent logs + common diagnostics |
+
+For fixed-port restarts, background startup, and full troubleshooting see [`QUICKSTART.md`](QUICKSTART.md).
+
 ## Use Open Design from your coding agent
 
 Open Design ships a stdio MCP server. Wire it into Claude Code, Codex, Cursor, VS Code, Antigravity, Zed, Windsurf, or any MCP-compatible client and the agent in another repo can read files from your local Open Design projects directly. Replaces the export-then-attach loop. When the agent calls `search_files`, `get_file`, or `get_artifact` without a project argument, the MCP defaults to whatever project (and file) you have open in Open Design right now, so prompts like *"build this in my app"* or *"match these styles"* just work.
