@@ -17,7 +17,7 @@ const API_PROTOCOL_AGENT_IDS: Record<ApiProtocol, string> = {
 };
 
 export function apiProtocolLabel(protocol: ApiProtocol | undefined): string {
-  return API_PROTOCOL_LABELS[protocol ?? 'anthropic'];
+  return API_PROTOCOL_LABELS[protocol ?? 'google'];
 }
 
 export function apiProtocolModelLabel(
@@ -30,5 +30,5 @@ export function apiProtocolModelLabel(
 }
 
 export function apiProtocolAgentId(protocol: ApiProtocol | undefined): string {
-  return API_PROTOCOL_AGENT_IDS[protocol ?? 'anthropic'];
+  return API_PROTOCOL_AGENT_IDS[protocol ?? 'google'];
 }
