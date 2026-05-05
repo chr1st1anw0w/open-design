@@ -1,0 +1,73 @@
+{
+  "type": "組織 / 團隊結構圖",
+  "goal": "生成一張金字塔 + 關係網結合的企業卡通版架構海報，3:4，標題幽默但不侮辱人物",
+  "ip": {
+    "name": "「雲端理事會」虛構圓桌：AI 與消費硬體峰層對話",
+    "tone": "現代企業海報 + Q 版頭像 + 輕漫畫勾線"
+  },
+  "characters": {
+    "count": "8",
+    "user_list": "Sam Altman、Jensen Huang、Sundar Pichai、Tim Cook、Elon Musk、Mark Zuckerberg、Bill Gates、Warren Buffett",
+    "card_design": {
+      "components": [
+        "Q 版大頭",
+        "僅姓氏英文大寫+中文職務玩笑標籤"
+      ],
+      "shape": "圓角方形"
+    }
+  },
+  "composition": {
+    "structure": "金字塔：頂層單卡「智囊會」抽象圖示，中上層 Sam Altman 與 Sundar Pichai 並列，中下層 Jensen Huang 與 Elon Musk 分兩側，底排 Tim Cook、Mark Zuckerberg、Bill Gates、Warren Buffett 呈基座分佈",
+    "hierarchy": "越靠上卡略大，表示議題權重而非真實職級"
+  },
+  "relationships": {
+    "types": [
+      {
+        "name": "算力與模型合作",
+        "color": "電青",
+        "line": "實線"
+      },
+      {
+        "name": "消費硬體生態",
+        "color": "銀灰",
+        "line": "虛線"
+      },
+      {
+        "name": "公開市場競爭",
+        "color": "品紅",
+        "line": "鋸齒線"
+      },
+      {
+        "name": "行業倡議 / 非盈利線",
+        "color": "松綠",
+        "line": "粗實線"
+      }
+    ],
+    "annotation_rule": "線旁用中英混合短詞，如「API」「OEM」"
+  },
+  "title_block": {
+    "main_title": "雲端理事會：一張圖裝不下的想象力",
+    "subtitle": "純屬創意拼圖，與真實公司彙報關係無關",
+    "position": "頂部"
+  },
+  "legend": {
+    "enabled": "true",
+    "position": "左下角"
+  },
+  "style": {
+    "art_style": "扁平常用 UI 色 + 柔投影 + Q 版頭像",
+    "color_palette": "淺灰底、主色不超過 5 個明確 HEX 塊面"
+  },
+  "aspect_ratio": "3:4",
+  "constraints": {
+    "must_keep": [
+      "每個頭像為可辨 Q 版風格，不寫實攝影",
+      "註記合法合規，不暗示未經證實醜聞",
+      "線不穿過頭像中央"
+    ],
+    "avoid": [
+      "資訊過載，單卡文字過多",
+      "真實公司財報或股價數字"
+    ]
+  }
+}

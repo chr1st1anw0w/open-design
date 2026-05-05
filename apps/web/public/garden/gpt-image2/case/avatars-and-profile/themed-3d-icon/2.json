@@ -1,0 +1,25 @@
+{
+  "type": "Minecraft 風個性化皮膚立繪",
+  "goal": "生成 1:1 方形圖，Minecraft 體素 3D 感全身或半身角色，可聯想到 Jensen Huang 的簽名造型，用於遊戲社群或技術梗圖頭像",
+  "character": {
+    "subject": "方頭身比約 1:1.5 的體素人，方臉、黑髮分線、下顎略方",
+    "outfit": "亮黑色皮夾克大翻領（方塊面構成）、深灰 T 無字、深牛仔褲無品牌、立方體化皮鞋",
+    "pose": "一手握立方體化 GPU 長方塊道具（無真型號絲印），另一手微抬作講解手勢",
+    "expression": "方眼微笑、眉骨兩塊較暗體素作濃眉"
+  },
+  "style": {
+    "rendering": "Minecraft 體素 3D，可帶輕微 isometric 視角，方塊 16px 級可讀",
+    "color_palette": "Minecraft 常見 16 色擴充套件綠草地、淺藍天、深灰體素人服裝"
+  },
+  "background": {
+    "type": "體素草方塊地臺與遠處簡化橡樹、低多邊形白雲"
+  },
+  "format": {
+    "shape": "圓角方形容器內嵌體素小場景，或整幅即體素無 UI",
+    "aspect_ratio": "1:1"
+  },
+  "constraints": {
+    "must_feel": "一眼 Minecraft 風且人物氣質接近公眾認知中的 Jensen Huang 釋出會形象、非換臉",
+    "avoid": "NVIDIA 綠標或真實公司 logo 畫素塊"
+  }
+}

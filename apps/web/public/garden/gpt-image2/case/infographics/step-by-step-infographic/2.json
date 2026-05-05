@@ -1,0 +1,59 @@
+{
+  "type": "步驟教程資訊圖",
+  "goal": "6 步讀懂戚風成功關鍵(蛋白霜與翻拌), 不替代完整配方克數",
+  "canvas": {
+    "aspect_ratio": "3:4 portrait",
+    "background": "light brioche #FFF3E0 with subtle flour dust speckles"
+  },
+  "header": {
+    "main_title": "10 分鐘搞定戚風前段準備(6 寸)",
+    "subtitle": "烤 35 分鐘左右另計, 本圖只包「開工秩序」",
+    "optional_finished_image": "左下黃金戚風切件線稿+蒸汽曲線"
+  },
+  "palette": {
+    "primary": "warm orange #E89F71",
+    "secondary": "sage #9FB89E",
+    "neutral": "coffee #4A3A2E",
+    "rule": "食物插畫偏扁平粉彩, 與健身案例區分"
+  },
+  "layout": {
+    "style": "winding-path",
+    "options_explained": {
+      "use": "淺棕色蜿蜒小路串起 6 個站點, 路兩側撒麵粉點與蛋殼線稿"
+    }
+  },
+  "steps": {
+    "count": "6",
+    "structure_per_step": [
+      "編號",
+      "短標題",
+      "小插畫",
+      "≤2 行說明"
+    ],
+    "items": [
+      "01 分蛋&稱量: 蛋清潔淨無水油碗, 低粉+奶+油用另一盆(示意)",
+      "02 做蛋黃糊: 先乳化液體再篩粉, Z 字拌勻無乾粉",
+      "03 打蛋白: 分次加糖(示意), 至溼性偏幹小彎鉤(文字描述)",
+      "04 翻拌: 1/3 蛋白入蛋黃糊, 再倒回蛋白盆, 抄底翻拌 20 次內(概念)",
+      "05 入模震泡: 七至八分滿, 輕震, 進預熱烤箱(溫度文字留「按自家烤箱調」)",
+      "06 出爐倒扣: 完全冷卻後脫模, 失敗多半在蛋白與翻拌(一句鼓勵)"
+    ]
+  },
+  "connectors": {
+    "style": "dough-scrapes style arrows with tiny whisk icon between steps 3-4",
+    "rule": "第 3 到第 4 步箭頭加粗強調"
+  },
+  "footer": {
+    "tip": "更精確克數與溫度請看紙質配方卡; 本圖只幫你建立順序感。",
+    "credit": "廚房筆記·可拍照發微信群求點評"
+  },
+  "constraints": {
+    "must_keep": [
+      "6 步編號統一圓形章",
+      "無工程 UML, 有食物溫度感"
+    ],
+    "avoid": [
+      "寫滿具體克數卻與圖衝突(保持示意)"
+    ]
+  }
+}

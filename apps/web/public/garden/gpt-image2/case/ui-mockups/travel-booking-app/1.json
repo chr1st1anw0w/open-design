@@ -1,0 +1,59 @@
+{
+  "type": "旅遊地圖與訂房 App 樣機",
+  "goal": "生成一張高模擬的行動端旅遊 App 介面，背景為全螢幕地圖，前景為互動式的 UI 卡片，營造探索與預訂的沉浸感",
+  "device_context": "{device_context:iPhone 15 Pro (iOS 17+)}",
+  "ui_chrome": {
+    "status_bar": "{status_bar:Dark text on light map background}",
+    "home_indicator": "Visible at the bottom"
+  },
+  "map_layer": {
+    "location": "{location:Kyoto, Japan}",
+    "style": "{map_style:Light 3D terrain with pastel colors, clean roads}",
+    "markers": [
+      {
+        "type": "Price Pin",
+        "text": "$150",
+        "state": "default"
+      },
+      {
+        "type": "Price Pin",
+        "text": "$200",
+        "state": "active (Larger, colored background)"
+      },
+      {
+        "type": "User Location",
+        "text": "",
+        "state": "blue pulsing dot"
+      }
+    ]
+  },
+  "overlay_components": {
+    "top_search_bar": {
+      "style": "Floating Pill shape, white background with soft shadow",
+      "content": "{search_query:Search 'Kyoto' | Oct 12 - Oct 16 | 2 Guests}",
+      "icons": [
+        "Magnifying Glass",
+        "Filter"
+      ]
+    },
+    "bottom_sheet": {
+      "state": "{bottom_sheet_state:Half-expanded}",
+      "image_carousel": "{hotel_image:Image of a traditional Ryokan room with tatami}",
+      "hotel_info": {
+        "name": "{hotel_name:Hoshinoya Kyoto}",
+        "rating": "{hotel_rating:4.9 (120 reviews)}",
+        "price": "{hotel_price:$200 / night}",
+        "tags": [
+          "Free Cancellation",
+          "Breakfast Included"
+        ]
+      },
+      "cta_button": "{cta_button:Large solid black button 'Book Now'}"
+    }
+  },
+  "style_guidelines": {
+    "design_system": "{design_system:iOS HIG (Human Interface Guidelines)}",
+    "corners": "{corners:Large rounded corners (24px+)}",
+    "typography": "{typography:San Francisco (SF Pro) clean hierarchy}"
+  }
+}

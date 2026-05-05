@@ -1,0 +1,70 @@
+{
+  "type": "智慧家庭物聯網中控面板",
+  "goal": "生成一張高質感的平板端智慧家庭中控介面，強調空間感、直覺的硬體控制元件與環境狀態回饋",
+  "device_context": "{device_context:Wall-mounted Smart Display / iPad Mini Landscape}",
+  "environment_context": {
+    "time": "{current_time:14:30 PM}",
+    "date": "{current_date:Saturday, Oct 12}",
+    "outdoor_weather": "{outdoor_weather:Sunny, 78°F}",
+    "indoor_temp": "{indoor_temp:72°F}"
+  },
+  "main_interaction_zone": {
+    "component_type": "Circular Climate Control Dial (大型環形溫控器)",
+    "current_value": "{dial_value:72}",
+    "unit": "{dial_unit:°F}",
+    "status_text": "{dial_status:Cooling to 70°F}",
+    "visual_feedback": "{dial_feedback:Soft blue inner glow indicating AC is active}",
+    "controls": [
+      "+",
+      "-"
+    ]
+  },
+  "secondary_controls": {
+    "device_grid": [
+      {
+        "name": "{device_1_name:Living Room Lights}",
+        "type": "Light Bulb",
+        "state": "{device_1_state:On (Yellow glow)}",
+        "value": "{device_1_value:80%}"
+      },
+      {
+        "name": "{device_2_name:Smart Blinds}",
+        "type": "Window",
+        "state": "{device_2_state:Half-Open}",
+        "value": "{device_2_value:50%}"
+      },
+      {
+        "name": "{device_3_name:Air Purifier}",
+        "type": "Fan",
+        "state": "{device_3_state:Auto}",
+        "value": "{device_3_value:Good AQI}"
+      }
+    ],
+    "scene_selector": {
+      "title": "Quick Scenes",
+      "buttons": [
+        {
+          "label": "{scene_1:Movie}",
+          "icon": "Popcorn",
+          "state": "Inactive"
+        },
+        {
+          "label": "{scene_2:Sleep}",
+          "icon": "Moon",
+          "state": "Inactive"
+        },
+        {
+          "label": "{scene_3:Reading}",
+          "icon": "Book",
+          "state": "Active (Highlighted background)"
+        }
+      ]
+    }
+  },
+  "style_guidelines": {
+    "theme": "{theme_mode:Neumorphism (新擬物) mixed with Glassmorphism}",
+    "background": "{background_color:Warm off-white (#F8F9FA) with soft dynamic lighting}",
+    "active_states": "{active_states:Elements should physically look pressed or emit light}",
+    "typography": "{typography:Rounded, friendly sans-serif fonts}"
+  }
+}

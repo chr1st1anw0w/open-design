@@ -1,0 +1,62 @@
+{
+  "type": "2x2 課程 banner 套裝",
+  "goal": "生成 2×2 飲品 seasonal banner 套裝，整體 1:1，品牌為星巴克風格綠色系，文字中文為主",
+  "brand": {
+    "name": "星巴克 · 四季特飲 2026",
+    "logo_position": "每格左上綠色圓形人魚簡化章 + 字標",
+    "primary_color": "#00704A",
+    "secondary_color": "#27251F"
+  },
+  "layout": {
+    "format": "2x2 grid",
+    "panel_count": 4,
+    "gap": "16px 淺奶白分割",
+    "panel_aspect_ratio": "4:5",
+    "overall_aspect_ratio": "1:1"
+  },
+  "panels": [
+    {
+      "position": "top-left",
+      "course": "春",
+      "headline": "櫻花白桃拿鐵迴歸",
+      "visual": "粉白漸變飲品杯、花瓣與木桌淺景深，晨光側窗",
+      "cta": "到店一杯"
+    },
+    {
+      "position": "top-right",
+      "course": "夏",
+      "headline": "青檸冷萃，氣泡撞醒午後",
+      "visual": "玻璃高杯、冰塊與青檸片、冷凝結水珠特寫",
+      "cta": "立刻下單"
+    },
+    {
+      "position": "bottom-left",
+      "course": "秋",
+      "headline": "楓糖綿雲拿鐵",
+      "visual": "琥珀奶泡表面楓糖紋、暖秋落葉虛化背景，手持杯身",
+      "cta": "嘗季節限定"
+    },
+    {
+      "position": "bottom-right",
+      "course": "冬",
+      "headline": "焙茶米乳，暖胃不加負擔",
+      "visual": "陶土色紙杯、蒸汽、圍巾與初雪街景虛焦",
+      "cta": "分享好友"
+    }
+  ],
+  "style": {
+    "art_style": "暖食攝影感 + 輕微顆粒 + 高飽和但不過分",
+    "typography": "中文圓體標題 + 英文小副標，統一 CTA 綠色描邊白芯按鈕"
+  },
+  "constraints": {
+    "must_keep": [
+      "四格同一條綠色主色與暗棕輔助色",
+      "每格有清晰飲品主體，不被文案遮擋",
+      "CTA 文案 4 字內"
+    ],
+    "avoid": [
+      "各格色溫差異大到像四個品牌",
+      "文字小於飲品主體面積的不合理堆疊"
+    ]
+  }
+}
