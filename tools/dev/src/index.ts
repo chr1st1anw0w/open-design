@@ -375,7 +375,7 @@ async function waitForAppProcessExit(config: ToolDevConfig, appName: ToolDevAppN
 async function assertNoStaleActiveProcess(config: ToolDevConfig, appName: ToolDevAppName): Promise<void> {
   const active = await findAppProcessTree(config, appName);
   if (active.pids.length > 0) {
-    throw new Error(`${appName} has active stamped processes but no reachable IPC status; run tools-dev stop ${appName} first`);
+    process.stderr.write(`[tools-dev] ${appName} has stale processes, cleaning up...\n`); await stopApp(config, appName);
   }
 }
 
@@ -559,13 +559,14 @@ async function spawnDesktopRuntime(config: ToolDevConfig, options: CliOptions): 
 async function startDaemon(config: ToolDevConfig, options: CliOptions) {
   const daemonPort = parsePortOption(options.daemonPort, "--daemon-port");
   const existing = await inspectDaemonRuntime(runtimeLookup(config));
-  if (existing?.url != null && statusMatchesForcedPort(existing.url, daemonPort)) {
-    return { app: APP_KEYS.DAEMON, created: false, logPath: config.apps.daemon.latestLogPath, status: existing };
-  }
   if (existing?.url != null) {
-    throw new Error(`${APP_KEYS.DAEMON} is already running in namespace ${config.namespace} at ${existing.url}; stop it or choose another namespace`);
+    if (daemonPort != null && statusMatchesForcedPort(existing.url, daemonPort)) {
+      return { app: APP_KEYS.DAEMON, created: false, logPath: config.apps.daemon.latestLogPath, status: existing };
+    }
+    process.stderr.write(`[tools-dev] ${APP_KEYS.DAEMON} is already running at ${existing.url}, stopping it...\n`);
+    await stopApp(config, APP_KEYS.DAEMON).catch(() => undefined);
   }
-  await assertNoStaleActiveProcess(config, APP_KEYS.DAEMON);
+  await stopApp(config, APP_KEYS.DAEMON).catch(() => undefined);
 
   const spawned = await spawnDaemonRuntime(config, options);
   try {
@@ -588,13 +589,14 @@ async function startDaemon(config: ToolDevConfig, options: CliOptions) {
 async function startWeb(config: ToolDevConfig, options: CliOptions) {
   const webPort = parsePortOption(options.webPort, "--web-port");
   const existing = await inspectWebRuntime(runtimeLookup(config));
-  if (existing?.url != null && statusMatchesForcedPort(existing.url, webPort)) {
-    return { app: APP_KEYS.WEB, created: false, logPath: config.apps.web.latestLogPath, status: existing };
-  }
   if (existing?.url != null) {
-    throw new Error(`${APP_KEYS.WEB} is already running in namespace ${config.namespace} at ${existing.url}; stop it or choose another namespace`);
+    if (webPort != null && statusMatchesForcedPort(existing.url, webPort)) {
+      return { app: APP_KEYS.WEB, created: false, logPath: config.apps.web.latestLogPath, status: existing };
+    }
+    process.stderr.write(`[tools-dev] ${APP_KEYS.WEB} is already running at ${existing.url}, stopping it...\n`);
+    await stopApp(config, APP_KEYS.WEB).catch(() => undefined);
   }
-  await assertNoStaleActiveProcess(config, APP_KEYS.WEB);
+  await stopApp(config, APP_KEYS.WEB).catch(() => undefined);
 
   const spawned = await spawnWebRuntime(config, options);
   try {
