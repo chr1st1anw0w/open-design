@@ -43,15 +43,15 @@ export const DEFAULT_PET: PetConfig = {
 export const DEFAULT_CONFIG: AppConfig = {
   mode: 'daemon',
   apiKey: '',
-  baseUrl: 'https://api.anthropic.com',
-  model: 'claude-sonnet-4-5',
+  baseUrl: 'https://generativelanguage.googleapis.com',
+  model: 'gemini-2.0-flash',
   // New configs should be explicit. loadConfig() still detects parsed legacy
   // saved configs that did not have this field and migrates those from their
   // saved baseUrl/model before applying the current migration version.
-  apiProtocol: 'anthropic',
+  apiProtocol: 'google',
   apiVersion: '',
   configMigrationVersion: CONFIG_MIGRATION_VERSION,
-  apiProviderBaseUrl: 'https://api.anthropic.com',
+  apiProviderBaseUrl: 'https://generativelanguage.googleapis.com',
   agentId: null,
   skillId: null,
   designSystemId: null,
@@ -88,8 +88,8 @@ export const KNOWN_PROVIDERS: KnownProvider[] = [
   {
     label: 'Anthropic (Claude)',
     protocol: 'anthropic',
-    baseUrl: 'https://api.anthropic.com',
-    model: 'claude-sonnet-4-5',
+    baseUrl: 'https://generativelanguage.googleapis.com',
+    model: 'gemini-2.0-flash',
     models: ['claude-sonnet-4-5', 'claude-opus-4-5', 'claude-haiku-4-5'],
   },
   {
