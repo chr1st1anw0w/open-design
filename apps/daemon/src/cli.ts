@@ -1,10 +1,6 @@
 #!/usr/bin/env node
 // @ts-nocheck
 import { startServer } from './server.js';
-import { runLiveArtifactsMcpServer } from './mcp-live-artifacts-server.js';
-import { runConnectorsToolCli } from './tools-connectors-cli.js';
-import { runLiveArtifactsToolCli } from './tools-live-artifacts-cli.js';
-import { splitResearchSubcommand } from './research/cli-args.js';
 
 const argv = process.argv.slice(2);
 
@@ -44,47 +40,15 @@ const MEDIA_GENERATE_STRING_FLAGS = new Set([
   'composition-dir',
   'image',
   'daemon-url',
-  'language',
 ]);
 const MEDIA_GENERATE_BOOLEAN_FLAGS = new Set([
   'help',
   'h',
 ]);
 
-const MCP_STRING_FLAGS = new Set([
-  'daemon-url',
-]);
-const MCP_BOOLEAN_FLAGS = new Set([
-  'help',
-  'h',
-]);
-
-const RESEARCH_SEARCH_STRING_FLAGS = new Set([
-  'query',
-  'max-sources',
-  'daemon-url',
-]);
-const RESEARCH_SEARCH_BOOLEAN_FLAGS = new Set([
-  'help',
-  'h',
-]);
-
 const SUBCOMMAND_MAP = {
   media: runMedia,
-  mcp: runMcp,
-  research: runResearch,
 };
-
-if (argv[0] === 'mcp' && argv[1] === 'live-artifacts') {
-  try {
-    const { exitCode } = await runLiveArtifactsMcpServer();
-    process.exit(exitCode);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    process.stderr.write(`${JSON.stringify({ ok: false, error: { message } })}\n`);
-    process.exit(1);
-  }
-}
 
 const first = argv.find((a) => !a.startsWith('-'));
 if (first && SUBCOMMAND_MAP[first]) {
@@ -94,27 +58,6 @@ if (first && SUBCOMMAND_MAP[first]) {
   process.exit(0);
 }
 
-if (argv[0] === 'tools' && argv[1] === 'live-artifacts') {
-  runLiveArtifactsToolCli(argv.slice(2))
-    .then(({ exitCode }) => {
-      process.exitCode = exitCode;
-    })
-    .catch((error) => {
-      const message = error instanceof Error ? error.message : String(error);
-      process.stderr.write(`${JSON.stringify({ ok: false, error: { message } })}\n`);
-      process.exitCode = 1;
-    });
-} else if (argv[0] === 'tools' && argv[1] === 'connectors') {
-  runConnectorsToolCli(argv.slice(2))
-    .then(({ exitCode }) => {
-      process.exitCode = exitCode;
-    })
-    .catch((error) => {
-      const message = error instanceof Error ? error.message : String(error);
-      process.stderr.write(`${JSON.stringify({ ok: false, error: { message } })}\n`);
-      process.exitCode = 1;
-    });
-} else {
 // Default: daemon mode.
 let port = Number(process.env.OD_PORT) || 7456;
 let host = process.env.OD_BIND_HOST || '127.0.0.1';
@@ -134,43 +77,7 @@ for (let i = 0; i < argv.length; i++) {
   }
 }
 
-startServer({ port, host, returnServer: true }).then((started) => {
-  const { url, server, shutdown } = started;
-  const closeTimeoutMs = 5_000;
-  const closeServer = () => new Promise((resolve) => {
-    let resolved = false;
-    const resolveOnce = () => {
-      if (resolved) return;
-      resolved = true;
-      resolve();
-    };
-    const idleTimer = setTimeout(() => {
-      server.closeIdleConnections?.();
-    }, Math.min(1_000, closeTimeoutMs));
-    const hardTimer = setTimeout(() => {
-      server.closeAllConnections?.();
-      resolveOnce();
-    }, closeTimeoutMs);
-    idleTimer.unref?.();
-    hardTimer.unref?.();
-    server.close(() => resolveOnce());
-  }).finally(() => {
-    server.closeIdleConnections?.();
-  });
-  let shuttingDown = false;
-  const stop = () => {
-    if (shuttingDown) {
-      process.exit(0);
-    }
-    shuttingDown = true;
-    const closePromise = closeServer();
-    const shutdownPromise = Promise.resolve().then(() => shutdown?.());
-    void Promise.resolve()
-      .then(() => Promise.allSettled([shutdownPromise, closePromise]))
-      .finally(() => process.exit(0));
-  };
-  process.on('SIGINT', stop);
-  process.on('SIGTERM', stop);
+startServer({ port, host }).then(url => {
   console.log(`[od] listening on ${url}`);
   if (open) {
     const opener = process.platform === 'darwin' ? 'open'
@@ -181,39 +88,19 @@ startServer({ port, host, returnServer: true }).then((started) => {
     });
   }
 });
-}
 
 function printRootHelp() {
   console.log(`Usage:
   od [--port <n>] [--host <addr>] [--no-open]
       Start the local daemon and open the web UI.
 
-  od tools live-artifacts <create|list|update|refresh> [options]
-      Manage live artifacts through daemon wrapper commands.
-
-  od tools connectors <list|execute> [options]
-      Discover and execute configured connectors.
-
-  od mcp live-artifacts
-      Start the MCP server exposing live-artifact and connector tools.
-
-  od research search --query <text> [--max-sources 5] [--daemon-url <url>]
-      Run agent-callable Tavily research through the local daemon.
-
-  "$OD_NODE_BIN" "$OD_BIN" tools ...
-      Recommended agent-runtime form; avoids relying on user PATH for od or node.
-
   od media generate --surface <image|video|audio> --model <id> [opts]
       Generate a media artifact and write it into the active project.
-      Designed to be invoked by a code agent - picks up OD_DAEMON_URL
+      Designed to be invoked by a code agent — picks up OD_DAEMON_URL
       and OD_PROJECT_ID from the env that the daemon injected on spawn.
 
-  od mcp [--daemon-url <url>]
-      Run a stdio MCP server that proxies read-only tool calls to a
-      running Open Design daemon. Wire it into a coding agent
-      (Claude Code, Cursor, VS Code, Zed, Windsurf) in another repo
-      to pull files from a local Open Design project without
-      exporting a zip.
+  od media doctor chatgpt-web
+      Check local ChatGPT Web automation prerequisites.
 
 Options:
   --port <n>       Port to listen on (default: 7456, env: OD_PORT).
@@ -227,83 +114,7 @@ What the daemon does:
   * serves the chat UI at http://<host>:<port>
   * proxies messages (text + images) to the selected agent via child-process spawn
   * exposes /api/projects/:id/media/generate — the unified image/video/audio
-     dispatcher that the agent calls via \`od media generate\`.`);
-}
-
-// ---------------------------------------------------------------------------
-// Subcommand: od research …
-// ---------------------------------------------------------------------------
-
-async function runResearch(args) {
-  const { sub, subArgs } = splitResearchSubcommand(args);
-  if (!sub || sub === 'help' || args.includes('--help') || args.includes('-h')) {
-    printResearchHelp();
-    process.exit(sub === 'help' || args.includes('--help') || args.includes('-h') ? 0 : 2);
-  }
-  if (sub !== 'search') {
-    console.error(`unknown subcommand: od research ${sub}`);
-    printResearchHelp();
-    process.exit(2);
-  }
-  return runResearchSearch(subArgs);
-}
-
-async function runResearchSearch(rawArgs) {
-  let flags;
-  try {
-    flags = parseFlags(rawArgs, {
-      string: RESEARCH_SEARCH_STRING_FLAGS,
-      boolean: RESEARCH_SEARCH_BOOLEAN_FLAGS,
-    });
-  } catch (err) {
-    console.error(err.message);
-    printResearchHelp();
-    process.exit(2);
-  }
-  const query = typeof flags.query === 'string' ? flags.query.trim() : '';
-  if (!query) {
-    console.error('--query required');
-    process.exit(2);
-  }
-  const daemonUrl =
-    flags['daemon-url'] || process.env.OD_DAEMON_URL || 'http://127.0.0.1:7456';
-  const maxSources =
-    flags['max-sources'] == null ? undefined : Number(flags['max-sources']);
-  const url = `${daemonUrl.replace(/\/$/, '')}/api/research/search`;
-  let resp;
-  try {
-    resp = await fetch(url, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        query,
-        ...(Number.isFinite(maxSources) ? { maxSources } : {}),
-      }),
-    });
-  } catch (err) {
-    surfaceFetchError(err, daemonUrl);
-    process.exit(3);
-  }
-  if (!resp.ok) {
-    const text = await resp.text();
-    console.error(`daemon ${resp.status}: ${text}`);
-    process.exit(4);
-  }
-  process.stdout.write(`${await resp.text()}\n`);
-}
-
-function printResearchHelp() {
-  console.log(`Usage:
-  od research search --query <text> [--max-sources 5] [--daemon-url <url>]
-
-Runs Tavily-backed shallow research through the local Open Design daemon.
-Output is JSON only on stdout:
-  { "query": "...", "summary": "...", "sources": [...], "provider": "tavily", "depth": "shallow", "fetchedAt": 0 }
-
-Flags:
-  --query        Required search query.
-  --max-sources  Optional source cap. Defaults to 5, clamped to Tavily's max.
-  --daemon-url   Local daemon URL. Defaults to OD_DAEMON_URL or http://127.0.0.1:7456.`);
+    dispatcher that the agent calls via \`od media generate\`.`);
 }
 
 // ---------------------------------------------------------------------------
@@ -316,7 +127,7 @@ async function runMedia(args) {
     printMediaHelp();
     return;
   }
-  if (sub !== 'generate' && sub !== 'wait') {
+  if (sub !== 'generate' && sub !== 'wait' && sub !== 'doctor') {
     console.error(`unknown subcommand: od media ${sub}`);
     printMediaHelp();
     process.exit(1);
@@ -325,6 +136,7 @@ async function runMedia(args) {
   const idx = args.indexOf(sub);
   const subArgs = [...args.slice(0, idx), ...args.slice(idx + 1)];
   if (sub === 'wait') return runMediaWait(subArgs);
+  if (sub === 'doctor') return runMediaDoctor(subArgs);
   return runMediaGenerate(subArgs);
 }
 
@@ -370,7 +182,6 @@ async function runMediaGenerate(rawArgs) {
     audioKind: flags['audio-kind'],
     compositionDir: flags['composition-dir'],
     image: flags.image,
-    language: flags.language,
   };
   if (flags.length != null) body.length = Number(flags.length);
   if (flags.duration != null) body.duration = Number(flags.duration);
@@ -426,6 +237,104 @@ async function runMediaWait(rawArgs) {
     ? Number(flags.since)
     : 0;
   await pollUntilDoneOrBudget(daemonUrl, taskId, since);
+}
+
+async function runMediaDoctor(rawArgs) {
+  const target = rawArgs.find((a) => a && !a.startsWith('--')) || '';
+  if (target !== 'chatgpt-web') {
+    console.error('usage: od media doctor chatgpt-web');
+    process.exit(2);
+  }
+
+  const { access } = await import('node:fs/promises');
+  const { constants } = await import('node:fs');
+  const path = await import('node:path');
+  const opencliBin =
+    process.env.OD_OPENCLI_BIN ||
+    process.env.OPENCLI_BIN ||
+    '/Users/christianwu/opencli/dist/src/main.js';
+  const cdpUrl =
+    process.env.OD_CHATGPT_WEB_CDP_URL ||
+    process.env.CHATGPT_WEB_CDP_URL ||
+    'http://127.0.0.1:9000';
+  const authState =
+    process.env.OD_CHATGPT_WEB_AUTH_STATE ||
+    process.env.CHATGPT_AUTH_PATH ||
+    '';
+
+  const checks = [];
+
+  try {
+    if (opencliBin.endsWith('.js') || opencliBin.endsWith('.mjs') || opencliBin.includes(path.sep)) {
+      await access(opencliBin, constants.R_OK);
+      checks.push({ ok: true, name: 'opencli', detail: opencliBin });
+    } else {
+      const found = await runDoctorCommand('which', [opencliBin]);
+      checks.push({
+        ok: found.ok,
+        name: 'opencli',
+        detail: found.ok ? found.stdout.trim() : `${opencliBin} not found in PATH`,
+      });
+    }
+  } catch (err) {
+    checks.push({ ok: false, name: 'opencli', detail: err.message || String(err) });
+  }
+
+  const cdp = await checkCdp(cdpUrl);
+  checks.push({
+    ok: cdp.ok,
+    name: 'chrome-cdp',
+    detail: cdp.ok ? `${cdpUrl} reachable` : `${cdpUrl} unreachable: ${cdp.detail}`,
+  });
+
+  if (authState) {
+    try {
+      await access(authState, constants.R_OK);
+      checks.push({ ok: true, name: 'auth-state', detail: authState });
+    } catch (err) {
+      checks.push({ ok: false, name: 'auth-state', detail: err.message || String(err) });
+    }
+  } else {
+    checks.push({
+      ok: false,
+      name: 'auth-state',
+      detail: 'OD_CHATGPT_WEB_AUTH_STATE or CHATGPT_AUTH_PATH is not set',
+      optional: true,
+    });
+  }
+
+  console.log('=== chatgpt-web doctor ===');
+  for (const check of checks) {
+    const mark = check.ok ? 'OK ' : check.optional ? 'WARN' : 'FAIL';
+    console.log(`${mark} ${check.name}: ${check.detail}`);
+  }
+  const failed = checks.some((c) => !c.ok && !c.optional);
+  process.exit(failed ? 1 : 0);
+}
+
+function runDoctorCommand(command, args) {
+  return new Promise((resolve) => {
+    import('node:child_process').then(({ spawn }) => {
+      const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+      let stdout = '';
+      let stderr = '';
+      child.stdout.on('data', (d) => { stdout += d.toString(); });
+      child.stderr.on('data', (d) => { stderr += d.toString(); });
+      child.on('error', (err) => resolve({ ok: false, stdout, stderr, error: err.message }));
+      child.on('close', (code) => resolve({ ok: code === 0, stdout, stderr }));
+    });
+  });
+}
+
+async function checkCdp(cdpUrl) {
+  try {
+    const res = await fetch(`${cdpUrl.replace(/\/$/, '')}/json/version`, {
+      signal: AbortSignal.timeout(2500),
+    });
+    return { ok: res.ok, detail: `HTTP ${res.status}` };
+  } catch (err) {
+    return { ok: false, detail: err.message || String(err) };
+  }
 }
 
 async function pollUntilDoneOrBudget(daemonUrl, taskId, sinceStart) {
@@ -503,14 +412,6 @@ async function pollUntilDoneOrBudget(daemonUrl, taskId, sinceStart) {
       );
       process.exit(snap.error?.status || 5);
     }
-    if (snap.status === 'interrupted') {
-      const msg = snap.error?.message || 'task interrupted';
-      console.error(`task interrupted: ${msg}`);
-      process.stdout.write(
-        JSON.stringify({ taskId, status: 'interrupted', error: snap.error || {} }) + '\n',
-      );
-      process.exit(snap.error?.status || 5);
-    }
   }
 
   const handoff = {
@@ -522,7 +423,7 @@ async function pollUntilDoneOrBudget(daemonUrl, taskId, sinceStart) {
   process.stdout.write(JSON.stringify(handoff) + '\n');
   process.stderr.write(
     `task ${taskId} still running after ${handoff.elapsed}s. ` +
-      `Run \`"$OD_NODE_BIN" "$OD_BIN" media wait ${taskId} --since ${since}\` to continue in an agent runtime ` +
+      `Run \`od media wait ${taskId} --since ${since}\` to continue ` +
       `(exit code 2 = still running).\n`,
   );
   process.exit(2);
@@ -546,7 +447,7 @@ function surfaceFetchError(err, daemonUrl) {
     console.error(
       'hint: outbound connect was denied by a sandbox. If you launched ' +
         'this command from a code agent, check the agent\'s sandbox / ' +
-        'network policy. The Open Design daemon itself is unaffected - it can be ' +
+        'network policy. The OD daemon itself is unaffected — it can be ' +
         'reached from a regular shell.',
     );
   }
@@ -598,8 +499,10 @@ function parseFlags(argv, opts = {}) {
 }
 
 function printMediaHelp() {
-  console.log(`Usage: od media generate --surface <image|video|audio> --model <id> [opts]
-       "$OD_NODE_BIN" "$OD_BIN" media generate --surface <image|video|audio> --model <id> [opts]
+  console.log(`Usage:
+  od media generate --surface <image|video|audio> --model <id> [opts]
+  od media wait <taskId> [--since <n>]
+  od media doctor chatgpt-web
 
 Required:
   --surface  image | video | audio
@@ -613,7 +516,6 @@ Common options:
   --length <seconds>        Video length.
   --duration <seconds>      Audio duration.
   --voice <voice-id>        Speech / TTS voice.
-  --language <lang>         Language boost for TTS (e.g. Chinese,Yue for Cantonese).
   --audio-kind music|speech|sfx
   --composition-dir <path>  hyperframes-html only — project-relative path
                             to the dir containing hyperframes.json /
@@ -631,74 +533,4 @@ Output: a single line of JSON: {"file": { name, size, kind, mime, ... }}.
 Skills should call this and then reference the returned filename in their
 artifact / message body. The daemon writes the bytes into the project's
 files folder so the FileViewer can preview them immediately.`);
-}
-
-// ---------------------------------------------------------------------------
-// Subcommand: od mcp
-// ---------------------------------------------------------------------------
-
-async function runMcp(args) {
-  let flags;
-  try {
-    flags = parseFlags(args, {
-      string: MCP_STRING_FLAGS,
-      boolean: MCP_BOOLEAN_FLAGS,
-    });
-  } catch (err) {
-    console.error(err.message);
-    printMcpHelp();
-    process.exit(2);
-  }
-  if (flags.help || flags.h) {
-    printMcpHelp();
-    return;
-  }
-
-  const { resolveMcpDaemonUrl } = await import('./mcp-daemon-url.js');
-  const daemonUrl = await resolveMcpDaemonUrl({ flagUrl: flags['daemon-url'] });
-
-  const { runMcpStdio } = await import('./mcp.js');
-  await runMcpStdio({ daemonUrl });
-}
-
-function printMcpHelp() {
-  console.log(`Usage: od mcp [--daemon-url <url>]
-
-Run a stdio MCP (Model Context Protocol) server that proxies read-only
-tool calls to a running Open Design daemon. Wire it into a coding agent
-in another repo so the agent can pull files from a local Open Design
-project without exporting a zip every iteration.
-
-Options:
-  --daemon-url <url>   Open Design daemon HTTP base URL. Resolution
-                       order: this flag, OD_DAEMON_URL, the running
-                       daemon's sidecar IPC status socket
-                       (/tmp/open-design/ipc/<namespace>/daemon.sock),
-                       then http://127.0.0.1:7456. Each new MCP spawn
-                       discovers the live daemon URL at startup, so
-                       MCP client configs stay valid across daemon
-                       restarts even when the port is ephemeral. A
-                       running MCP server caches the URL; restart the
-                       MCP client after a daemon restart to pick up a
-                       new port.
-
-Tools exposed:
-  list_projects                  list every Open Design project
-  get_active_context             what project/file the user has open right now
-  get_artifact([project, entry]) bundle: entry file + every referenced sibling
-  get_project([project])         single project metadata
-  get_file([project, path])      file contents (textual mimes only for now)
-  search_files(query[, project]) literal substring search across textual files
-  list_files([project])          project files + artifactManifest sidecars
-
-When project is omitted, get_artifact / get_project / get_file /
-search_files / list_files default to the project the user has open in
-Open Design; get_artifact and get_file additionally default to the
-active file. The response stamps usedActiveContext so callers can see
-which project/file got resolved.
-
-For the copy-paste, per-client snippet (with absolute paths resolved
-for your machine, plus a one-click deeplink for Cursor), open Settings
-→ MCP server in the Open Design app. Read-only by design; the daemon
-must be running locally for tool calls to succeed.`);
 }

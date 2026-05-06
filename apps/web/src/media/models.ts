@@ -31,8 +31,8 @@ export type MediaProviderId =
   | 'openai'
   | 'volcengine'
   | 'grok'
+  | 'chatgpt-web'
   | 'hyperframes'
-  | 'nanobanana'
   | 'bfl'
   | 'fal'
   | 'replicate'
@@ -44,7 +44,6 @@ export type MediaProviderId =
   | 'udio'
   | 'elevenlabs'
   | 'fishaudio'
-  | 'tavily'
   | 'stub';
 
 export interface MediaProvider {
@@ -63,8 +62,6 @@ export interface MediaProvider {
   defaultBaseUrl?: string;
   /** Documentation URL for getting an API key. */
   docsUrl?: string;
-  /** Whether Settings should expose a custom model override field. */
-  supportsCustomModel?: boolean;
 }
 
 /**
@@ -99,6 +96,14 @@ export const MEDIA_PROVIDERS: MediaProvider[] = [
     docsUrl: 'https://docs.x.ai/developers/model-capabilities/video/generation',
   },
   {
+    id: 'chatgpt-web',
+    label: 'ChatGPT Web',
+    hint: 'Local browser automation · OpenCLI / Playwright',
+    integrated: true,
+    credentialsRequired: false,
+    settingsVisible: false,
+  },
+  {
     id: 'hyperframes',
     label: 'HyperFrames',
     hint: 'Local HTML -> MP4 renderer',
@@ -106,15 +111,6 @@ export const MEDIA_PROVIDERS: MediaProvider[] = [
     credentialsRequired: false,
     settingsVisible: false,
     docsUrl: 'https://hyperframes.heygen.com',
-  },
-  {
-    id: 'nanobanana',
-    label: 'Nano Banana',
-    hint: 'Google official by default; custom gateway configurable',
-    integrated: true,
-    defaultBaseUrl: 'https://generativelanguage.googleapis.com',
-    docsUrl: 'https://ai.google.dev/gemini-api/docs/api-key',
-    supportsCustomModel: true,
   },
   {
     id: 'bfl',
@@ -194,14 +190,6 @@ export const MEDIA_PROVIDERS: MediaProvider[] = [
     integrated: true,
     defaultBaseUrl: 'https://api.fish.audio',
     docsUrl: 'https://fish.audio',
-  },
-  {
-    id: 'tavily',
-    label: 'Tavily Search',
-    hint: 'Agent-callable web research',
-    integrated: true,
-    defaultBaseUrl: 'https://api.tavily.com',
-    docsUrl: 'https://app.tavily.com/home',
   },
   {
     id: 'stub',
@@ -304,13 +292,14 @@ export const IMAGE_MODELS: MediaModel[] = [
     caps: ['t2i'],
   },
 
-  // Nano Banana — Google-compatible generateContent image path.
+  // ChatGPT Web — local browser automation. This does not call the OpenAI API;
+  // it drives a logged-in local browser session and imports the downloaded file.
   {
-    id: 'gemini-3.1-flash-image-preview',
-    label: 'nano-banana-2',
-    hint: 'Nano Banana · text-to-image',
-    provider: 'nanobanana',
-    caps: ['t2i'],
+    id: 'chatgpt-web-image-opencli',
+    label: 'ChatGPT Web · OpenCLI',
+    hint: 'Local Chrome session · no OpenAI API key',
+    provider: 'chatgpt-web',
+    caps: ['t2i', 'browser-automation'],
   },
 
   // Black Forest Labs FLUX family.

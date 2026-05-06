@@ -1,0 +1,18 @@
+{
+  "id": "muhuotu-cosmetic-lifestyle-living-room",
+  "surface": "image",
+  "title": "MUHUOTU 木火土｜客廳生活情境圖",
+  "summary": "明亮極簡客廳場景，米色與鼠尾草綠色調，貓咪與貴賓狗入鏡，自然午後光線。",
+  "category": "Cosmetic Packaging",
+  "tags": ["lifestyle", "living-room", "cat-dog", "natural-light", "muhuotu"],
+  "model": "gpt-image-2",
+  "aspect": "16:9",
+  "prompt": "A warm lifestyle scene: bright minimalist living room in cream and sage tones. MUHUOTU matte white spray bottle on a low wooden side table. A tabby cat lounges on a linen cushion, a curly poodle rests on the floor. Afternoon soft natural light through sheer curtains. Dried pampas grass and small ceramic vase complement the scene. Gold logo and text clearly visible. Calm, trusting, natural premium. 8K commercial lifestyle.",
+  "previewImageUrl": "",
+  "source": {
+    "repo": "open-design/brand-assets",
+    "license": "brand-specific",
+    "author": "MUHUOTU 木火土",
+    "url": ""
+  }
+}

@@ -1,0 +1,111 @@
+/* =========================================================
+   Design Tokens — Claude Design Skill 影片站點
+   暖調（Anthropic 米色 + 暖橘）+ 半反轉節奏
+   ========================================================= */
+
+.garden-web-design {
+  /* —— 色彩（OKLCH 派生，禁止再造新色相） —— */
+
+  /* paper 系：預設淺底（米色紙感） */
+  --paper:        oklch(0.965 0.018 78);
+  --paper-deep:   oklch(0.928 0.024 78);
+  --paper-edge:   oklch(0.880 0.028 78);
+
+  /* ink 系：深墨（暗章節用作底色，淺章節作文本） */
+  --ink:          oklch(0.180 0.014 60);
+  --ink-soft:     oklch(0.300 0.014 60);
+  --ink-mute:     oklch(0.520 0.012 60);
+  --ink-faint:    oklch(0.760 0.010 60);
+
+  /* accent 系：暖橘（Claude 調） */
+  --ember:        oklch(55.014% 0.22251 260.735);
+  --ember-deep:   oklch(39.691% 0.24706 274.173);
+  --ember-soft:   oklch(84.899% 0.05819 236.629);
+
+  /* 極少量功能色：僅用於"股價崩盤 / 錯誤"等明確語義 */
+  --crimson:      oklch(0.560 0.200 22);
+  --cyan:         oklch(0.700 0.090 220);
+
+  /* 中性線條（基於 ink 的透明派生） */
+  --line-1:       oklch(0.180 0.014 60 / 0.10);
+  --line-2:       oklch(0.180 0.014 60 / 0.22);
+  --line-3:       oklch(0.180 0.014 60 / 0.45);
+
+  /* 反色場景下的線條（ink 底） */
+  --line-on-ink-1: oklch(0.965 0.018 78 / 0.10);
+  --line-on-ink-2: oklch(0.965 0.018 78 / 0.22);
+  --line-on-ink-3: oklch(0.965 0.018 78 / 0.45);
+
+  /* —— 間距（8px 基準） —— */
+  --s-1: 8px;
+  --s-2: 16px;
+  --s-3: 24px;
+  --s-4: 32px;
+  --s-5: 48px;
+  --s-6: 64px;
+  --s-7: 96px;
+  --s-8: 128px;
+  --s-9: 192px;
+
+  /* —— 字號（基於 1920×1080 stage 的 px 絕對單位） —— */
+  --t-eyebrow:    18px;   /* 章節編號 / eyebrow */
+  --t-caption:    22px;
+  --t-body:       28px;   /* 正文最小 */
+  --t-body-lg:    34px;
+  --t-lead:       42px;
+  --t-h3:         56px;
+  --t-h2:         84px;
+  --t-h1:        128px;
+  --t-display:   200px;
+  --t-mega:      320px;
+
+  /* —— 字型 —— */
+  --f-serif:  "Poppins", "Noto Sans TC", "Noto Sans TC", Georgia, serif;
+  --f-sans:   "Geist", "PingFang TC", "HarmonyOS Sans TC", system-ui, -apple-system, sans-serif;
+  --f-mono:   "Geist Mono", ui-monospace, "JetBrains Mono", Menlo, monospace;
+
+  /* —— 圓角（保持極剋制，幾乎都是 0） —— */
+  --r-0: 0px;
+  --r-1: 2px;
+  --r-2: 4px;
+  --r-pill: 999px;
+
+  /* —— 緩動 / 時長（與 motion.ts 同步） —— */
+  --ease-enter:      cubic-bezier(.2, .8, .2, 1);
+  --ease-exit:       cubic-bezier(.4, 0, 1, 1);
+  --ease-emphasized: cubic-bezier(.6, -0.05, .2, 1.2);
+  --d-micro: 200ms;
+  --d-base:  480ms;
+  --d-hero:  900ms;
+  --d-epic:  1600ms;
+
+  /* —— 主題角色（預設淺底） —— */
+  --bg:         var(--paper);
+  --bg-2:       var(--paper-deep);
+  --fg:         var(--ink);
+  --fg-soft:    var(--ink-soft);
+  --fg-mute:    var(--ink-mute);
+  --fg-faint:   var(--ink-faint);
+  --line:       var(--line-1);
+  --line-mid:   var(--line-2);
+  --line-strong:var(--line-3);
+  --accent:     var(--ember);
+  --accent-deep:var(--ember-deep);
+}
+
+/* 深底章節透過給祖先元素加 .theme-ink 翻轉角色 —— 僅角色變，token 不變 */
+/* 暗色不再用純墨黑 —— 調到 oklch 0.27 左右的"軟炭灰"，
+   讓淺↔深章節切換時眼睛不被刺一下 */
+.garden-web-design .theme-ink {
+  --bg:         oklch(0.275 0.012 60);
+  --bg-2:       oklch(0.320 0.014 60);
+  --fg:         var(--paper);
+  --fg-soft:    oklch(0.890 0.020 78);
+  --fg-mute:    oklch(0.700 0.018 78);
+  --fg-faint:   oklch(0.560 0.014 60);
+  --line:       var(--line-on-ink-1);
+  --line-mid:   var(--line-on-ink-2);
+  --line-strong:var(--line-on-ink-3);
+  --accent:     var(--ember);
+  --accent-deep:var(--ember-deep);
+}

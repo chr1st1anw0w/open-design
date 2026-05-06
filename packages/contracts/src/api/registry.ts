@@ -63,6 +63,16 @@ export interface SkillsResponse {
   skills: SkillSummary[];
 }
 
+export interface InstallSkillRequest {
+  url: string;
+}
+
+export interface InstallSkillResponse {
+  ok: true;
+  installed: string;
+  skills: SkillSummary[];
+}
+
 export interface SkillResponse {
   skill: SkillDetail;
 }

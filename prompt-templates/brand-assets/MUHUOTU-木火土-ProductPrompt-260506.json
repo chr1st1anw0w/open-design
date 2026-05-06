@@ -1,0 +1,82 @@
+{
+  "template": "Cosmetic Packaging",
+  "TYPE": "Single bottle fragrance spray — matte white cylindrical aerosol bottle, 100ml",
+  "POSITIONING": "高端天然寵物友善・侘寂北歐極簡融合・高級感自然有機",
+  "BRAND": {
+    "name_cn": "木 火 土",
+    "name_en": "MUHUOTU",
+    "logo": "Circular emblem with leaf, flame, and mountain-wave line motifs, metallic gold #C9A66B",
+    "symbol": "Gold paw print icon"
+  },
+  "PRODUCT": {
+    "name_cn": "寵物友善香氛噴霧",
+    "name_en": "PET-FRIENDLY FRAGRANCE SPRAY",
+    "volume": "100ml e 3.5 fl. oz.",
+    "tagline_primary": "為毛孩而生的安心生活香氛",
+    "tagline_secondary": "有毛孩，也可以很好聞",
+    "tagline_en": "Born for Pets, Safe for Life",
+    "cta": "每天噴一噴，空氣清新，毛孩安心。♡"
+  },
+  "CLAIMS": [
+    "天然植萃配方",
+    "寵物友善・安心使用",
+    "溫和淨化・自然好聞",
+    "植物消臭因子（自然分解異味源頭）",
+    "植萃精油（清新自然香氣）",
+    "不含酒精香精（溫和不刺激）",
+    "不含有害化學物質（毛孩舔舐也安心）"
+  ],
+  "PACKAGING": {
+    "shape": "tall cylindrical aerosol spray bottle",
+    "finish": "matte frosted white #F8F4ED",
+    "cap": "smooth white matte, slightly domed",
+    "label_style": "minimal typographic, no busy patterns",
+    "typography_cn": "elegant Ming-style headline; clean sans-serif body",
+    "typography_en": "thin-weight serif for MUHUOTU; geometric sans for product name"
+  },
+  "COLOR_PALETTE": {
+    "bottle_body": "#F8F4ED",
+    "all_print_ink": "#C9A66B",
+    "cap": "#FFFFFF",
+    "background_primary": "#4A5F4A",
+    "background_dark": "#3D5245"
+  },
+  "MATERIAL": "Matte frosted white body, smooth white cap, gold metallic ink print",
+  "STYLE_MOOD": "Wabi-Sabi + Nordic minimal, calm, trustworthy, natural premium",
+  "SCENE_PROP": "Natural stone pedestal, dried botanicals (chamomile, eucalyptus), linen, ceramic",
+  "LIFESTYLE_ELEMENT": "Tabby cat + fluffy poodle (soft focus or active pose)",
+  "SHOT_TYPE": "Studio white / 45° angle / Flat lay / Lifestyle / Key Visual",
+  "RESOLUTION": "8K, commercial product photography",
+  "OUTPUT_VARIANTS": [
+    {
+      "id": "3-A",
+      "label": "單瓶正面 — 白底標準商品圖",
+      "shot": "front-facing, white seamless background"
+    },
+    {
+      "id": "3-B",
+      "label": "45度角 — 大地綠背景場景圖",
+      "shot": "45° angle on stone pedestal, sage green background #3D5245"
+    },
+    {
+      "id": "3-C",
+      "label": "生活情境 — 客廳場景",
+      "shot": "lifestyle scene, living room with cat and dog"
+    },
+    {
+      "id": "3-D",
+      "label": "平鋪俯視 — Flat Lay",
+      "shot": "top-down flat lay, bottle with botanicals on linen"
+    },
+    {
+      "id": "3-E",
+      "label": "廣告主視覺 — Key Visual",
+      "shot": "full 16:9 advertising spread, sage green background"
+    }
+  ],
+  "_meta": {
+    "source": "Perplexity AI extraction from 3 attachments",
+    "license": "brand-specific, internal use",
+    "created": "2026-05-06"
+  }
+}

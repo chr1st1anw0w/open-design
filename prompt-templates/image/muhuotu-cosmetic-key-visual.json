@@ -1,0 +1,18 @@
+{
+  "id": "muhuotu-cosmetic-key-visual",
+  "surface": "image",
+  "title": "MUHUOTU 木火土｜廣告主視覺 Key Visual 16:9",
+  "summary": "全版品牌主視覺，深橄欖綠背景，金色大標語、四個功能圖示、貓狗入鏡，底部四欄品牌承諾，手寫 CTA。",
+  "category": "Cosmetic Packaging",
+  "tags": ["key-visual", "advertising", "16:9", "brand", "campaign", "muhuotu"],
+  "model": "gpt-image-2",
+  "aspect": "16:9",
+  "prompt": "Full-spread brand key visual for MUHUOTU pet-friendly fragrance spray. Deep olive-sage green background (#3D5245) with soft organic plant leaf shadows. Left: large gold headline \"為毛孩而生的安心生活香氛\", sub-headline \"有毛孩，也可以很好聞\". Four benefit icon badges in gold line-art: leaf, paw, sparkle, shield. Center: matte white bottle on stone pedestal. Right: smiling caramel poodle + green-eyed tabby cat, round badge \"PET-FRIENDLY · NATURAL CARE\". Bottom bar: cream tone, 4 icon columns (天然植萃/寵物友善/安心配方/人寵共用). Bottom right: handwritten \"每天噴一噴，空氣清新，毛孩安心。♡\" Professional advertising campaign, 16:9 landscape, premium natural brand, 8K.",
+  "previewImageUrl": "",
+  "source": {
+    "repo": "open-design/brand-assets",
+    "license": "brand-specific",
+    "author": "MUHUOTU 木火土",
+    "url": ""
+  }
+}

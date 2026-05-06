@@ -1,0 +1,95 @@
+/* === Theme Toggle — Fixed Top-Right === */
+.theme-toggle {
+  position: fixed;
+  top: 50px; /* below the ticker bar (28px) + breathing room */
+  right: var(--s-5);
+  z-index: 999;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 7px 14px 7px 10px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--text-mute);
+  cursor: pointer;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition:
+    background var(--t-fast) var(--ease-out),
+    border-color var(--t-fast) var(--ease-out),
+    color var(--t-fast) var(--ease-out),
+    box-shadow var(--t-fast) var(--ease-out);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+}
+
+.theme-toggle:hover {
+  border-color: var(--vermilion);
+  color: var(--text);
+  box-shadow: 0 4px 20px rgba(232, 71, 44, 0.18);
+}
+
+/* Pill track */
+.theme-toggle-track {
+  position: relative;
+  width: 28px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--line-strong);
+  flex-shrink: 0;
+  transition: background var(--t-fast) var(--ease-out);
+}
+
+/* Thumb slides left/right */
+.theme-toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--text-mute);
+  transition:
+    transform var(--t-base) var(--ease-out),
+    background var(--t-fast) var(--ease-out);
+}
+
+/* In light mode, slide thumb to right & highlight */
+.garden-gpt-image2.theme-paper .theme-toggle-track {
+  background: var(--vermilion);
+}
+.garden-gpt-image2.theme-paper .theme-toggle-thumb {
+  transform: translateX(12px);
+  background: white;
+}
+
+/* Icon */
+.theme-toggle-icon {
+  display: flex;
+  align-items: center;
+  color: var(--text-mute);
+  transition: color var(--t-fast) var(--ease-out);
+}
+.theme-toggle:hover .theme-toggle-icon { color: var(--text); }
+
+/* Label */
+.theme-toggle-label {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--text-faint);
+  transition: color var(--t-fast) var(--ease-out);
+  user-select: none;
+}
+.theme-toggle:hover .theme-toggle-label { color: var(--text-mute); }
+
+/* On mobile tuck it slightly */
+@media (max-width: 600px) {
+  .theme-toggle {
+    top: 36px;
+    right: var(--s-3);
+    padding: 6px 10px 6px 8px;
+  }
+  .theme-toggle-label { display: none; }
+}

@@ -1,0 +1,18 @@
+{
+  "id": "muhuotu-cosmetic-flat-lay",
+  "surface": "image",
+  "title": "MUHUOTU 木火土｜平鋪俯視 Flat Lay",
+  "summary": "天然亞麻紋理背景，瓶身搭配洋甘菊、尤加利、鵝卵石、金色爪印吊飾與陶瓷碟，高端編輯風格。",
+  "category": "Cosmetic Packaging",
+  "tags": ["flat-lay", "top-down", "editorial", "botanicals", "muhuotu"],
+  "model": "gpt-image-2",
+  "aspect": "1:1",
+  "prompt": "Top-down flat lay on natural linen-textured surface. Center: MUHUOTU 100ml matte white spray bottle with gold logo facing up. Surrounding: dried botanicals (chamomile, eucalyptus), smooth river pebbles, gold paw print charm, cream ceramic dish. Soft overhead diffused natural light. Palette: ivory, sage green, warm gold. Ultra-clean premium editorial photography, 8K resolution.",
+  "previewImageUrl": "",
+  "source": {
+    "repo": "open-design/brand-assets",
+    "license": "brand-specific",
+    "author": "MUHUOTU 木火土",
+    "url": ""
+  }
+}

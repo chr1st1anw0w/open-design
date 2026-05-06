@@ -7,11 +7,27 @@ import { useEffect, useState } from 'react';
 
 export type Route =
   | { kind: 'home' }
-  | { kind: 'project'; projectId: string; fileName: string | null };
+  | { kind: 'project'; projectId: string; fileName: string | null }
+  | {
+      kind: 'tool';
+      toolId: 'web-design' | 'gpt-image2';
+      page?: 'prompt-studio' | 'workbench' | null;
+    };
 
 export function parseRoute(pathname: string): Route {
   const parts = pathname.replace(/\/+$/, '').split('/').filter(Boolean);
   if (parts.length === 0) return { kind: 'home' };
+  if (parts[0] === 'tools' && parts[1]) {
+    if (parts[1] === 'web-design' || parts[1] === 'gpt-image2') {
+      const page =
+        parts[1] === 'gpt-image2' &&
+        (parts[2] === 'prompt-studio' || parts[2] === 'workbench')
+          ? parts[2]
+          : null;
+      return { kind: 'tool', toolId: parts[1], page };
+    }
+    return { kind: 'home' };
+  }
   if (parts[0] === 'projects' && parts[1]) {
     const projectId = decodeURIComponent(parts[1]);
     if (parts[2] === 'files' && parts[3]) {
@@ -28,6 +44,9 @@ export function parseRoute(pathname: string): Route {
 
 export function buildPath(route: Route): string {
   if (route.kind === 'home') return '/';
+  if (route.kind === 'tool') {
+    return route.page ? `/tools/${route.toolId}/${route.page}` : `/tools/${route.toolId}`;
+  }
   const id = encodeURIComponent(route.projectId);
   if (route.fileName) {
     const file = route.fileName

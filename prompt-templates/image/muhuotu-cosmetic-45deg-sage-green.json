@@ -1,0 +1,18 @@
+{
+  "id": "muhuotu-cosmetic-45deg-sage-green",
+  "surface": "image",
+  "title": "MUHUOTU 木火土｜45度角大地綠場景圖",
+  "summary": "霧面白瓶置於天然石台，深橄欖綠背景（#3D5245），虛焦貓咪與貴賓狗，侘寂北歐極簡風格。",
+  "category": "Cosmetic Packaging",
+  "tags": ["lifestyle", "45deg", "sage-green", "pet", "wabi-sabi", "muhuotu"],
+  "model": "gpt-image-2",
+  "aspect": "4:5",
+  "prompt": "A premium lifestyle product shot of the MUHUOTU 100ml matte white fragrance spray bottle, placed upright on a natural rough-hewn stone pedestal. Background: deep sage green (#3D5245) with soft natural leaf shadows. 45-degree angle, soft warm directional lighting from upper-left. A relaxed tabby cat and fluffy poodle sit softly out of focus in the background. Small white jasmine flowers and dried botanicals near the base. All bottle text in metallic gold. 8K, shallow depth of field, Wabi-Sabi meets Nordic minimalism.",
+  "previewImageUrl": "",
+  "source": {
+    "repo": "open-design/brand-assets",
+    "license": "brand-specific",
+    "author": "MUHUOTU 木火土",
+    "url": ""
+  }
+}

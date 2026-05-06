@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ConnectorDetail, ConnectorStatusResponse } from '@open-design/contracts';
 import { useT } from '../i18n';
+import { navigate } from '../router';
 import {
   DEFAULT_AUDIO_MODEL,
   DEFAULT_IMAGE_MODEL,

@@ -135,3 +135,13 @@ pnpm --filter @open-design/desktop build
 - `CONTRIBUTING.de.md`、`CONTRIBUTING.ja-JP.md`、`QUICKSTART.fr.md`
 - upstream remote 設定
 ```
+
+---
+
+## Fork Sync Policy (Required)
+
+- `nexu-io/open-design` is upstream source only. Never push to it.
+- Allowed push target is maintainer fork only (e.g. `fork` remote).
+- Local git must keep a push guard against `nexu-io/open-design`.
+- Upstream sync direction is one-way: `upstream/main` -> local `main` (or sync PR branch).
+- When upstream sync has merge conflicts, stop auto-merge and request maintainer review.

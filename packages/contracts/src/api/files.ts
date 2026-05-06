@@ -38,3 +38,17 @@ export interface ProjectFileResponse {
 export interface UploadProjectFilesResponse extends ProjectFilesResponse {}
 
 export interface DeleteProjectFileResponse extends OkResponse {}
+
+export interface SnapshotEntry {
+  timestamp: number;
+  filename: string;
+  size: number;
+}
+
+export interface ListSnapshotsResponse {
+  snapshots: SnapshotEntry[];
+}
+
+export interface RestoreSnapshotResponse extends OkResponse {
+  restoredAt: number;
+}

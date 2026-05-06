@@ -135,3 +135,17 @@ export interface ChatMessage {
    */
   telemetryFinalized?: boolean;
 }
+
+export interface MessageSearchResult {
+  id: string;
+  role: ChatRole;
+  snippet: string;
+  createdAt: number;
+  conversationId: string;
+  conversationTitle: string | null;
+  projectId: string;
+}
+
+export interface SearchMessagesResponse {
+  results: MessageSearchResult[];
+}

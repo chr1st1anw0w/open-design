@@ -4,6 +4,7 @@ import type { CreateInput } from './components/NewProjectPanel';
 import { PetOverlay } from './components/pet/PetOverlay';
 import { migrateCustomPetAtlas } from './components/pet/pets';
 import { ProjectView } from './components/ProjectView';
+import { GardenToolPage } from './components/GardenToolPage';
 import {
   SettingsDialog,
   type SettingsSection,
@@ -598,6 +599,7 @@ export function App() {
     route.kind === 'project'
       ? (projects.find((p) => p.id === route.projectId) ?? null)
       : null;
+  const activeTool = route.kind === 'tool' ? route : null;
 
   // Deep-linked route to a project we don't have yet (e.g. after a refresh
   // that finishes after the project list comes back). Fetch it in the
@@ -708,7 +710,9 @@ export function App() {
 
   return (
     <>
-      {activeProject ? (
+      {activeTool ? (
+        <GardenToolPage toolId={activeTool.toolId} page={activeTool.page} />
+      ) : activeProject ? (
         <ProjectView
           key={activeProject.id}
           project={activeProject}

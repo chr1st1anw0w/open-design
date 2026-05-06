@@ -1,0 +1,18 @@
+{
+  "id": "muhuotu-cosmetic-front-white-bg",
+  "surface": "image",
+  "title": "MUHUOTU 木火土｜單瓶正面白底商品圖",
+  "summary": "木火土寵物友善香氛噴霧 100ml 霧面白瓶，金屬印刷 Logo，純白無縫背景標準商品攝影。",
+  "category": "Cosmetic Packaging",
+  "tags": ["product-shot", "white-bg", "fragrance", "pet-friendly", "muhuotu"],
+  "model": "gpt-image-2",
+  "aspect": "1:1",
+  "prompt": "A clean, high-end product photography of a single 100ml matte white cylindrical aerosol fragrance spray bottle. The bottle features a circular gold logo emblem with leaf, flame, and mountain-wave motifs. Gold metallic print reads: \"木 火 土 MUHUOTU\" in elegant serif and sans-serif typography. Below the logo: \"寵物友善香氛噴霧 / PET-FRIENDLY FRAGRANCE SPRAY\" in clean sans-serif. A small gold paw print icon centered on the bottle. Footer text: \"天然植萃配方 / 寵物友善・安心使用\" and \"100ml e 3.5 fl. oz.\" Pure white seamless background, soft diffused studio lighting, ultra-sharp 8K commercial product shot. Mood: minimal, premium, trustworthy.",
+  "previewImageUrl": "",
+  "source": {
+    "repo": "open-design/brand-assets",
+    "license": "brand-specific",
+    "author": "MUHUOTU 木火土",
+    "url": ""
+  }
+}
