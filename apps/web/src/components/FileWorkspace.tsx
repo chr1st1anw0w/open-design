@@ -520,6 +520,7 @@ export function FileWorkspace({
             onSavePreviewComment={onSavePreviewComment}
             onRemovePreviewComment={onRemovePreviewComment}
             onSendBoardCommentAttachments={onSendBoardCommentAttachments}
+            onFileSaved={onRefreshFiles}
           />
         ) : (
           <div className="viewer-empty">
