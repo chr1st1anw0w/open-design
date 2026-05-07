@@ -142,13 +142,17 @@ import { CHAT_TOOL_ENDPOINTS, CHAT_TOOL_OPERATIONS, toolTokenRegistry } from './
 import {
   buildDeployFileSet,
   checkDeploymentUrl,
+  CLOUDFLARE_PAGES_PROVIDER_ID,
+  cloudflarePagesProjectNameForProject,
   DeployError,
+  deployToCloudflarePages,
   deployToVercel,
+  isDeployProviderId,
   prepareDeployPreflight,
-  publicDeployConfig,
-  readVercelConfig,
+  publicDeployConfigForProvider,
+  readDeployConfig,
   VERCEL_PROVIDER_ID,
-  writeVercelConfig,
+  writeDeployConfig,
 } from './deploy.js';
 
 /** @typedef {import('@open-design/contracts').ApiErrorCode} ApiErrorCode */
@@ -884,6 +888,46 @@ function sendApiError(res, status, code, message, init = {}) {
   return res
     .status(status)
     .json(createCompatApiErrorResponse(code, message, init));
+}
+
+const CLOUDFLARE_PAGES_PROJECT_METADATA_KEY = 'cloudflarePagesProjectName';
+
+function cloudflarePagesDeploymentMetadata(projectName) {
+  const normalized = typeof projectName === 'string' ? projectName.trim() : '';
+  return normalized
+    ? { [CLOUDFLARE_PAGES_PROJECT_METADATA_KEY]: normalized }
+    : undefined;
+}
+
+function cloudflarePagesProjectNameFromDeployment(deployment) {
+  const value = deployment?.providerMetadata?.[CLOUDFLARE_PAGES_PROJECT_METADATA_KEY];
+  if (typeof value === 'string' && value.trim()) return value.trim();
+  return cloudflarePagesProjectNameFromUrl(deployment?.url);
+}
+
+function cloudflarePagesProjectNameFromUrl(rawUrl) {
+  if (typeof rawUrl !== 'string' || !rawUrl.trim()) return '';
+  try {
+    const host = new URL(rawUrl).hostname.toLowerCase();
+    if (!host.endsWith('.pages.dev')) return '';
+    const labels = host.slice(0, -'.pages.dev'.length).split('.').filter(Boolean);
+    return labels.at(-1) || '';
+  } catch {
+    return '';
+  }
+}
+
+function cloudflarePagesProjectNameForDeploy(db, projectId, projectName, prior) {
+  const priorName = cloudflarePagesProjectNameFromDeployment(prior);
+  if (priorName) return priorName;
+
+  for (const deployment of listDeployments(db, projectId)) {
+    if (deployment.providerId !== CLOUDFLARE_PAGES_PROVIDER_ID) continue;
+    const stableName = cloudflarePagesProjectNameFromDeployment(deployment);
+    if (stableName) return stableName;
+  }
+
+  return cloudflarePagesProjectNameForProject(projectId, projectName);
 }
 
 // Filename slug for the Content-Disposition header on archive downloads.
@@ -2791,10 +2835,15 @@ export async function startServer({ port = 7456, host = process.env.OD_BIND_HOST
 
   // ---- Deploy --------------------------------------------------------------
 
-  app.get('/api/deploy/config', async (_req, res) => {
+  app.get('/api/deploy/config', async (req, res) => {
     try {
+      const providerId =
+        typeof req.query.providerId === 'string' ? req.query.providerId : VERCEL_PROVIDER_ID;
+      if (!isDeployProviderId(providerId)) {
+        return sendApiError(res, 400, 'BAD_REQUEST', 'unsupported deploy provider');
+      }
       /** @type {import('@open-design/contracts').DeployConfigResponse} */
-      const body = publicDeployConfig(await readVercelConfig());
+      const body = publicDeployConfigForProvider(providerId, await readDeployConfig(providerId));
       res.json(body);
     } catch (err) {
       sendApiError(res, 500, 'INTERNAL_ERROR', String(err?.message || err));
@@ -2803,8 +2852,14 @@ export async function startServer({ port = 7456, host = process.env.OD_BIND_HOST
 
   app.put('/api/deploy/config', async (req, res) => {
     try {
+      const input = req.body || {};
+      const providerId =
+        typeof input.providerId === 'string' ? input.providerId : VERCEL_PROVIDER_ID;
+      if (!isDeployProviderId(providerId)) {
+        return sendApiError(res, 400, 'BAD_REQUEST', 'unsupported deploy provider');
+      }
       /** @type {import('@open-design/contracts').DeployConfigResponse} */
-      const body = await writeVercelConfig(req.body || {});
+      const body = await writeDeployConfig(providerId, input);
       res.json(body);
     } catch (err) {
       sendApiError(res, 400, 'BAD_REQUEST', String(err?.message || err));
@@ -2824,7 +2879,7 @@ export async function startServer({ port = 7456, host = process.env.OD_BIND_HOST
   app.post('/api/projects/:id/deploy', async (req, res) => {
     try {
       const { fileName, providerId = VERCEL_PROVIDER_ID } = req.body || {};
-      if (providerId !== VERCEL_PROVIDER_ID) {
+      if (!isDeployProviderId(providerId)) {
         return sendApiError(
           res,
           400,
@@ -2842,11 +2897,25 @@ export async function startServer({ port = 7456, host = process.env.OD_BIND_HOST
         req.params.id,
         fileName,
       );
-      const result = await deployToVercel({
-        config: await readVercelConfig(),
-        files,
-        projectId: req.params.id,
-      });
+      const project = getProject(db, req.params.id);
+      const cloudflarePagesProjectName =
+        providerId === CLOUDFLARE_PAGES_PROVIDER_ID
+          ? cloudflarePagesProjectNameForDeploy(db, req.params.id, project?.name, prior)
+          : '';
+      const result = providerId === CLOUDFLARE_PAGES_PROVIDER_ID
+        ? await deployToCloudflarePages({
+            config: {
+              ...await readDeployConfig(CLOUDFLARE_PAGES_PROVIDER_ID),
+              projectName: cloudflarePagesProjectName,
+            },
+            files,
+            projectId: req.params.id,
+          })
+        : await deployToVercel({
+            config: await readDeployConfig(VERCEL_PROVIDER_ID),
+            files,
+            projectId: req.params.id,
+          });
       const now = Date.now();
       /** @type {import('@open-design/contracts').DeployProjectFileResponse} */
       const body = upsertDeployment(db, {
@@ -2861,6 +2930,10 @@ export async function startServer({ port = 7456, host = process.env.OD_BIND_HOST
         status: result.status,
         statusMessage: result.statusMessage,
         reachableAt: result.reachableAt,
+        providerMetadata:
+          providerId === CLOUDFLARE_PAGES_PROVIDER_ID
+            ? cloudflarePagesDeploymentMetadata(cloudflarePagesProjectName)
+            : prior?.providerMetadata,
         createdAt: prior?.createdAt ?? now,
         updatedAt: now,
       });
@@ -2884,7 +2957,7 @@ export async function startServer({ port = 7456, host = process.env.OD_BIND_HOST
   app.post('/api/projects/:id/deploy/preflight', async (req, res) => {
     try {
       const { fileName, providerId = VERCEL_PROVIDER_ID } = req.body || {};
-      if (providerId !== VERCEL_PROVIDER_ID) {
+      if (!isDeployProviderId(providerId)) {
         return sendApiError(
           res,
           400,
@@ -2900,6 +2973,7 @@ export async function startServer({ port = 7456, host = process.env.OD_BIND_HOST
         PROJECTS_DIR,
         req.params.id,
         fileName,
+        { providerId },
       );
       res.json(body);
     } catch (err) {
@@ -2937,11 +3011,19 @@ export async function startServer({ port = 7456, host = process.env.OD_BIND_HOST
             'deployment not found',
           );
         }
-        const result = await checkDeploymentUrl(existing.url);
+        const stableCloudflareProjectName =
+          existing.providerId === CLOUDFLARE_PAGES_PROVIDER_ID
+            ? cloudflarePagesProjectNameFromDeployment(existing)
+            : '';
+        const checkUrl = stableCloudflareProjectName
+          ? `https://${stableCloudflareProjectName}.pages.dev`
+          : existing.url;
+        const result = await checkDeploymentUrl(checkUrl);
         const now = Date.now();
         /** @type {import('@open-design/contracts').CheckDeploymentLinkResponse} */
         const body = upsertDeployment(db, {
           ...existing,
+          url: checkUrl || existing.url,
           status: result.reachable ? 'ready' : result.status || 'link-delayed',
           statusMessage: result.reachable
             ? 'Public link is ready.'
