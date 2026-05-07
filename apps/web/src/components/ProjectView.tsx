@@ -15,7 +15,9 @@ import {
   fetchDesignSystem,
   fetchProjectFiles,
   fetchSkill,
+  linkProjectDirectory,
   patchPreviewCommentStatus,
+  unlinkProjectDirectory,
   upsertPreviewComment,
   writeProjectTextFile,
 } from '../providers/registry';
@@ -1290,6 +1292,22 @@ export function ProjectView({
     [project, onProjectChange],
   );
 
+  const handleLinkDir = useCallback(
+    async (dirPath: string) => {
+      const result = await linkProjectDirectory(project.id, dirPath);
+      onProjectChange(result.project);
+    },
+    [project.id, onProjectChange],
+  );
+
+  const handleUnlinkDir = useCallback(
+    async (dirPath: string) => {
+      const result = await unlinkProjectDirectory(project.id, dirPath);
+      onProjectChange(result.project);
+    },
+    [project.id, onProjectChange],
+  );
+
   const projectMeta = useMemo(() => {
     const skill = skills.find((s) => s.id === project.skillId)?.name;
     const ds = designSystems.find((d) => d.id === project.designSystemId)?.title;
@@ -1371,6 +1389,7 @@ export function ProjectView({
           error={error}
           projectId={project.id}
           projectFiles={projectFiles}
+          linkedDirs={project.metadata?.linkedDirs ?? []}
           skills={skills}
           designSystems={designSystems}
           projectFileNames={projectFileNames}
@@ -1396,6 +1415,8 @@ export function ProjectView({
           onDeleteConversation={handleDeleteConversation}
           onRenameConversation={handleRenameConversation}
           onOpenSettings={onOpenSettings}
+          onLinkDir={handleLinkDir}
+          onUnlinkDir={handleUnlinkDir}
           petConfig={config.pet}
           onAdoptPet={onAdoptPetInline}
           onTogglePet={onTogglePet}

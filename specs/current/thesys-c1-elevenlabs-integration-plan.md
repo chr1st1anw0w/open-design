@@ -1,8 +1,9 @@
 # Thesys C1 + ElevenLabs UI 整合計劃
 
 **建立日期**：2026-05-05  
-**狀態**：📋 規劃中  
-**分支**：`docs/import-sources-codex-handoff`
+**狀態**：🚧 開發中（Phase 1 ✅ 完成，Phase 2–4 待執行）  
+**分支**：`integration/open-design-handoff`  
+**最後更新**：2026-05-07（同步實際實作狀態）
 
 ---
 
@@ -59,8 +60,21 @@ app.post("/api/chat", async (req, res) => {
 
 #### 驗收條件
 
-- [ ] `curl -X POST /api/chat -d '{"messages":[{"role":"user","content":"hello"}]}'` 回傳 Thesys 串流
+- [ ] `curl -X POST /api/garden/gpt-image2/prompt-expert/chat -d '{"messages":[{"role":"user","content":"hello"}]}'` 回傳 Thesys 串流
 - [ ] 現有 GPT Image 2 generate 路由不受影響
+
+#### 實際實作詳情
+
+Phase 1 已超範圍完成，包含完整 Prompt Expert 架構：
+
+| 項目              | 描述                                                                | 實作位置                                  |
+| ----------------- | ------------------------------------------------------------------- | ----------------------------------------- |
+| 路由端點          | `/api/garden/gpt-image2/prompt-expert/{chat,identity-token,config}` | `server.ts:2664–2799`                     |
+| API 金鑰管理      | 環境變數 + JSON 雙源 + 遮罩顯示（末 4 位）                          | `prompt-expert-config.ts`                 |
+| JWT 認證          | HS256，有效期 3600 秒，端點 `/identity-token`                       | `server.ts:2715–2730`                     |
+| Graceful Fallback | 關鍵字比對降級，無需 API key                                        | `localPromptExpertReply()` in `server.ts` |
+| Config CRUD       | GET/PUT `/api/garden/gpt-image2/prompt-expert/config`               | `server.ts:2760–2799`                     |
+| Provider 狀態     | GET `/api/garden/gpt-image2/prompt-expert/providers` 檢查可用性     | `server.ts:2740–2758`                     |
 
 ---
 

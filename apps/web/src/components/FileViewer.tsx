@@ -8,10 +8,13 @@ import {
   deployProjectFile,
   fetchDeployConfig,
   fetchProjectDeployments,
+  fetchProjectFileSnapshots,
   fetchProjectFilePreview,
   fetchProjectFileText,
+  projectFileSnapshotUrl,
   projectFileUrl,
   projectRawUrl,
+  restoreProjectFileSnapshot,
   updateDeployConfig,
 } from '../providers/registry';
 import type { ProjectFilePreview } from '../providers/registry';
@@ -29,6 +32,7 @@ import { buildSrcdoc } from '../runtime/srcdoc';
 import { parseForceInline, shouldUrlLoadHtmlPreview } from './file-viewer-render-mode';
 import { saveTemplate } from '../state/projects';
 import type { DeployConfigResponse, DeployProjectFileResponse, ProjectFile } from '../types';
+import type { SnapshotEntry } from '@open-design/contracts';
 import { Icon } from './Icon';
 import {
   liveSnapshotForComment,
@@ -156,6 +160,94 @@ function FileActions({
       </a>
     </div>
   );
+}
+
+function SnapshotPanel({
+  snapshots,
+  loading,
+  restoringTimestamp,
+  onClose,
+  onRefresh,
+  onPreview,
+  onRestore,
+}: {
+  snapshots: SnapshotEntry[];
+  loading: boolean;
+  restoringTimestamp: number | null;
+  onClose: () => void;
+  onRefresh: () => void;
+  onPreview: (timestamp: number) => void;
+  onRestore: (timestamp: number) => void;
+}) {
+  return (
+    <aside className="snapshot-panel" aria-label="版本歷史">
+      <div className="snapshot-panel-head">
+        <div>
+          <strong>版本歷史</strong>
+          <span>保留最近 20 個自動快照</span>
+        </div>
+        <div className="snapshot-panel-head-actions">
+          <button type="button" className="icon-only" onClick={onRefresh} title="重新整理">
+            <Icon name={loading ? 'spinner' : 'reload'} size={13} />
+          </button>
+          <button type="button" className="icon-only" onClick={onClose} title="關閉">
+            <Icon name="close" size={13} />
+          </button>
+        </div>
+      </div>
+      {loading && snapshots.length === 0 ? (
+        <div className="snapshot-empty">正在載入快照…</div>
+      ) : snapshots.length === 0 ? (
+        <div className="snapshot-empty">尚無快照。檔案被覆寫後會自動出現在這裡。</div>
+      ) : (
+        <ul className="snapshot-list">
+          {snapshots.map((snapshot) => (
+            <li key={`${snapshot.timestamp}-${snapshot.filename}`} className="snapshot-item">
+              <div className="snapshot-item-main">
+                <strong>{formatSnapshotTime(snapshot.timestamp)}</strong>
+                <span>{formatViewerBytes(snapshot.size)}</span>
+              </div>
+              <div className="snapshot-item-actions">
+                <button type="button" className="ghost-link" onClick={() => onPreview(snapshot.timestamp)}>
+                  預覽
+                </button>
+                <button
+                  type="button"
+                  className="ghost-link"
+                  disabled={restoringTimestamp === snapshot.timestamp}
+                  onClick={() => onRestore(snapshot.timestamp)}
+                >
+                  {restoringTimestamp === snapshot.timestamp ? '復原中…' : '復原'}
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </aside>
+  );
+}
+
+function formatSnapshotTime(timestamp: number): string {
+  return new Intl.DateTimeFormat('zh-TW', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).format(new Date(timestamp));
+}
+
+function formatViewerBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let value = bytes;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  return `${value >= 10 || unit === 0 ? value.toFixed(0) : value.toFixed(1)} ${units[unit]}`;
 }
 
 function CommentPopover({
@@ -722,6 +814,10 @@ function HtmlViewer({
   const [teamSlug, setTeamSlug] = useState('');
   const [inTabPresent, setInTabPresent] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [snapshots, setSnapshots] = useState<SnapshotEntry[]>([]);
+  const [snapshotsLoading, setSnapshotsLoading] = useState(false);
+  const [restoringSnapshot, setRestoringSnapshot] = useState<number | null>(null);
   const [commentMode, setCommentMode] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [tweakPanelOpen, setTweakPanelOpen] = useState(false);
@@ -782,6 +878,60 @@ function HtmlViewer({
       cancelled = true;
     };
   }, [projectId, file.name]);
+
+  useEffect(() => {
+    if (!historyOpen) return;
+    let cancelled = false;
+    setSnapshotsLoading(true);
+    void fetchProjectFileSnapshots(projectId, file.name)
+      .then((items) => {
+        if (!cancelled) setSnapshots(items);
+      })
+      .finally(() => {
+        if (!cancelled) setSnapshotsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [historyOpen, projectId, file.name, file.mtime, reloadKey]);
+
+  async function refreshSnapshots() {
+    setSnapshotsLoading(true);
+    try {
+      setSnapshots(await fetchProjectFileSnapshots(projectId, file.name));
+    } finally {
+      setSnapshotsLoading(false);
+    }
+  }
+
+  function previewSnapshot(timestamp: number) {
+    window.open(
+      projectFileSnapshotUrl(projectId, file.name, timestamp),
+      '_blank',
+      'noopener,noreferrer',
+    );
+  }
+
+  async function restoreSnapshot(timestamp: number) {
+    if (!window.confirm('復原到這個版本？目前檔案會先自動保存為新的快照。')) {
+      return;
+    }
+    setRestoringSnapshot(timestamp);
+    try {
+      const restored = await restoreProjectFileSnapshot(projectId, file.name, timestamp);
+      if (!restored) return;
+      const nextReloadKey = Date.now();
+      setReloadKey(nextReloadKey);
+      const nextSource = await fetchProjectFileText(projectId, file.name, {
+        cache: 'no-store',
+        cacheBustKey: nextReloadKey,
+      });
+      if (nextSource !== null) setSource(nextSource);
+      await refreshSnapshots();
+    } finally {
+      setRestoringSnapshot(null);
+    }
+  }
 
   // Detect deck-shaped HTML even when the project's skill didn't declare
   // `mode: deck`. Freeform projects often produce a deck because the user
@@ -1347,6 +1497,16 @@ function HtmlViewer({
           </div>
           <span className="viewer-divider" aria-hidden />
           <button
+            className={`viewer-action${historyOpen ? ' active' : ''}`}
+            type="button"
+            title="版本歷史"
+            onClick={() => setHistoryOpen((v) => !v)}
+          >
+            <Icon name="history" size={13} />
+            <span>版本歷史</span>
+          </button>
+          <span className="viewer-divider" aria-hidden />
+          <button
             className={`viewer-action${commentMode ? ' active' : ''}`}
             type="button"
             data-testid="comment-mode-toggle"
@@ -1699,6 +1859,17 @@ function HtmlViewer({
         ) : (
           <pre className="viewer-source">{source}</pre>
         )}
+        {historyOpen ? (
+          <SnapshotPanel
+            snapshots={snapshots}
+            loading={snapshotsLoading}
+            restoringTimestamp={restoringSnapshot}
+            onClose={() => setHistoryOpen(false)}
+            onRefresh={() => void refreshSnapshots()}
+            onPreview={previewSnapshot}
+            onRestore={(timestamp) => void restoreSnapshot(timestamp)}
+          />
+        ) : null}
       </div>
       {inTabPresent && source ? (
         <div

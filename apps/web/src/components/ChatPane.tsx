@@ -49,6 +49,7 @@ interface Props {
   error: string | null;
   projectId: string | null;
   projectFiles: ProjectFile[];
+  linkedDirs?: string[];
   skills?: SkillSummary[];
   designSystems?: DesignSystemSummary[];
   // Names that exist in the project folder. Tool cards and chips use this
@@ -84,6 +85,8 @@ interface Props {
   // Composer settings/CLI button forwards to here. The dialog lives in App
   // (it owns the AppConfig lifecycle) so we just pass the open trigger.
   onOpenSettings?: () => void;
+  onLinkDir?: (path: string) => Promise<void>;
+  onUnlinkDir?: (path: string) => Promise<void>;
   // Optional pet wiring forwarded straight through to ChatComposer's
   // /pet button. When omitted the composer hides the button entirely.
   petConfig?: AppConfig['pet'];
@@ -100,6 +103,7 @@ export function ChatPane({
   error,
   projectId,
   projectFiles,
+  linkedDirs = [],
   skills = [],
   designSystems = [],
   projectFileNames,
@@ -122,6 +126,8 @@ export function ChatPane({
   onDeleteConversation,
   onRenameConversation,
   onOpenSettings,
+  onLinkDir,
+  onUnlinkDir,
   petConfig,
   onAdoptPet,
   onTogglePet,
@@ -430,6 +436,7 @@ export function ChatPane({
             ref={composerRef}
             projectId={projectId}
             projectFiles={projectFiles}
+            linkedDirs={linkedDirs}
             skills={skills}
             designSystems={designSystems}
             streaming={streaming || hasActiveRunMessage}
@@ -440,6 +447,8 @@ export function ChatPane({
             onSend={onSend}
             onStop={onStop}
             onOpenSettings={onOpenSettings}
+            onLinkDir={onLinkDir}
+            onUnlinkDir={onUnlinkDir}
             petConfig={petConfig}
             onAdoptPet={onAdoptPet}
             onTogglePet={onTogglePet}

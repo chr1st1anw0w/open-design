@@ -1738,6 +1738,21 @@ export async function startServer({
     }
   });
 
+  app.get("/api/skills/:id/thumbnail", async (req, res) => {
+    try {
+      const skills = await listAllSkills();
+      const skill = skills.find((s) => s.id === req.params.id);
+      if (!skill) return res.status(404).type("text/plain").send("skill not found");
+      for (const file of ["thumbnail.png", "thumbnail.jpg", "thumbnail.jpeg", "thumbnail.webp"]) {
+        const candidate = path.join(skill.dir, file);
+        if (fs.existsSync(candidate)) return res.sendFile(candidate);
+      }
+      return res.status(404).type("text/plain").send("thumbnail not found");
+    } catch (err) {
+      res.status(500).type("text/plain").send(String(err));
+    }
+  });
+
   app.delete("/api/skills/:id", async (req, res) => {
     const targetDir = path.join(
       USER_SKILLS_DIR,
@@ -1901,6 +1916,22 @@ export async function startServer({
       res.json({ id: req.params.id, body });
     } catch (err) {
       res.status(500).json({ error: String(err) });
+    }
+  });
+
+  app.delete("/api/design-systems/:id", async (req, res) => {
+    try {
+      const id = String(req.params.id || "").trim();
+      if (!id) return sendApiError(res, 400, "BAD_REQUEST", "id required");
+      const targetDir = path.join(USER_DESIGN_SYSTEMS_DIR, id);
+      if (!isWithinDir(USER_DESIGN_SYSTEMS_DIR, targetDir)) {
+        return sendApiError(res, 400, "BAD_REQUEST", "invalid design system id");
+      }
+      await fs.promises.rm(targetDir, { recursive: true, force: true });
+      const systems = await listAllDesignSystems();
+      res.json({ ok: true, removed: id, designSystems: systems });
+    } catch (err) {
+      sendApiError(res, 500, "INTERNAL_ERROR", String(err?.message || err));
     }
   });
 
@@ -4074,6 +4105,23 @@ export async function startServer({
       sendProxyError(sse, err.message, { code: "INTERNAL_ERROR" });
       sse.end();
     }
+  });
+
+  // Static export ships a single client-rendered shell at out/index.html.
+  // express.static handles real files above; this fallback keeps deep links
+  // such as /projects/:id/files/:name hydrating through the SPA router while
+  // leaving API routes and missing asset files as normal 404s.
+  app.get("*", (req, res, next) => {
+    if (!fs.existsSync(STATIC_DIR)) return next();
+    if (
+      req.path.startsWith("/api/") ||
+      req.path.startsWith("/artifacts/") ||
+      req.path.startsWith("/frames/") ||
+      path.extname(req.path)
+    ) {
+      return next();
+    }
+    res.sendFile(path.join(STATIC_DIR, "index.html"));
   });
 
   // Wait for `listen` to bind so callers always see the resolved URL —

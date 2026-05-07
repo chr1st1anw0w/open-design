@@ -43,6 +43,7 @@ export interface SkillSummary {
   speakerNotes?: boolean | null;
   animations?: boolean | null;
   craftRequires?: string[];
+  previewImageUrl?: string;
   hasBody: boolean;
   examplePrompt: string;
   // True when this skill exists only to group derived `<parent>:<child>`

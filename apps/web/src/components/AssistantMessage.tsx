@@ -372,7 +372,15 @@ function ProseBlock({
   locallySubmitted: Set<string>;
   onSubmitForm: (formId: string, text: string) => void;
 }) {
-  const cleaned = useMemo(() => stripArtifact(text), [text]);
+  const cleaned = useMemo(() => {
+    const next = stripArtifact(text);
+    // Legacy messages may only contain <artifact>...</artifact>. If we
+    // strip everything, the chat row collapses to just role/time, which
+    // looks like "missing history". Fall back to raw text so content
+    // always remains visible in scrollback.
+    if (next.trim().length === 0 && text.trim().length > 0) return text;
+    return next;
+  }, [text]);
   const segments = useMemo(() => splitOnQuestionForms(cleaned), [cleaned]);
   // Each text segment is further split on `<system-reminder>` blocks so
   // those render as their own collapsible chip instead of raw markup.

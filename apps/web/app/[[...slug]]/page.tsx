@@ -7,13 +7,12 @@ import { ClientApp } from './client-app';
 //
 // For `output: 'export'` we return a single empty `slug` so Next.js emits
 // one shell HTML at out/index.html; the daemon's SPA fallback (see
-// apps/daemon/src/server.ts) serves it for any unknown non-API path so deep
-// links still hydrate to the right view.
+// apps/daemon/src/server.ts) serves it for any unknown non-API path so deep links
+// still hydrate to the right view. Keep `dynamicParams` unset here: Next static
+// export rejects `dynamicParams: true`, and the daemon owns deep-link fallback.
 export function generateStaticParams() {
-  return [{ slug: [] }];
+  return [{ slug: [] as string[] }];
 }
-
-export const dynamicParams = true;
 
 export default function Page() {
   return <ClientApp />;

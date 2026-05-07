@@ -13,6 +13,10 @@ import type { Dict } from '../i18n/types';
 import {
   fetchDesignSystem,
   fetchSkill,
+  fetchSkills,
+  installSkillFromGitUrl,
+  removeDesignSystemById,
+  removeSkillById,
   projectRawUrl,
   uploadProjectFiles,
 } from "../providers/registry";
@@ -74,6 +78,7 @@ interface SlashCommand {
 interface Props {
   projectId: string | null;
   projectFiles: ProjectFile[];
+  linkedDirs?: string[];
   skills?: SkillSummary[];
   designSystems?: DesignSystemSummary[];
   streaming: boolean;
@@ -90,6 +95,8 @@ interface Props {
   // composer's leading gear icon routes here so users can switch models
   // without leaving the chat.
   onOpenSettings?: () => void;
+  onLinkDir?: (path: string) => Promise<void>;
+  onUnlinkDir?: (path: string) => Promise<void>;
   // Optional pet wiring — when present, the composer renders a small
   // 🐾 button + popover so users can adopt / wake / tuck a pet without
   // leaving chat. Typing `/pet` (or `/pet wake|tuck|<id>`) is parsed
@@ -121,6 +128,7 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
     {
       projectId,
       projectFiles,
+      linkedDirs = [],
       skills = [],
       designSystems = [],
       streaming,
@@ -131,6 +139,8 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
       onSend,
       onStop,
       onOpenSettings,
+      onLinkDir,
+      onUnlinkDir,
       petConfig,
       onAdoptPet,
       onTogglePet,
@@ -165,6 +175,16 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
     const [importingContextId, setImportingContextId] = useState<string | null>(
       null,
     );
+    const [skillInstallUrl, setSkillInstallUrl] = useState('');
+    const [skillInstalling, setSkillInstalling] = useState(false);
+    const [skillInstallError, setSkillInstallError] = useState<string | null>(null);
+    const [skillsState, setSkillsState] = useState<SkillSummary[]>(skills);
+    const [skillsQuery, setSkillsQuery] = useState('');
+    const [skillsPage, setSkillsPage] = useState(1);
+    const [designSystemQuery, setDesignSystemQuery] = useState('');
+    const [linkDirPath, setLinkDirPath] = useState('');
+    const [linkDirError, setLinkDirError] = useState<string | null>(null);
+    const [linkingDir, setLinkingDir] = useState(false);
     const [petOpen, setPetOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -191,6 +211,13 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
         seededRef.current = true;
       }
     }, [initialDraft, draft]);
+
+    useEffect(() => {
+      setSkillsState(skills);
+    }, [skills]);
+    useEffect(() => {
+      setSkillsPage(1);
+    }, [skillsQuery]);
 
     useEffect(() => {
       if (!importOpen) return;
@@ -528,6 +555,63 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
       }
     }
 
+    async function handleInstallSkill() {
+      const url = skillInstallUrl.trim();
+      if (!url) return;
+      setSkillInstalling(true);
+      setSkillInstallError(null);
+      try {
+        const result = await installSkillFromGitUrl(url);
+        setSkillsState(result.skills);
+        setSkillInstallUrl('');
+      } catch (err) {
+        setSkillInstallError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setSkillInstalling(false);
+      }
+    }
+
+    async function handleRemoveSkill(skillId: string) {
+      try {
+        const result = await removeSkillById(skillId);
+        setSkillsState(result.skills);
+      } catch (err) {
+        setSkillInstallError(err instanceof Error ? err.message : String(err));
+      }
+    }
+
+    async function handleRemoveDesignSystem(id: string) {
+      try {
+        await removeDesignSystemById(id);
+      } catch (err) {
+        setSkillInstallError(err instanceof Error ? err.message : String(err));
+      }
+    }
+
+    const filteredSkills = useMemo(() => {
+      const q = skillsQuery.trim().toLowerCase();
+      if (!q) return skillsState;
+      return skillsState.filter((skill) => {
+        const haystack = `${skill.name} ${skill.id} ${skill.description} ${skill.mode}`.toLowerCase();
+        return haystack.includes(q);
+      });
+    }, [skillsState, skillsQuery]);
+
+    const SKILLS_PAGE_SIZE = 12;
+    const totalSkillsPages = Math.max(1, Math.ceil(filteredSkills.length / SKILLS_PAGE_SIZE));
+    const pagedSkills = filteredSkills.slice(
+      (Math.max(1, skillsPage) - 1) * SKILLS_PAGE_SIZE,
+      Math.max(1, skillsPage) * SKILLS_PAGE_SIZE,
+    );
+    const filteredDesignSystems = useMemo(() => {
+      const q = designSystemQuery.trim().toLowerCase();
+      if (!q) return designSystems;
+      return designSystems.filter((system) => {
+        const haystack = `${system.title} ${system.id} ${system.summary} ${system.category}`.toLowerCase();
+        return haystack.includes(q);
+      });
+    }, [designSystems, designSystemQuery]);
+
     async function importDesignSystemContext(system: DesignSystemSummary) {
       const contextId = `design-system:${system.id}`;
       if (importedContexts.some((item) => item.id === contextId)) return;
@@ -697,6 +781,21 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
       requestAnimationFrame(() => textareaRef.current?.focus());
     }
 
+    async function submitLinkedDir() {
+      const nextPath = linkDirPath.trim();
+      if (!nextPath || !onLinkDir) return;
+      setLinkingDir(true);
+      setLinkDirError(null);
+      try {
+        await onLinkDir(nextPath);
+        setLinkDirPath('');
+      } catch (err) {
+        setLinkDirError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setLinkingDir(false);
+      }
+    }
+
     return (
       <div
         className={`composer${dragActive ? " drag-active" : ""}`}
@@ -853,7 +952,7 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
                         icon="folder"
                         label={t('chat.importFolder')}
                         t={t}
-                        enabled={codeDirectories.length > 0}
+                        enabled={Boolean(onLinkDir) || linkedDirs.length > 0 || codeDirectories.length > 0}
                         onClick={() => setImportPanel("code")}
                       />
                       <ImportItem
@@ -878,7 +977,34 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
                       emptyLabel="目前沒有可匯入的技能或設計系統"
                       onBack={() => setImportPanel("root")}
                     >
-                      {skills.slice(0, 8).map((skill) => {
+                      <div className="skill-installer-inline">
+                        <input
+                          value={skillInstallUrl}
+                          onChange={(event) => setSkillInstallUrl(event.target.value)}
+                          placeholder="https://github.com/org/skill-repo"
+                          disabled={skillInstalling}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                              event.preventDefault();
+                              void handleInstallSkill();
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => void handleInstallSkill()}
+                          disabled={skillInstalling || !skillInstallUrl.trim()}
+                        >
+                          {skillInstalling ? '安裝中…' : '安裝'}
+                        </button>
+                      </div>
+                      {skillInstallError ? <p className="linked-dir-error">{skillInstallError}</p> : null}
+                      <input
+                        value={skillsQuery}
+                        onChange={(event) => setSkillsQuery(event.target.value)}
+                        placeholder="搜尋技能（名稱 / 描述 / mode）"
+                      />
+                      {pagedSkills.map((skill) => {
                         const contextId = `skill:${skill.id}`;
                         return (
                           <ImportResourceItem
@@ -889,11 +1015,46 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
                             summary={skill.description}
                             active={importedContexts.some((item) => item.id === contextId)}
                             loading={importingContextId === contextId}
+                            action={
+                              skill.upstream ? undefined : (
+                                <button
+                                  type="button"
+                                  className="linked-dir-remove"
+                                  title="移除 skill"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    void handleRemoveSkill(skill.id);
+                                  }}
+                                >
+                                  <Icon name="close" size={11} />
+                                </button>
+                              )
+                            }
                             onClick={() => void importSkillContext(skill)}
                           />
                         );
                       })}
-                      {designSystems.slice(0, 8).map((system) => {
+                      {filteredSkills.length > SKILLS_PAGE_SIZE ? (
+                        <div className="linked-dir-add">
+                          <button type="button" disabled={skillsPage <= 1} onClick={() => setSkillsPage((p) => Math.max(1, p - 1))}>
+                            上一頁
+                          </button>
+                          <span>{skillsPage} / {totalSkillsPages}</span>
+                          <button
+                            type="button"
+                            disabled={skillsPage >= totalSkillsPages}
+                            onClick={() => setSkillsPage((p) => Math.min(totalSkillsPages, p + 1))}
+                          >
+                            下一頁
+                          </button>
+                        </div>
+                      ) : null}
+                      <input
+                        value={designSystemQuery}
+                        onChange={(event) => setDesignSystemQuery(event.target.value)}
+                        placeholder="搜尋設計系統（名稱 / 類別）"
+                      />
+                      {filteredDesignSystems.map((system) => {
                         const contextId = `design-system:${system.id}`;
                         return (
                           <ImportResourceItem
@@ -904,6 +1065,19 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
                             summary={system.summary}
                             active={importedContexts.some((item) => item.id === contextId)}
                             loading={importingContextId === contextId}
+                            action={(
+                              <button
+                                type="button"
+                                className="linked-dir-remove"
+                                title="移除 design system"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  void handleRemoveDesignSystem(system.id);
+                                }}
+                              >
+                                <Icon name="close" size={11} />
+                              </button>
+                            )}
                             onClick={() => void importDesignSystemContext(system)}
                           />
                         );
@@ -915,6 +1089,53 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
                       emptyLabel="目前沒有可關聯的程式碼目錄"
                       onBack={() => setImportPanel("root")}
                     >
+                      <div className="linked-dir-manager">
+                        <div className="linked-dir-manager-title">本機關聯目錄</div>
+                        {linkedDirs.length > 0 ? (
+                          <div className="linked-dir-list">
+                            {linkedDirs.map((dir) => (
+                              <div className="linked-dir-row" key={dir}>
+                                <span title={dir}>{dir}</span>
+                                <button
+                                  type="button"
+                                  className="linked-dir-remove"
+                                  disabled={!onUnlinkDir}
+                                  onClick={() => void onUnlinkDir?.(dir)}
+                                  title="移除關聯"
+                                >
+                                  <Icon name="close" size={11} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="linked-dir-empty">尚未關聯本機資料夾。</p>
+                        )}
+                        <div className="linked-dir-add">
+                          <input
+                            value={linkDirPath}
+                            onChange={(event) => setLinkDirPath(event.target.value)}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter') {
+                                event.preventDefault();
+                                void submitLinkedDir();
+                              }
+                            }}
+                            placeholder="/Users/name/project/components"
+                            disabled={!onLinkDir || linkingDir}
+                          />
+                          <button
+                            type="button"
+                            disabled={!onLinkDir || linkingDir || !linkDirPath.trim()}
+                            onClick={() => void submitLinkedDir()}
+                          >
+                            {linkingDir ? '關聯中…' : '關聯'}
+                          </button>
+                        </div>
+                        {linkDirError ? (
+                          <p className="linked-dir-error">{linkDirError}</p>
+                        ) : null}
+                      </div>
                       {codeDirectories.map((dir) => {
                         const contextId = `code-dir:${dir.path}`;
                         return (
@@ -1285,6 +1506,7 @@ function ImportResourceItem({
   loading = false,
   draggable = false,
   dragPayload,
+  action,
   onClick,
 }: {
   icon: "sparkles" | "grid" | "folder" | "file";
@@ -1295,6 +1517,7 @@ function ImportResourceItem({
   loading?: boolean;
   draggable?: boolean;
   dragPayload?: unknown;
+  action?: ReactNode;
   onClick: () => void;
 }) {
   return (
@@ -1322,7 +1545,7 @@ function ImportResourceItem({
         <span className="composer-resource-summary">{summary}</span>
       </span>
       <span className="composer-resource-state">
-        {active ? <Icon name="check" size={13} /> : null}
+        {action ?? (active ? <Icon name="check" size={13} /> : null)}
       </span>
     </button>
   );
