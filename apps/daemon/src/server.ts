@@ -162,6 +162,7 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const require = createRequire(import.meta.url);
+const DAEMON_CLI_PATH_ENV = 'OD_DAEMON_CLI_PATH';
 export function resolveProjectRoot(moduleDir: string): string {
   const base = path.basename(moduleDir);
   const daemonDir =
@@ -169,7 +170,16 @@ export function resolveProjectRoot(moduleDir: string): string {
   return path.resolve(daemonDir, '../..');
 }
 
-export function resolveDaemonCliPath(): string {
+function cleanOptionalPath(value: string | undefined): string | null {
+  return typeof value === 'string' && value.trim().length > 0
+    ? path.resolve(value)
+    : null;
+}
+
+export function resolveDaemonCliPath(env: NodeJS.ProcessEnv = process.env): string {
+  const configured = cleanOptionalPath(env[DAEMON_CLI_PATH_ENV]) ?? cleanOptionalPath(env.OD_BIN);
+  if (configured) return configured;
+
   const packageJsonPath = require.resolve('@open-design/daemon/package.json');
   return path.join(path.dirname(packageJsonPath), 'dist', 'cli.js');
 }
@@ -1573,7 +1583,7 @@ export async function startServer({ port = 7456, host = process.env.OD_BIND_HOST
     const hints: string[] = [];
     if (!cliExists) {
       hints.push(
-        'apps/daemon/dist/cli.js is missing. Run `pnpm --filter @open-design/daemon build` and refresh.',
+        `Open Design CLI entry is missing at ${cliPath}. Rebuild the daemon or packaged app and refresh.`,
       );
     }
     if (!nodeExists) {
