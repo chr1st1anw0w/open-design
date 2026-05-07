@@ -775,6 +775,7 @@ export const esES: Dict = {
   'sketch.clear': 'Limpiar',
   'sketch.close': 'Cerrar',
   'sketch.textPrompt': 'Texto:',
+  'sketch.textModalTitle': 'Añadir texto',
 
   'pet.title': 'Mascotas',
   'pet.tabBuiltIn': 'Integradas',
