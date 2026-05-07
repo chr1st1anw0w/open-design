@@ -21,7 +21,7 @@ import type { AgentEvent, ChatMessage, ProjectFile } from "../types";
 
 type TranslateFn = (
   key: keyof Dict,
-  vars?: Record<string, string | number>
+  vars?: Record<string, string | number>,
 ) => string;
 
 interface Props {
@@ -66,7 +66,10 @@ export function AssistantMessage({
 }: Props) {
   const t = useT();
   const events = message.events ?? [];
-  const blocks = buildBlocks(events);
+  let blocks = buildBlocks(events);
+  if (blocks.length === 0 && message.content && !streaming) {
+    blocks = [{ kind: "text", text: message.content }];
+  }
   const usage = events.find((e) => e.kind === "usage") as
     | Extract<AgentEvent, { kind: "usage" }>
     | undefined;
@@ -81,7 +84,7 @@ export function AssistantMessage({
   // Track which forms the user submitted in this session so we lock them
   // immediately on click (without waiting for the parent to re-render).
   const [locallySubmitted, setLocallySubmitted] = useState<Set<string>>(
-    () => new Set()
+    () => new Set(),
   );
 
   return (
@@ -182,7 +185,7 @@ function MessageTimestamp({
 
 export function assistantRoleLabel(
   message: ChatMessage,
-  t: TranslateFn
+  t: TranslateFn,
 ): string {
   const model = assistantModelDetail(message);
   const fromName = message.agentName?.trim();
@@ -191,17 +194,17 @@ export function assistantRoleLabel(
   const fromId = agentDisplayName(message.agentId);
   if (fromId) return appendRoleModel(fromId, model);
   const starting = message.events?.find(
-    (e) => e.kind === "status" && e.label === "starting" && e.detail
+    (e) => e.kind === "status" && e.label === "starting" && e.detail,
   ) as Extract<AgentEvent, { kind: "status" }> | undefined;
   return appendRoleModel(
     agentDisplayName(starting?.detail) ?? t("assistant.role"),
-    model
+    model,
   );
 }
 
 function assistantModelDetail(message: ChatMessage): string | null {
   const initializing = message.events?.find(
-    (e) => e.kind === "status" && e.label === "initializing" && e.detail
+    (e) => e.kind === "status" && e.label === "initializing" && e.detail,
   ) as Extract<AgentEvent, { kind: "status" }> | undefined;
   const detail = initializing?.detail?.trim();
   if (!detail || detail === "default") return null;
@@ -239,8 +242,8 @@ function AssistantFooter({
         {streaming
           ? t("assistant.workingLabel")
           : hasUnfinishedTodos
-          ? t("assistant.unfinishedLabel")
-          : t("assistant.doneLabel")}
+            ? t("assistant.unfinishedLabel")
+            : t("assistant.doneLabel")}
       </span>
       <span className="assistant-stats">
         {elapsed}
@@ -350,7 +353,7 @@ function ProducedFiles({
 }
 
 function kindIconName(
-  kind: ProjectFile["kind"]
+  kind: ProjectFile["kind"],
 ): "file-code" | "image" | "pencil" | "file" {
   if (kind === "html") return "file-code";
   if (kind === "image") return "image";
@@ -415,7 +418,7 @@ function humanizeStatus(label: string, t: (k: keyof Dict) => string): string {
 }
 
 function latestStatusLabel(
-  events: AgentEvent[]
+  events: AgentEvent[],
 ): { label: string; detail?: string | undefined } | undefined {
   for (let i = events.length - 1; i >= 0; i--) {
     const ev = events[i]!;
@@ -446,7 +449,7 @@ function ProseBlock({
   const renderable = segments.flatMap(
     (
       seg,
-      idx
+      idx,
     ): Array<
       | { key: string; kind: "text"; text: string }
       | { key: string; kind: "reminder"; text: string }
@@ -462,7 +465,7 @@ function ProseBlock({
         kind: s.kind,
         text: s.text,
       }));
-    }
+    },
   );
   if (renderable.length === 0) return null;
   return (
@@ -670,7 +673,7 @@ function ToolGroupCard({
 
 function summarizeGroup(
   items: ToolItem[],
-  t: (k: keyof Dict, vars?: Record<string, string | number>) => string
+  t: (k: keyof Dict, vars?: Record<string, string | number>) => string,
 ): { label: string; icon: string } {
   // All items share a tool family because the grouper only merges by name.
   const name = items[0]?.use.name ?? "";
@@ -687,7 +690,8 @@ function summarizeGroup(
 
 function toolFamily(name: string): string {
   if (name === "Edit" || name === "str_replace_edit") return "edit";
-  if (name === "Write" || name === "write" || name === "create_file") return "write";
+  if (name === "Write" || name === "write" || name === "create_file")
+    return "write";
   if (name === "Read" || name === "read_file") return "read";
   if (name === "Glob" || name === "list_files") return "glob";
   if (name === "Grep") return "grep";
@@ -712,24 +716,24 @@ function familyIcon(family: string): string {
 function countLabel(
   family: string,
   n: number,
-  t: (k: keyof Dict) => string
+  t: (k: keyof Dict) => string,
 ): string {
   const verb =
     family === "edit"
       ? t("assistant.verbEditing")
       : family === "write"
-      ? t("assistant.verbWriting")
-      : family === "read"
-      ? t("assistant.verbReading")
-      : family === "glob" || family === "grep" || family === "search"
-      ? t("assistant.verbSearching")
-      : family === "bash"
-      ? t("assistant.verbRunning")
-      : family === "todo"
-      ? t("assistant.verbTodos")
-      : family === "fetch"
-      ? t("assistant.verbFetching")
-      : t("assistant.verbCalling");
+        ? t("assistant.verbWriting")
+        : family === "read"
+          ? t("assistant.verbReading")
+          : family === "glob" || family === "grep" || family === "search"
+            ? t("assistant.verbSearching")
+            : family === "bash"
+              ? t("assistant.verbRunning")
+              : family === "todo"
+                ? t("assistant.verbTodos")
+                : family === "fetch"
+                  ? t("assistant.verbFetching")
+                  : t("assistant.verbCalling");
   return n > 1 ? `${verb} ×${n}` : verb;
 }
 
@@ -856,7 +860,7 @@ function splitSystemReminders(input: string): ProseSegment[] {
     .map((seg) =>
       seg.kind === "text"
         ? { ...seg, text: seg.text.replace(/<\/?system-reminder>/g, "") }
-        : seg
+        : seg,
     )
     .filter((seg) => seg.kind === "reminder" || seg.text.trim().length > 0);
 }
@@ -864,7 +868,7 @@ function splitSystemReminders(input: string): ProseSegment[] {
 function useLiveElapsed(
   streaming: boolean,
   startedAt: number | undefined,
-  endedAt: number | undefined
+  endedAt: number | undefined,
 ): string {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -873,7 +877,7 @@ function useLiveElapsed(
     return () => window.clearInterval(id);
   }, [streaming]);
   if (!startedAt) return "";
-  const end = streaming ? now : endedAt ?? now;
+  const end = streaming ? now : (endedAt ?? now);
   const ms = Math.max(0, end - startedAt);
   const s = ms / 1000;
   if (s < 60) return `${s.toFixed(s < 10 ? 1 : 0)}s`;

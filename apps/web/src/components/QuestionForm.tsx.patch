@@ -1,0 +1,7 @@
+<<<<<<< SEARCH
+  return (
+    <div className={`question-form${locked ? ' question-form-locked' : ''}`}>
+=======
+  return (
+    <div className={`question-form${locked ? ' question-form-locked' : ''}`} data-testid="question-form">
+>>>>>>> REPLACE
