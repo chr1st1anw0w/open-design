@@ -169,6 +169,8 @@ function SnapshotPanel({
   onClose,
   onRefresh,
   onPreview,
+  diffPreview,
+  diffLoading,
   onRestore,
 }: {
   snapshots: SnapshotEntry[];
@@ -177,6 +179,8 @@ function SnapshotPanel({
   onClose: () => void;
   onRefresh: () => void;
   onPreview: (timestamp: number) => void;
+  diffPreview: string | null;
+  diffLoading: boolean;
   onRestore: (timestamp: number) => void;
 }) {
   return (
@@ -200,6 +204,7 @@ function SnapshotPanel({
       ) : snapshots.length === 0 ? (
         <div className="snapshot-empty">尚無快照。檔案被覆寫後會自動出現在這裡。</div>
       ) : (
+        <>
         <ul className="snapshot-list">
           {snapshots.map((snapshot) => (
             <li key={`${snapshot.timestamp}-${snapshot.filename}`} className="snapshot-item">
@@ -223,6 +228,11 @@ function SnapshotPanel({
             </li>
           ))}
         </ul>
+        <div className="snapshot-diff">
+          <strong>差異預覽（目前檔案 vs 快照）</strong>
+          {diffLoading ? <div className="snapshot-empty">正在計算 diff…</div> : <pre>{diffPreview || '按「預覽」可檢視 html/text 變更摘要。'}</pre>}
+        </div>
+        </>
       )}
     </aside>
   );
@@ -248,6 +258,24 @@ function formatViewerBytes(bytes: number): string {
     unit += 1;
   }
   return `${value >= 10 || unit === 0 ? value.toFixed(0) : value.toFixed(1)} ${units[unit]}`;
+}
+
+function buildLineDiffPreview(currentText: string, snapshotText: string): string {
+  const current = currentText.split('\n');
+  const previous = snapshotText.split('\n');
+  const out: string[] = [];
+  const maxLines = 120;
+  const max = Math.max(current.length, previous.length);
+  for (let i = 0; i < max && out.length < maxLines; i += 1) {
+    const before = previous[i] ?? '';
+    const after = current[i] ?? '';
+    if (before === after) continue;
+    if (before) out.push(`- ${i + 1}: ${before}`);
+    if (after) out.push(`+ ${i + 1}: ${after}`);
+  }
+  if (out.length === 0) return '無差異';
+  if (out.length >= maxLines) out.push('... 已截斷');
+  return out.join('\n');
 }
 
 function CommentPopover({
@@ -818,6 +846,8 @@ function HtmlViewer({
   const [snapshots, setSnapshots] = useState<SnapshotEntry[]>([]);
   const [snapshotsLoading, setSnapshotsLoading] = useState(false);
   const [restoringSnapshot, setRestoringSnapshot] = useState<number | null>(null);
+  const [snapshotDiffPreview, setSnapshotDiffPreview] = useState<string | null>(null);
+  const [snapshotDiffLoading, setSnapshotDiffLoading] = useState(false);
   const [commentMode, setCommentMode] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [tweakPanelOpen, setTweakPanelOpen] = useState(false);
@@ -904,12 +934,19 @@ function HtmlViewer({
     }
   }
 
-  function previewSnapshot(timestamp: number) {
-    window.open(
-      projectFileSnapshotUrl(projectId, file.name, timestamp),
-      '_blank',
-      'noopener,noreferrer',
-    );
+  async function previewSnapshot(timestamp: number) {
+    window.open(projectFileSnapshotUrl(projectId, file.name, timestamp), '_blank', 'noopener,noreferrer');
+    if (!/\.(html?|txt|md|css|js|ts|tsx|json)$/i.test(file.name)) return;
+    setSnapshotDiffLoading(true);
+    try {
+      const [currentText, snapshotText] = await Promise.all([
+        fetchProjectFileText(projectId, file.name, { cache: 'no-store' }),
+        fetch(projectFileSnapshotUrl(projectId, file.name, timestamp)).then((resp) => (resp.ok ? resp.text() : '')),
+      ]);
+      setSnapshotDiffPreview(buildLineDiffPreview(currentText || '', snapshotText || ''));
+    } finally {
+      setSnapshotDiffLoading(false);
+    }
   }
 
   async function restoreSnapshot(timestamp: number) {
@@ -1867,6 +1904,8 @@ function HtmlViewer({
             onClose={() => setHistoryOpen(false)}
             onRefresh={() => void refreshSnapshots()}
             onPreview={previewSnapshot}
+            diffPreview={snapshotDiffPreview}
+            diffLoading={snapshotDiffLoading}
             onRestore={(timestamp) => void restoreSnapshot(timestamp)}
           />
         ) : null}
