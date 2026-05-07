@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: open-design
+    env: docker
+    plan: starter
+    region: oregon
+    healthCheckPath: /api/health
+    envVars:
+      - key: OD_DATA_DIR
+        value: /app/data
+      - key: OD_PORT
+        value: "7456"
+      - key: OD_BIND_HOST
+        value: 0.0.0.0
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+    disk:
+      name: open-design-data
+      mountPath: /app/data
+      sizeGB: 1
