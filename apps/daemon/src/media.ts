@@ -878,19 +878,22 @@ async function renderChatGPTWebImage(ctx, _credentials, onProgress) {
       prompt,
       "--op",
       tempDir,
-      "--cdp",
-      cdpUrl,
     ]);
 
     onProgress?.(
       `[chatgpt-web] Spawning: ${path.basename(command)} ${args.slice(0, 3).join(" ")} ...`,
     );
 
-    await runChildProcess(command, args, {
+    const { stdout, stderr } = await runChildProcess(command, [
+      ...args,
+      "--raw",
+    ], {
       timeoutMs,
       onProgress: (line) => onProgress?.(`[opencli] ${line}`),
       env: {
         ...process.env,
+        // opencli v1.7.x uses OPENCLI_CDP_ENDPOINT instead of --cdp flag.
+        OPENCLI_CDP_ENDPOINT: cdpUrl,
         PATH: ["/usr/local/bin", process.env.PATH || ""]
           .filter(Boolean)
           .join(path.delimiter),
@@ -898,10 +901,17 @@ async function renderChatGPTWebImage(ctx, _credentials, onProgress) {
     });
 
     onProgress?.(`[chatgpt-web] OpenCLI completed, searching for output...`);
-    const imageFile = await findNewestImageFile(tempDir);
+    const openCliItems = parseOpenCliChatGPTImageOutput(stdout);
+    const imageFile =
+      (await resolveOpenCliSavedImage(openCliItems)) ||
+      (await findNewestImageFile(tempDir));
     if (!imageFile) {
+      const adapterSummary = summarizeOpenCliChatGPTItems(openCliItems);
+      const diagnostics = detectChatGPTError(stderr || stdout);
       throw new Error(
         `❌ No image file generated in ${tempDir}\n` +
+          `${adapterSummary ? `OpenCLI status: ${adapterSummary}\n` : ""}` +
+          `${diagnostics ? `OpenCLI diagnostics: ${diagnostics}\n` : ""}` +
           `Possible causes:\n` +
           `  - Chrome plugin not installed (check ChatGPT Web UI for DALL-E availability)\n` +
           `  - ChatGPT Web login expired or 2FA required\n` +
@@ -1080,6 +1090,55 @@ function detectChatGPTError(output) {
     return "Content policy violation — prompt was rejected by DALL-E";
   }
   return null;
+}
+
+function parseOpenCliChatGPTImageOutput(output) {
+  if (typeof output !== "string" || !output.trim()) return [];
+  const match = output.match(/\[\s*\{[\s\S]*\}\s*\]/);
+  if (!match) return [];
+  try {
+    const parsed = JSON.parse(match[0]);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+async function resolveOpenCliSavedImage(items) {
+  for (const item of items) {
+    if (!item || typeof item !== "object") continue;
+    const status = String(item.status || "").toLowerCase();
+    const rawFile = String(item.file || "");
+    if (!status.includes("saved")) continue;
+    const filePath = rawFile.replace(/^.*📁\s*/, "").trim();
+    if (!filePath || filePath === "-") continue;
+    try {
+      const st = await stat(filePath);
+      if (st.isFile() && st.size > 0) return filePath;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
+function summarizeOpenCliChatGPTItems(items) {
+  if (!Array.isArray(items) || items.length === 0) return "";
+  return items
+    .map((item) => {
+      const status = String(item?.status || "").trim();
+      const file = String(item?.file || "")
+        .replace(/^.*📁\s*/, "")
+        .trim();
+      const link = String(item?.link || "")
+        .replace(/^.*🔗\s*/, "")
+        .trim();
+      const bits = [status || "unknown"];
+      if (file && file !== "-") bits.push(`file=${file}`);
+      if (link) bits.push(`link=${link}`);
+      return bits.join(" · ");
+    })
+    .join(" | ");
 }
 
 async function listNewestFiles(root, limit = 3) {

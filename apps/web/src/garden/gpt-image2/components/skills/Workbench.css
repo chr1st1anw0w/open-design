@@ -292,10 +292,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 24px;
   z-index: 9999;
 }
 
-.wb-lightbox img {
+.wb-lightbox > img {
   max-width: 90vw;
   max-height: 90vh;
   object-fit: contain;
@@ -322,6 +323,150 @@
 
 .wb-lightbox-close:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+
+.wb-annotation-shell {
+  width: min(1240px, 96vw);
+  height: min(760px, 92vh);
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 14px;
+}
+
+.wb-annotation-toolbar {
+  display: flex;
+  justify-content: center;
+}
+
+.wb-annotation-body {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.wb-annotation-stage-wrap {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wb-annotation-stage {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+}
+
+.wb-annotation-image {
+  display: block;
+  max-width: 100%;
+  max-height: calc(92vh - 110px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: var(--r-md);
+}
+
+.wb-annotation-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.wb-annotation-layer.tool-select {
+  cursor: default;
+}
+
+.wb-annotation-text {
+  font: 700 3.4px var(--font-mono);
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.72);
+  stroke-width: 0.28px;
+}
+
+.wb-annotation-panel {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--r-md);
+  background: rgba(17, 24, 39, 0.72);
+  color: var(--inverse-text);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.25);
+}
+
+.wb-annotation-kicker {
+  display: block;
+  margin-bottom: 6px;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.wb-annotation-panel h3 {
+  margin: 0 0 8px;
+  color: var(--inverse-text);
+  font-size: 22px;
+}
+
+.wb-annotation-panel p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.wb-annotation-summary {
+  min-height: 150px;
+  max-height: 300px;
+  overflow: auto;
+  padding: 12px;
+  border-radius: var(--r-sm);
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.wb-annotation-summary pre {
+  margin: 0;
+  white-space: pre-wrap;
+  color: rgba(255, 255, 255, 0.82);
+  font: 12px/1.55 var(--font-mono);
+}
+
+.wb-annotation-summary span {
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 12px;
+}
+
+.wb-annotation-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.wb-annotation-actions .wb-btn {
+  width: 100%;
+}
+
+.wb-annotation-actions .wb-btn:disabled {
+  opacity: 0.54;
+  cursor: not-allowed;
+  transform: none;
 }
 
 /* Grid Layout */
@@ -429,6 +574,28 @@
   margin-top: var(--s-6);
   border-top: 1px solid var(--line);
   padding-top: var(--s-5);
+}
+
+.wb-phase4-annotation-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin: 8px 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text-mute);
+  font-size: 12px;
+}
+
+.wb-phase4-link {
+  border: 0;
+  background: transparent;
+  color: var(--vermilion);
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .wb-phase4-label {
@@ -606,6 +773,12 @@
   }
   .wb-gallery-view {
     grid-template-columns: 1fr;
+  }
+  .wb-annotation-body {
+    grid-template-columns: 1fr;
+  }
+  .wb-annotation-panel {
+    max-height: 260px;
   }
 }
 

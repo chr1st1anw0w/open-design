@@ -7,7 +7,48 @@ import { PromptStudio } from "./components/prompt-studio/PromptStudio";
 import { UiUxPromptStudio } from "./components/prompt-studio/UiUxPromptStudio";
 import { ThemeToggle } from "./components/shared/ThemeToggle";
 import { useRoute } from "./lib/router";
+import { cases } from "./lib/data";
+import type { Route } from "./types";
 // import './App.css'; // Removed missing file
+
+function WorkbenchBreadcrumb({
+  route,
+  navigate,
+}: {
+  route: Route;
+  navigate: (r: Route) => void;
+}) {
+  if (route.name !== "workbench") return null;
+
+  const template = route.templateId ? cases.templates[route.templateId] : null;
+  const categoryId = route.categoryId || template?.category;
+  const category = categoryId ? cases.categories[categoryId] : null;
+
+  return (
+    <nav className="app-breadcrumb mono" aria-label="目前 Workbench 路徑">
+      <span>/tools/gpt-image2#/workbench</span>
+      {categoryId ? (
+        <>
+          <span>/</span>
+          <button
+            type="button"
+            onClick={() => navigate({ name: "workbench", categoryId })}
+            title="回到此分類的模板列表"
+          >
+            {category?.label || categoryId}
+          </button>
+        </>
+      ) : null}
+      {template ? (
+        <>
+          <span>/</span>
+          <span>{template.label || template.name}</span>
+        </>
+      ) : null}
+      <span>/</span>
+    </nav>
+  );
+}
 
 export function App() {
   const [route, navigate] = useRoute();
@@ -40,7 +81,11 @@ export function App() {
       ) : route.name === "skills" ? (
         <SkillsPage navigate={navigate} />
       ) : route.name === "workbench" ? (
-        <Workbench navigate={navigate} initialTemplateId={route.templateId} />
+        <Workbench
+          navigate={navigate}
+          initialCategoryId={route.categoryId}
+          initialTemplateId={route.templateId}
+        />
       ) : route.name === "promptStudio" ? (
         <PromptStudio />
       ) : route.name === "uiuxStudio" ? (
@@ -53,33 +98,13 @@ export function App() {
       )}
 
       {/* Footer / Info */}
-      <footer className="app-footer">
-        <div className="footer-content">
-          <p className="mono">
-            GPT-IMAGE-2 PROMPT ENGINEERING WORKBENCH v0.1.0
-          </p>
-          <div className="footer-links">
-            <span
-              className="dot-link"
-              onClick={() => navigate({ name: "home" })}
-            >
-              HOME
-            </span>
-            <span
-              className="dot-link"
-              onClick={() => navigate({ name: "skills" })}
-            >
-              SKILLS
-            </span>
-            <span
-              className="dot-link"
-              onClick={() => navigate({ name: "workbench" })}
-            >
-              WORKBENCH
-            </span>
+      {route.name === "workbench" ? (
+        <footer className="app-footer">
+          <div className="footer-content">
+            <WorkbenchBreadcrumb route={route} navigate={navigate} />
           </div>
-        </div>
-      </footer>
+        </footer>
+      ) : null}
     </div>
   );
 }

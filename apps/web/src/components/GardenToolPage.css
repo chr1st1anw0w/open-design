@@ -136,3 +136,63 @@
   color: var(--text-faint);
   font-weight: 500;
 }
+
+.garden-gpt-image2 .app-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9998;
+  display: flex;
+  justify-content: center;
+  padding: 10px 16px 12px;
+  pointer-events: none;
+}
+
+.garden-gpt-image2 .footer-content {
+  max-width: min(980px, calc(100vw - 32px));
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid rgba(244, 239, 230, 0.18);
+  border-radius: 999px;
+  background: rgba(10, 9, 8, 0.72);
+  color: rgba(244, 239, 230, 0.78);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  pointer-events: auto;
+}
+
+.garden-gpt-image2 .app-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.garden-gpt-image2 .app-breadcrumb button {
+  max-width: 260px;
+  overflow: hidden;
+  color: var(--vermilion);
+  font-weight: 700;
+  text-overflow: ellipsis;
+}
+
+.garden-gpt-image2 .app-breadcrumb span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.garden-gpt-image2.theme-paper .footer-content {
+  border-color: rgba(28, 27, 26, 0.12);
+  background: rgba(255, 255, 255, 0.92);
+  color: #746f67;
+}
+
+.garden-gpt-image2.theme-paper .app-breadcrumb button {
+  color: #c96442;
+}

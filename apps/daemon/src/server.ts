@@ -2,11 +2,11 @@
 import express from "express";
 import multer from "multer";
 import { spawn } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { createHmac, randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import { composeSystemPrompt } from "./prompts/system.js";
 import { createCommandInvocation } from "@open-design/platform";
@@ -47,6 +47,11 @@ import {
   VIDEO_MODELS,
 } from "./media-models.js";
 import { readMaskedConfig, writeConfig } from "./media-config.js";
+import {
+  readMaskedPromptExpertConfig,
+  resolvePromptExpertConfig,
+  writePromptExpertConfig,
+} from "./prompt-expert-config.js";
 import { readAppConfig, writeAppConfig } from "./app-config.js";
 import {
   buildProjectArchive,
@@ -826,14 +831,22 @@ export async function startServer({
         onProgress: (line) => appendTaskProgress(task, line),
       });
 
-      if (!result || !result.bytes || result.bytes.length === 0) {
+      if (!result || !result.name) {
         return res.status(500).json({
           error: "Generation produced no output",
         });
       }
 
-      const imageBase64 = result.bytes.toString("base64");
-      const ext = result.suggestedExt || "png";
+      const generatedPath = path.join(PROJECTS_DIR, "_garden", result.name);
+      const imageBytes = await readFile(generatedPath);
+      if (!imageBytes || imageBytes.length === 0) {
+        return res.status(500).json({
+          error: "Generation produced empty output file",
+        });
+      }
+
+      const imageBase64 = imageBytes.toString("base64");
+      const ext = path.extname(result.name || "png").replace(/^\./, "") || "png";
 
       // Optionally save to archive if category/template/idx provided
       if (body.category && body.template && body.idx) {
@@ -854,7 +867,7 @@ export async function startServer({
           archiveDir,
           `${safeInstallName(body.idx, "0")}.txt`,
         );
-        await writeFile(imagePath, result.bytes);
+        await writeFile(imagePath, imageBytes);
         await writeFile(promptPath, prompt);
       }
 
@@ -2572,6 +2585,227 @@ export async function startServer({
       res
         .status(status)
         .json({ error: String(err && err.message ? err.message : err) });
+    }
+  });
+
+  const base64Url = (input) =>
+    Buffer.from(input)
+      .toString("base64")
+      .replace(/=/g, "")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_");
+
+  const signHs256Jwt = (payload, secret) => {
+    const header = { alg: "HS256", typ: "JWT" };
+    const encodedHeader = base64Url(JSON.stringify(header));
+    const encodedPayload = base64Url(JSON.stringify(payload));
+    const signature = createHmac("sha256", secret)
+      .update(`${encodedHeader}.${encodedPayload}`)
+      .digest("base64")
+      .replace(/=/g, "")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_");
+    return `${encodedHeader}.${encodedPayload}.${signature}`;
+  };
+
+  const promptExpertStatusFor = (cfg, init = {}) => {
+    const thesysReady = Boolean(cfg.apiKey);
+    return {
+      provider: thesysReady ? "thesys-c1" : "open-design-fallback",
+      status: thesysReady ? "thesys-ready" : "missing-key",
+      fallbackAvailable: true,
+      publicAgentUrl: cfg.publicAgentUrl,
+      apiKeySource: cfg.apiKeySource,
+      identitySecretSource: cfg.identitySecretSource,
+      ...init,
+    };
+  };
+
+  const buildPromptExpertSystemPrompt = (context) => {
+    const page = context?.page || "unknown";
+    return [
+      "You are the Open Design GPT-Image-2 Prompt Expert Provider.",
+      "You help users refine image generation prompts, explain Open Design operations, and choose local templates/skills/design systems when useful.",
+      "Return concise, actionable Traditional Chinese by default.",
+      "When you can safely patch UI state, include one fenced JSON block with this shape:",
+      '{"action":"refine_field|magic_fill|refine_prompt|suggest_template","payload":{...}}',
+      "Never claim you edited repo template files. Use only UI state patches or existing API actions.",
+      `Current page: ${page}`,
+      context?.template ? `Template: ${JSON.stringify(context.template)}` : "",
+      context?.category ? `Category: ${JSON.stringify(context.category)}` : "",
+      context?.renderedPrompt
+        ? `Rendered prompt:\n${String(context.renderedPrompt).slice(0, 6000)}`
+        : "",
+      context?.args ? `Args:\n${JSON.stringify(context.args).slice(0, 4000)}` : "",
+      context?.imageNote ? `Image note:\n${String(context.imageNote).slice(0, 2000)}` : "",
+      context?.annotationSummary
+        ? `Image annotations:\n${String(context.annotationSummary).slice(0, 2000)}`
+        : "",
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+  };
+
+  const localPromptExpertReply = (message, context) => {
+    const templates = Object.values(casesJson.templates || {});
+    const query = String(message || "").toLowerCase();
+    const suggestions = templates
+      .filter((tpl) => {
+        const hay = `${tpl.label || ""} ${tpl.name || ""} ${tpl.category || ""} ${tpl.description || ""}`.toLowerCase();
+        return query
+          .split(/\s+/)
+          .filter((part) => part.length > 2)
+          .some((part) => hay.includes(part));
+      })
+      .slice(0, 3);
+    const suggestionText = suggestions.length
+      ? suggestions
+          .map((tpl, idx) => `${idx + 1}. ${tpl.label || tpl.name} (${tpl.key})`)
+          .join("\n")
+      : "可先從 UI Mockups、Product Visuals、Branding & Packaging 中挑一個接近的模板。";
+    const fieldHint = context?.targetField
+      ? `\n\n針對欄位「${context.targetField}」，建議把內容改成更具體的主體、風格、光線、構圖與限制條件。`
+      : "";
+    return {
+      provider: "open-design-fallback",
+      content:
+        `Thesys C1 目前未使用，已由 Open Design Prompt Expert fallback 回答。\n\n` +
+        `建議先明確鎖定：主體、用途、畫面比例、風格參考、文字需求、不可出現元素。${fieldHint}\n\n` +
+        `可參考模板：\n${suggestionText}`,
+      actions: suggestions.length
+        ? [
+            {
+              action: "suggest_template",
+              payload: {
+                templates: suggestions.map((tpl) => ({
+                  id: tpl.key,
+                  label: tpl.label || tpl.name,
+                  category: tpl.category,
+                  description: tpl.description || "",
+                })),
+              },
+            },
+          ]
+        : [],
+    };
+  };
+
+  const callThesysPromptExpert = async ({ message, context, cfg }) => {
+    const response = await fetch(
+      "https://api.thesys.dev/v1/embed/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${cfg.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "c1-nightly",
+          stream: false,
+          messages: [
+            { role: "system", content: buildPromptExpertSystemPrompt(context) },
+            { role: "user", content: message },
+          ],
+        }),
+      },
+    );
+    if (!response.ok) {
+      const text = await response.text();
+      const err = new Error(`Thesys request failed: ${response.status}`);
+      err.status = response.status;
+      err.details = text.slice(0, 500);
+      throw err;
+    }
+    const data = await response.json();
+    return (
+      data?.choices?.[0]?.message?.content ||
+      data?.message?.content ||
+      data?.content ||
+      ""
+    );
+  };
+
+  app.get("/api/garden/gpt-image2/prompt-expert/config", async (_req, res) => {
+    try {
+      res.json(await readMaskedPromptExpertConfig(PROJECT_ROOT));
+    } catch (err) {
+      res.status(500).json({ error: String(err?.message || err) });
+    }
+  });
+
+  app.put("/api/garden/gpt-image2/prompt-expert/config", async (req, res) => {
+    try {
+      res.json(await writePromptExpertConfig(PROJECT_ROOT, req.body || {}));
+    } catch (err) {
+      res.status(400).json({ error: String(err?.message || err) });
+    }
+  });
+
+  app.get("/api/garden/gpt-image2/prompt-expert/providers", async (_req, res) => {
+    try {
+      const cfg = await resolvePromptExpertConfig(PROJECT_ROOT);
+      res.json(promptExpertStatusFor(cfg));
+    } catch (err) {
+      res.status(500).json({ error: String(err?.message || err) });
+    }
+  });
+
+  app.post("/api/garden/gpt-image2/prompt-expert/identity-token", async (req, res) => {
+    try {
+      const cfg = await resolvePromptExpertConfig(PROJECT_ROOT);
+      if (!cfg.identitySecret) {
+        return res.status(400).json({ error: "THESYS_IDENTITY_SECRET is not configured" });
+      }
+      const now = Math.floor(Date.now() / 1000);
+      const externalUserId =
+        cleanString(req.body?.externalUserId) || `open-design-local-${os.userInfo().username || "user"}`;
+      const token = signHs256Jwt(
+        { externalUserId, iat: now, exp: now + 3600 },
+        cfg.identitySecret,
+      );
+      res.json({ token, expiresIn: 3600 });
+    } catch (err) {
+      res.status(500).json({ error: String(err?.message || err) });
+    }
+  });
+
+  app.post("/api/garden/gpt-image2/prompt-expert/chat", async (req, res) => {
+    const message = cleanString(req.body?.message);
+    const context = req.body?.context && typeof req.body.context === "object" ? req.body.context : {};
+    const provider = cleanString(req.body?.provider) || "thesys";
+    if (!message) return res.status(400).json({ error: "message required" });
+    try {
+      const cfg = await resolvePromptExpertConfig(PROJECT_ROOT);
+      if (provider === "open-design-fallback" || !cfg.apiKey) {
+        return res.json({
+          ...promptExpertStatusFor(cfg, {
+            provider: "open-design-fallback",
+            status: cfg.apiKey ? "fallback-forced" : "missing-key",
+          }),
+          ...localPromptExpertReply(message, context),
+        });
+      }
+      const content = await callThesysPromptExpert({ message, context, cfg });
+      res.json({
+        ...promptExpertStatusFor(cfg),
+        provider: "thesys-c1",
+        content,
+        actions: [],
+      });
+    } catch (err) {
+      const status = Number(err?.status) || 500;
+      const failureStatus =
+        status === 401 || status === 403
+          ? "auth-failed"
+          : status === 429
+            ? "rate-limited"
+            : "upstream-error";
+      res.status(status >= 400 && status < 600 ? status : 502).json({
+        provider: "thesys-c1",
+        status: failureStatus,
+        fallbackAvailable: true,
+        message: "Thesys C1 is unavailable. Ask before switching to Open Design fallback.",
+      });
     }
   });
 

@@ -1,5 +1,7 @@
 import {
+  Children,
   forwardRef,
+  type ReactNode,
   useEffect,
   useImperativeHandle,
   useMemo,
@@ -8,16 +10,49 @@ import {
 } from "react";
 import { useT } from '../i18n';
 import type { Dict } from '../i18n/types';
-import { projectRawUrl, uploadProjectFiles, openFolderDialog } from "../providers/registry";
-import { patchProject } from "../state/projects";
-import { fetchMcpServers } from "../state/mcp";
-import type { McpServerConfig } from "../state/mcp";
-import type { AppConfig, ChatAttachment, ChatCommentAttachment, ProjectFile, ProjectMetadata } from "../types";
-import type { ResearchOptions } from '@open-design/contracts';
+import {
+  fetchDesignSystem,
+  fetchSkill,
+  projectRawUrl,
+  uploadProjectFiles,
+} from "../providers/registry";
+import type {
+  AppConfig,
+  ChatAttachment,
+  ChatCommentAttachment,
+  DesignSystemSummary,
+  ProjectFile,
+  SkillSummary,
+} from "../types";
 import { Icon } from "./Icon";
 import { BUILT_IN_PETS, CUSTOM_PET_ID, resolveActivePet } from "./pet/pets";
 
 type TranslateFn = (key: keyof Dict, vars?: Record<string, string | number>) => string;
+
+type ImportPanel = "root" | "skills" | "code" | "components";
+
+type ImportedContext =
+  | {
+      kind: "skill";
+      id: string;
+      title: string;
+      summary: string;
+      body: string;
+    }
+  | {
+      kind: "design-system";
+      id: string;
+      title: string;
+      summary: string;
+      body: string;
+    }
+  | {
+      kind: "code-dir";
+      id: string;
+      title: string;
+      summary: string;
+      paths: string[];
+    };
 
 interface SlashCommand {
   id: string;
@@ -39,6 +74,8 @@ interface SlashCommand {
 interface Props {
   projectId: string | null;
   projectFiles: ProjectFile[];
+  skills?: SkillSummary[];
+  designSystems?: DesignSystemSummary[];
   streaming: boolean;
   initialDraft?: string;
   // Lazy ensure — the composer calls this before its first upload, so the
@@ -47,15 +84,12 @@ interface Props {
   onEnsureProject: () => Promise<string | null>;
   commentAttachments?: ChatCommentAttachment[];
   onRemoveCommentAttachment?: (id: string) => void;
-  onSend: (prompt: string, attachments: ChatAttachment[], commentAttachments: ChatCommentAttachment[], meta?: ChatSendMeta) => void;
+  onSend: (prompt: string, attachments: ChatAttachment[], commentAttachments: ChatCommentAttachment[]) => void;
   onStop: () => void;
   // Opens the global settings dialog (CLI / model / agent picker). The
   // composer's leading gear icon routes here so users can switch models
   // without leaving the chat.
   onOpenSettings?: () => void;
-  // Opens settings on the External MCP tab. Wired from ChatPane → App.
-  // The composer's `/mcp` slash command and the MCP picker button route here.
-  onOpenMcpSettings?: () => void;
   // Optional pet wiring — when present, the composer renders a small
   // 🐾 button + popover so users can adopt / wake / tuck a pet without
   // leaving chat. Typing `/pet` (or `/pet wake|tuck|<id>`) is parsed
@@ -64,9 +98,6 @@ interface Props {
   onAdoptPet?: (petId: string) => void;
   onTogglePet?: () => void;
   onOpenPetSettings?: () => void;
-  researchAvailable?: boolean;
-  projectMetadata?: ProjectMetadata;
-  onProjectMetadataChange?: (metadata: ProjectMetadata) => void;
 }
 
 // Imperative handle so ancestors (e.g. example chips in ChatPane) can
@@ -74,10 +105,6 @@ interface Props {
 export interface ChatComposerHandle {
   setDraft: (text: string) => void;
   focus: () => void;
-}
-
-export interface ChatSendMeta {
-  research?: ResearchOptions;
 }
 
 /**
@@ -94,6 +121,8 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
     {
       projectId,
       projectFiles,
+      skills = [],
+      designSystems = [],
       streaming,
       initialDraft,
       onEnsureProject,
@@ -102,14 +131,10 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
       onSend,
       onStop,
       onOpenSettings,
-      onOpenMcpSettings,
       petConfig,
       onAdoptPet,
       onTogglePet,
       onOpenPetSettings,
-      researchAvailable = false,
-      projectMetadata,
-      onProjectMetadataChange,
     },
     ref
   ) {
@@ -132,23 +157,22 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
     const [slashIndex, setSlashIndex] = useState(0);
     const [uploading, setUploading] = useState(false);
     const [uploadError, setUploadError] = useState<string | null>(null);
-    // External MCP servers configured by the user. Fetched lazily on mount;
-    // shown in the slash-command palette so `/mcp <id>` inserts a hint into
-    // the prompt that nudges the model to use that server's tools.
-    const [mcpServers, setMcpServers] = useState<McpServerConfig[]>([]);
-    // Consolidated "tools" popover — a single dropdown anchored to the
-    // leading sliders icon that hosts MCP / Import / Pet quick actions and
-    // a shortcut to open the full Settings dialog. Replaces the previous
-    // row of three standalone buttons (which overflowed in narrow chats).
-    const [toolsOpen, setToolsOpen] = useState(false);
-    type ToolsTab = 'mcp' | 'import' | 'pet';
-    const [toolsTab, setToolsTab] = useState<ToolsTab>('mcp');
+    const [importOpen, setImportOpen] = useState(false);
+    const [importPanel, setImportPanel] = useState<ImportPanel>("root");
+    const [importedContexts, setImportedContexts] = useState<ImportedContext[]>(
+      [],
+    );
+    const [importingContextId, setImportingContextId] = useState<string | null>(
+      null,
+    );
+    const [petOpen, setPetOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-    const toolsMenuRef = useRef<HTMLDivElement | null>(null);
-    const toolsTriggerRef = useRef<HTMLButtonElement | null>(null);
+    const importMenuRef = useRef<HTMLDivElement | null>(null);
+    const importTriggerRef = useRef<HTMLButtonElement | null>(null);
+    const petMenuRef = useRef<HTMLDivElement | null>(null);
+    const petTriggerRef = useRef<HTMLButtonElement | null>(null);
     const petEnabled = Boolean(onAdoptPet && onTogglePet);
-    const linkedDirs = projectMetadata?.linkedDirs ?? [];
     // initialDraft is only honored on the first non-empty value the parent
     // hands us. After we seed once, the composer is fully under user control
     // — re-renders that pass the same prompt back must not reseed. If the
@@ -169,65 +193,42 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
     }, [initialDraft, draft]);
 
     useEffect(() => {
-      if (!toolsOpen) return;
+      if (!importOpen) return;
       function onPointer(e: MouseEvent) {
         const target = e.target as Node;
-        if (toolsMenuRef.current?.contains(target)) return;
-        if (toolsTriggerRef.current?.contains(target)) return;
-        setToolsOpen(false);
+        if (importMenuRef.current?.contains(target)) return;
+        if (importTriggerRef.current?.contains(target)) return;
+        setImportOpen(false);
       }
       function onKey(e: KeyboardEvent) {
-        if (e.key === 'Escape') setToolsOpen(false);
+        if (e.key === "Escape") setImportOpen(false);
       }
-      document.addEventListener('mousedown', onPointer);
-      document.addEventListener('keydown', onKey);
+      document.addEventListener("mousedown", onPointer);
+      document.addEventListener("keydown", onKey);
       return () => {
-        document.removeEventListener('mousedown', onPointer);
-        document.removeEventListener('keydown', onKey);
+        document.removeEventListener("mousedown", onPointer);
+        document.removeEventListener("keydown", onKey);
       };
-    }, [toolsOpen]);
+    }, [importOpen]);
 
-    // Lazy-fetch the user's external MCP servers list once on mount so the
-    // `/mcp …` slash palette and the composer's MCP button popover have
-    // something to render. We deliberately do not reactively re-fetch when
-    // the user toggles servers from Settings — the dialog refreshes itself,
-    // and the chat composer rehydrates next time the user re-opens it. A
-    // background poll would be cheap but unnecessary for the typical
-    // edit-once-then-chat workflow.
     useEffect(() => {
-      let cancelled = false;
-      void (async () => {
-        const data = await fetchMcpServers();
-        if (cancelled || !data) return;
-        setMcpServers(data.servers.filter((s) => s.enabled));
-      })();
-      return () => {
-        cancelled = true;
-      };
-    }, []);
-
-    // Resolve which tabs to surface in the consolidated tools popover.
-    // We intentionally always render at least the Import tab, since it has
-    // unconditional folder linking. MCP and Pet tabs only show when their
-    // respective wiring was provided by the parent (App).
-    const availableTabs = useMemo<ToolsTab[]>(() => {
-      const tabs: ToolsTab[] = [];
-      if (onOpenMcpSettings) tabs.push('mcp');
-      tabs.push('import');
-      if (petEnabled) tabs.push('pet');
-      return tabs;
-    }, [onOpenMcpSettings, petEnabled]);
-
-    // When the popover opens, snap the active tab to the first available one
-    // so the user never lands on an empty / hidden tab if their config
-    // changes mid-session.
-    useEffect(() => {
-      if (!toolsOpen) return;
-      if (!availableTabs.includes(toolsTab)) {
-        const first = availableTabs[0];
-        if (first) setToolsTab(first);
+      if (!petOpen) return;
+      function onPointer(e: MouseEvent) {
+        const target = e.target as Node;
+        if (petMenuRef.current?.contains(target)) return;
+        if (petTriggerRef.current?.contains(target)) return;
+        setPetOpen(false);
       }
-    }, [toolsOpen, availableTabs, toolsTab]);
+      function onKey(e: KeyboardEvent) {
+        if (e.key === "Escape") setPetOpen(false);
+      }
+      document.addEventListener("mousedown", onPointer);
+      document.addEventListener("keydown", onKey);
+      return () => {
+        document.removeEventListener("mousedown", onPointer);
+        document.removeEventListener("keydown", onKey);
+      };
+    }, [petOpen]);
 
     // Catalog of supported slash commands. Each entry shows up in the
     // popover when the user types `/` in the composer. The `insert`
@@ -236,40 +237,6 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
     // ready for an argument.
     const slashCommands = useMemo<SlashCommand[]>(() => {
       const list: SlashCommand[] = [];
-      // External MCP servers — `/mcp` opens settings, `/mcp <id>` inserts a
-      // prompt-side hint nudging the model to use that server's tools. The
-      // hint flows through to the agent verbatim; the daemon already wired
-      // the MCP config into the agent's launch so the tools are callable.
-      if (onOpenMcpSettings) {
-        list.push({
-          id: 'mcp',
-          label: '/mcp',
-          insert: '/mcp ',
-          descKey: 'pet.slashPet',
-          icon: 'sliders',
-          argHint: 'open settings · <server-id> to insert hint',
-        });
-      }
-      for (const s of mcpServers) {
-        list.push({
-          id: `mcp-${s.id}`,
-          label: `/mcp ${s.id}`,
-          insert: `Use the \`${s.id}\` MCP server tools. `,
-          descKey: 'pet.slashPet',
-          icon: 'sparkles',
-          argHint: s.label || s.transport,
-        });
-      }
-      if (researchAvailable) {
-        list.push({
-          id: 'search',
-          label: '/search',
-          insert: '/search ',
-          descKey: 'pet.slashSearch',
-          icon: 'sparkles',
-          argHint: t('pet.slashSearchArg'),
-        });
-      }
       if (petEnabled) {
         list.push(
           {
@@ -305,7 +272,7 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
         );
       }
       return list;
-    }, [petEnabled, researchAvailable, t, mcpServers, onOpenMcpSettings]);
+    }, [petEnabled, t]);
 
     const filteredSlash = useMemo(() => {
       if (!slash) return [] as SlashCommand[];
@@ -355,49 +322,6 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
         '',
         'When the spritesheet is saved, tell me the absolute path and the pet folder name. I will adopt it from Settings → Pets → Recently hatched.',
       ].join('\n');
-    }
-
-    // `/mcp` (no arg) opens settings on the External MCP tab — pure UX hook,
-    // never sent to the agent. `/mcp <id>` is intentionally NOT intercepted
-    // here: the slash palette already replaces it with a natural-language
-    // hint sentence ("Use the `<id>` MCP server tools."), and the user is
-    // expected to keep typing the rest of the prompt before sending.
-    function tryHandleMcpSlash(): boolean {
-      if (!onOpenMcpSettings) return false;
-      const trimmed = draft.trim();
-      if (!/^\/mcp\s*$/i.test(trimmed)) return false;
-      onOpenMcpSettings();
-      setDraft('');
-      return true;
-    }
-
-    function expandSearchCommand(input: string): { prompt: string; query: string } | null {
-      const m = /^\/search(?:\s+([\s\S]*))?$/i.exec(input.trim());
-      if (!m) return null;
-      const query = m[1]?.trim() ?? '';
-      if (!query) return null;
-      return {
-        query,
-        prompt: [
-          `Search for: ${query}`,
-          '',
-          'Before answering, your first tool action must be the OD research command for your shell.',
-          'POSIX: "$OD_NODE_BIN" "$OD_BIN" research search --query "<search query>" --max-sources 5',
-          'PowerShell: & $env:OD_NODE_BIN $env:OD_BIN research search --query "<search query>" --max-sources 5',
-          'cmd.exe: "%OD_NODE_BIN%" "%OD_BIN%" research search --query "<search query>" --max-sources 5',
-          'Use the canonical query below as the exact search query, with safe quoting for your shell.',
-          '',
-          'Canonical query:',
-          '',
-          '```text',
-          query.replace(/```/g, '`\u200b`\u200b`'),
-          '```',
-          'If the OD command fails because Tavily is not configured or unavailable, report that error, then use your own search capability as fallback and label the fallback clearly.',
-          'After the command returns JSON or fallback search results, write a reusable Markdown report into Design Files at `research/<safe-query-slug>.md` or another fresh project-relative path.',
-          'The report must include the query, fetched time, short summary, key findings, source list with [1], [2] citations, and a note that source content is external untrusted evidence.',
-          'Then summarize the findings with citations by source index and mention the Markdown report path.',
-        ].join('\n'),
-      };
     }
 
     // Parse a `/pet [arg]` slash command out of the draft. Recognized
@@ -461,9 +385,11 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
     function reset() {
       setDraft("");
       setStaged([]);
+      setImportedContexts([]);
       setUploadError(null);
       setMention(null);
       setSlash(null);
+      setImportPanel("root");
     }
 
     async function ensureProject(): Promise<string | null> {
@@ -518,27 +444,6 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
       setDragActive(false);
       const files = Array.from(e.dataTransfer.files ?? []);
       if (files.length > 0) void uploadFiles(files);
-    }
-
-    async function handleLinkFolder() {
-      if (!projectId) return;
-      const selected = await openFolderDialog();
-      if (!selected) return;
-      const base = projectMetadata ?? { kind: 'prototype' as const };
-      const existing = base.linkedDirs ?? [];
-      if (existing.includes(selected)) return;
-      const metadata: ProjectMetadata = { ...base, linkedDirs: [...existing, selected] };
-      const result = await patchProject(projectId, { metadata });
-      if (result?.metadata) onProjectMetadataChange?.(result.metadata);
-    }
-
-    async function handleUnlinkFolder(dir: string) {
-      if (!projectId) return;
-      const base = projectMetadata ?? { kind: 'prototype' as const };
-      const existing = base.linkedDirs ?? [];
-      const metadata: ProjectMetadata = { ...base, linkedDirs: existing.filter((d) => d !== dir) };
-      const result = await patchProject(projectId, { metadata });
-      if (result?.metadata) onProjectMetadataChange?.(result.metadata);
     }
 
     function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
@@ -596,12 +501,119 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
       setStaged((s) => s.filter((a) => a.path !== p));
     }
 
+    function removeImportedContext(id: string) {
+      setImportedContexts((items) => items.filter((item) => item.id !== id));
+    }
+
+    async function importSkillContext(skill: SkillSummary) {
+      const contextId = `skill:${skill.id}`;
+      if (importedContexts.some((item) => item.id === contextId)) return;
+      setImportingContextId(contextId);
+      try {
+        const detail = await fetchSkill(skill.id);
+        setImportedContexts((items) => [
+          ...items,
+          {
+            kind: "skill",
+            id: contextId,
+            title: skill.name,
+            summary: skill.description,
+            body: detail?.body || skill.examplePrompt || skill.description,
+          },
+        ]);
+        setImportOpen(false);
+        setImportPanel("root");
+      } finally {
+        setImportingContextId(null);
+      }
+    }
+
+    async function importDesignSystemContext(system: DesignSystemSummary) {
+      const contextId = `design-system:${system.id}`;
+      if (importedContexts.some((item) => item.id === contextId)) return;
+      setImportingContextId(contextId);
+      try {
+        const detail = await fetchDesignSystem(system.id);
+        setImportedContexts((items) => [
+          ...items,
+          {
+            kind: "design-system",
+            id: contextId,
+            title: system.title,
+            summary: system.summary,
+            body: detail?.body || system.summary,
+          },
+        ]);
+        setImportOpen(false);
+        setImportPanel("root");
+      } finally {
+        setImportingContextId(null);
+      }
+    }
+
+    function importCodeDirectoryContext(dir: string) {
+      const contextId = `code-dir:${dir}`;
+      if (importedContexts.some((item) => item.id === contextId)) return;
+      const files = filesInDirectory(projectFiles, dir).slice(0, 20);
+      setImportedContexts((items) => [
+        ...items,
+        {
+          kind: "code-dir",
+          id: contextId,
+          title: dir,
+          summary: `${files.length} files attached from this directory`,
+          paths: files,
+        },
+      ]);
+      setStaged((items) => {
+        const seen = new Set(items.map((item) => item.path));
+        const next = [...items];
+        for (const filePath of files) {
+          if (seen.has(filePath)) continue;
+          next.push({
+            path: filePath,
+            name: filePath.split("/").pop() || filePath,
+            kind: looksLikeImage(filePath) ? "image" : "file",
+          });
+        }
+        return next;
+      });
+      setImportOpen(false);
+      setImportPanel("root");
+    }
+
+    function composeImportedContextPrompt(): string {
+      if (importedContexts.length === 0) return "";
+      return importedContexts
+        .map((item) => {
+          if (item.kind === "skill") {
+            return [
+              `<imported-skill id="${item.id.replace(/^skill:/, "")}" name="${item.title}">`,
+              item.body,
+              "</imported-skill>",
+            ].join("\n");
+          }
+          if (item.kind === "design-system") {
+            return [
+              `<imported-design-system id="${item.id.replace(/^design-system:/, "")}" title="${item.title}">`,
+              item.body,
+              "</imported-design-system>",
+            ].join("\n");
+          }
+          return [
+            `<related-code-directory path="${item.title}">`,
+            item.paths.map((p) => `- ${p}`).join("\n"),
+            "</related-code-directory>",
+          ].join("\n");
+        })
+        .join("\n\n");
+    }
+
     async function submit() {
       const prompt = draft.trim();
-      // Intercept `/pet …` and `/mcp` before sending so the slash command
-      // never hits the agent — these are local UX hooks, not model prompts.
+      // Intercept `/pet …` before sending so the slash command never
+      // hits the agent — it is a local UX hook, not a model prompt.
       if (tryHandlePetSlash()) return;
-      if (tryHandleMcpSlash()) return;
       // `/hatch <concept>` expands into the canonical hatch-pet skill
       // prompt and *is* sent to the agent — the agent runs the skill,
       // packages a Codex pet under `~/.codex/pets/`, and the user
@@ -613,17 +625,19 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
         reset();
         return;
       }
-      const search = researchAvailable ? expandSearchCommand(prompt) : null;
-      if (search) {
-        if (streaming) return;
-        onSend(search.prompt, staged, commentAttachments, {
-          research: { enabled: true, query: search.query },
-        });
-        reset();
+      if (
+        (!prompt &&
+          commentAttachments.length === 0 &&
+          importedContexts.length === 0) ||
+        streaming
+      ) {
         return;
       }
-      if ((!prompt && commentAttachments.length === 0) || streaming) return;
-      onSend(prompt, staged, commentAttachments);
+      const contextPrompt = composeImportedContextPrompt();
+      const composedPrompt = contextPrompt
+        ? `${prompt || "(No extra typed instruction.)"}\n\n# Imported context\n\n${contextPrompt}`
+        : prompt;
+      onSend(composedPrompt, staged, commentAttachments);
       reset();
     }
 
@@ -640,6 +654,48 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
           })
           .slice(0, 12)
       : [];
+
+    const codeDirectories = useMemo(
+      () => deriveCodeDirectories(projectFiles),
+      [projectFiles],
+    );
+
+    const componentCandidates = useMemo(
+      () => deriveComponentCandidates(projectFiles),
+      [projectFiles],
+    );
+
+    function addComponentReference(file: ProjectFile) {
+      const filePath = file.path ?? file.name;
+      const note = window.prompt(
+        `請說明「${file.name}」要作為什麼元件或區塊用途：`,
+        "",
+      );
+      if (!note?.trim()) return;
+      if (!staged.some((s) => s.path === filePath)) {
+        setStaged((items) => [
+          ...items,
+          {
+            path: filePath,
+            name: file.name,
+            kind: looksLikeImage(filePath) ? "image" : "file",
+          },
+        ]);
+      }
+      const componentPrompt = [
+        `Use @${filePath} as a reusable component source.`,
+        `Component/source: ${file.name}`,
+        `User note: ${note.trim()}`,
+        "Adapt it to the current project instead of copying blindly. Preserve the current visual system.",
+      ].join("\n");
+      setDraft((current) => {
+        const prefix = current.trim() ? `${current.trim()}\n\n` : "";
+        return `${prefix}${componentPrompt}`;
+      });
+      setImportOpen(false);
+      setImportPanel("root");
+      requestAnimationFrame(() => textareaRef.current?.focus());
+    }
 
     return (
       <div
@@ -661,31 +717,17 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
               t={t}
             />
           ) : null}
-          {linkedDirs.length > 0 ? (
-            <div className="linked-dirs-row" data-testid="linked-dirs">
-              {linkedDirs.map((dir) => (
-                <div key={dir} className="linked-dir-chip">
-                  <Icon name="folder" size={13} />
-                  <span className="linked-dir-name" title={dir}>
-                    {dir.split('/').pop() || dir}
-                  </span>
-                  <button
-                    className="staged-remove"
-                    onClick={() => handleUnlinkFolder(dir)}
-                    title={t('chat.linkedFolderRemoveAria', { path: dir })}
-                    aria-label={t('chat.linkedFolderRemoveAria', { path: dir })}
-                  >
-                    <Icon name="close" size={11} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          ) : null}
           {commentAttachments.length > 0 ? (
             <StagedCommentAttachments
               attachments={commentAttachments}
               onRemove={(id) => onRemoveCommentAttachment?.(id)}
               t={t}
+            />
+          ) : null}
+          {importedContexts.length > 0 ? (
+            <ImportedContextChips
+              contexts={importedContexts}
+              onRemove={removeImportedContext}
             />
           ) : null}
           <div className="composer-input-wrap">
@@ -751,147 +793,22 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
               data-testid="chat-file-input"
               type="file"
               multiple
-              style={{ display: 'none' }}
+              style={{ display: "none" }}
               onChange={(e) => {
                 const files = Array.from(e.target.files ?? []);
                 void uploadFiles(files);
-                e.target.value = '';
+                e.target.value = "";
               }}
             />
-            <div className="composer-tools-wrap">
-              <button
-                ref={toolsTriggerRef}
-                type="button"
-                className={`icon-btn composer-tools-trigger${toolsOpen ? ' active' : ''}`}
-                onClick={() => setToolsOpen((v) => !v)}
-                title={t('chat.cliSettingsTitle')}
-                aria-haspopup="menu"
-                aria-expanded={toolsOpen}
-                aria-label={t('chat.cliSettingsAria')}
-              >
-                <Icon name="sliders" size={15} />
-                {mcpServers.length > 0 ? (
-                  <span className="composer-tools-badge">{mcpServers.length}</span>
-                ) : null}
-              </button>
-              {toolsOpen ? (
-                <div
-                  ref={toolsMenuRef}
-                  className="composer-tools-menu"
-                  role="menu"
-                >
-                  <div className="composer-tools-tabs" role="tablist">
-                    {availableTabs.map((tab) => (
-                      <button
-                        key={tab}
-                        type="button"
-                        role="tab"
-                        aria-selected={toolsTab === tab}
-                        className={`composer-tools-tab${toolsTab === tab ? ' active' : ''}`}
-                        onClick={() => setToolsTab(tab)}
-                      >
-                        {tab === 'mcp' ? (
-                          <>
-                            <Icon name="link" size={12} />
-                            <span>MCP</span>
-                            {mcpServers.length > 0 ? (
-                              <span className="composer-tools-tab-count">
-                                {mcpServers.length}
-                              </span>
-                            ) : null}
-                          </>
-                        ) : null}
-                        {tab === 'import' ? (
-                          <>
-                            <Icon name="import" size={12} />
-                            <span>{t('chat.importLabel')}</span>
-                          </>
-                        ) : null}
-                        {tab === 'pet' ? (
-                          <>
-                            <span className="composer-tools-tab-glyph" aria-hidden>
-                              {resolveActivePet(petConfig)?.glyph ?? '🐾'}
-                            </span>
-                            <span>{t('pet.composerMenuTitle')}</span>
-                          </>
-                        ) : null}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="composer-tools-content">
-                    {toolsTab === 'mcp' && onOpenMcpSettings ? (
-                      <ToolsMcpPanel
-                        servers={mcpServers}
-                        onInsert={(serverId) => {
-                          const ta = textareaRef.current;
-                          const insert = `Use the \`${serverId}\` MCP server tools. `;
-                          const cursor = ta?.selectionStart ?? draft.length;
-                          const before = draft.slice(0, cursor);
-                          const after = draft.slice(cursor);
-                          const next = before + insert + after;
-                          setDraft(next);
-                          setToolsOpen(false);
-                          requestAnimationFrame(() => {
-                            const el = textareaRef.current;
-                            if (!el) return;
-                            el.focus();
-                            const pos = before.length + insert.length;
-                            el.setSelectionRange(pos, pos);
-                          });
-                        }}
-                        onManage={() => {
-                          setToolsOpen(false);
-                          onOpenMcpSettings?.();
-                        }}
-                      />
-                    ) : null}
-                    {toolsTab === 'import' ? (
-                      <ToolsImportPanel
-                        t={t}
-                        onLinkFolder={async () => {
-                          setToolsOpen(false);
-                          await handleLinkFolder();
-                        }}
-                      />
-                    ) : null}
-                    {toolsTab === 'pet' && petEnabled ? (
-                      <ToolsPetPanel
-                        t={t}
-                        petConfig={petConfig}
-                        onTogglePet={() => {
-                          onTogglePet?.();
-                          setToolsOpen(false);
-                        }}
-                        onAdoptPet={(id) => {
-                          onAdoptPet?.(id);
-                          setToolsOpen(false);
-                        }}
-                        onOpenPetSettings={() => {
-                          onOpenPetSettings?.();
-                          setToolsOpen(false);
-                        }}
-                      />
-                    ) : null}
-                  </div>
-
-                  {onOpenSettings ? (
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className="composer-tools-settings"
-                      onClick={() => {
-                        setToolsOpen(false);
-                        onOpenSettings?.();
-                      }}
-                    >
-                      <Icon name="settings" size={13} />
-                      <span>{t('pet.composerOpenSettings')}</span>
-                    </button>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
+            <button
+              className="icon-btn"
+              onClick={() => onOpenSettings?.()}
+              title={t('chat.cliSettingsTitle')}
+              aria-label={t('chat.cliSettingsAria')}
+              disabled={!onOpenSettings}
+            >
+              <Icon name="sliders" size={15} />
+            </button>
             <button
               className="icon-btn"
               data-testid="chat-attach"
@@ -906,6 +823,240 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
                 <Icon name="attach" size={15} />
               )}
             </button>
+            <span className="composer-icon-divider" aria-hidden />
+            <div className="composer-import-wrap">
+              <button
+                ref={importTriggerRef}
+                type="button"
+                className="composer-import"
+                onClick={() => setImportOpen((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={importOpen}
+                title={t('chat.importTitle')}
+              >
+                <Icon name="import" size={13} />
+                <span>{t('chat.importLabel')}</span>
+                <Icon name="chevron-down" size={12} />
+              </button>
+              {importOpen ? (
+                <div
+                  ref={importMenuRef}
+                  className="composer-import-menu"
+                  role="menu"
+                >
+                  {importPanel === "root" ? (
+                    <>
+                      <ImportItem icon="upload" label={t('chat.importFig')} t={t} />
+                      <ImportItem icon="link" label={t('chat.importGitHub')} t={t} />
+                      <ImportItem icon="grid" label={t('chat.importWeb')} t={t} />
+                      <ImportItem
+                        icon="folder"
+                        label={t('chat.importFolder')}
+                        t={t}
+                        enabled={codeDirectories.length > 0}
+                        onClick={() => setImportPanel("code")}
+                      />
+                      <ImportItem
+                        icon="grid"
+                        label="目前專案元件 Gallery"
+                        t={t}
+                        enabled={componentCandidates.length > 0}
+                        onClick={() => setImportPanel("components")}
+                      />
+                      <ImportItem
+                        icon="sparkles"
+                        label={t('chat.importSkills')}
+                        t={t}
+                        enabled={skills.length > 0 || designSystems.length > 0}
+                        onClick={() => setImportPanel("skills")}
+                      />
+                      <ImportItem icon="file" label={t('chat.importProject')} t={t} />
+                    </>
+	                  ) : importPanel === "skills" ? (
+	                    <ImportResourcePanel
+                      title={t('chat.importSkills')}
+                      emptyLabel="目前沒有可匯入的技能或設計系統"
+                      onBack={() => setImportPanel("root")}
+                    >
+                      {skills.slice(0, 8).map((skill) => {
+                        const contextId = `skill:${skill.id}`;
+                        return (
+                          <ImportResourceItem
+                            key={contextId}
+                            icon="sparkles"
+                            title={skill.name}
+                            meta={`Skill · ${skill.mode}`}
+                            summary={skill.description}
+                            active={importedContexts.some((item) => item.id === contextId)}
+                            loading={importingContextId === contextId}
+                            onClick={() => void importSkillContext(skill)}
+                          />
+                        );
+                      })}
+                      {designSystems.slice(0, 8).map((system) => {
+                        const contextId = `design-system:${system.id}`;
+                        return (
+                          <ImportResourceItem
+                            key={contextId}
+                            icon="grid"
+                            title={system.title}
+                            meta={`Design system · ${system.category}`}
+                            summary={system.summary}
+                            active={importedContexts.some((item) => item.id === contextId)}
+                            loading={importingContextId === contextId}
+                            onClick={() => void importDesignSystemContext(system)}
+                          />
+                        );
+                      })}
+                    </ImportResourcePanel>
+	                  ) : importPanel === "code" ? (
+	                    <ImportResourcePanel
+                      title={t('chat.importFolder')}
+                      emptyLabel="目前沒有可關聯的程式碼目錄"
+                      onBack={() => setImportPanel("root")}
+                    >
+                      {codeDirectories.map((dir) => {
+                        const contextId = `code-dir:${dir.path}`;
+                        return (
+                          <ImportResourceItem
+                            key={contextId}
+                            icon="folder"
+                            title={dir.path}
+                            meta={`${dir.fileCount} files`}
+                            summary={dir.sampleFiles.join(", ")}
+                            active={importedContexts.some((item) => item.id === contextId)}
+                            onClick={() => importCodeDirectoryContext(dir.path)}
+                          />
+                        );
+	                      })}
+	                    </ImportResourcePanel>
+	                  ) : (
+	                    <ImportResourcePanel
+	                      title="目前專案元件 Gallery"
+	                      emptyLabel="目前沒有可引用的元件或檔案"
+	                      onBack={() => setImportPanel("root")}
+	                    >
+	                      {componentCandidates.map((file) => {
+	                        const path = file.path ?? file.name;
+	                        return (
+	                          <ImportResourceItem
+	                            key={path}
+	                            icon={looksLikeImage(path) ? "grid" : "file"}
+	                            title={file.name}
+	                            meta={`${file.kind} · ${prettySize(file.size)}`}
+	                            summary="點擊可加入 composer；也可以拖曳到右側預覽畫布後輸入用途。"
+	                            draggable
+	                            dragPayload={{
+	                              path,
+	                              title: file.name,
+	                              kind: file.kind,
+	                            }}
+	                            onClick={() => addComponentReference(file)}
+	                          />
+	                        );
+	                      })}
+	                    </ImportResourcePanel>
+	                  )}
+                </div>
+              ) : null}
+            </div>
+            {petEnabled ? (
+              <div className="composer-pet-wrap">
+                <button
+                  ref={petTriggerRef}
+                  type="button"
+                  className={`composer-pet${petConfig?.adopted ? ' adopted' : ''}`}
+                  onClick={() => setPetOpen((v) => !v)}
+                  aria-haspopup="menu"
+                  aria-expanded={petOpen}
+                  title={t('pet.composerTitle')}
+                >
+                  <span className="composer-pet-glyph" aria-hidden>
+                    {(() => {
+                      const active = resolveActivePet(petConfig);
+                      if (active) return active.glyph;
+                      return '🐾';
+                    })()}
+                  </span>
+                  <span className="composer-pet-label">
+                    {petConfig?.adopted
+                      ? petConfig.enabled
+                        ? t('pet.tuck')
+                        : t('pet.wake')
+                      : t('pet.adopt')}
+                  </span>
+                  <Icon name="chevron-down" size={12} />
+                </button>
+                {petOpen ? (
+                  <div
+                    ref={petMenuRef}
+                    className="composer-pet-menu"
+                    role="menu"
+                  >
+                    <div className="composer-pet-menu-head">
+                      <strong>{t('pet.composerMenuTitle')}</strong>
+                      <span>{t('pet.composerMenuHint')}</span>
+                    </div>
+                    {petConfig?.adopted ? (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="composer-pet-menu-row toggle"
+                        onClick={() => {
+                          onTogglePet?.();
+                          setPetOpen(false);
+                        }}
+                      >
+                        <Icon
+                          name={petConfig.enabled ? 'eye' : 'sparkles'}
+                          size={12}
+                        />
+                        <span>
+                          {petConfig.enabled
+                            ? t('pet.tuck')
+                            : t('pet.wake')}
+                        </span>
+                      </button>
+                    ) : null}
+                    <div className="composer-pet-menu-grid">
+                      {BUILT_IN_PETS.map((p) => {
+                        const active =
+                          petConfig?.adopted && petConfig.petId === p.id;
+                        return (
+                          <button
+                            type="button"
+                            role="menuitem"
+                            key={p.id}
+                            className={`composer-pet-menu-pet${active ? ' active' : ''}`}
+                            onClick={() => {
+                              onAdoptPet?.(p.id);
+                              setPetOpen(false);
+                            }}
+                            style={{ ['--pet-accent' as string]: p.accent }}
+                            title={p.flavor}
+                          >
+                            <span aria-hidden>{p.glyph}</span>
+                            <span>{p.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="composer-pet-menu-row settings"
+                      onClick={() => {
+                        onOpenPetSettings?.();
+                        setPetOpen(false);
+                      }}
+                    >
+                      <Icon name="settings" size={12} />
+                      <span>{t('pet.composerOpenSettings')}</span>
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
             <span className="composer-spacer" />
             {streaming ? (
               <button
@@ -922,7 +1073,11 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
                 className="composer-send"
                 data-testid="chat-send"
                 onClick={() => void submit()}
-                disabled={!draft.trim() && commentAttachments.length === 0}
+                disabled={
+                  !draft.trim() &&
+                  commentAttachments.length === 0 &&
+                  importedContexts.length === 0
+                }
               >
                 <Icon name="send" size={13} />
                 <span>{t('chat.send')}</span>
@@ -1007,145 +1162,11 @@ function StagedCommentAttachments({
   );
 }
 
-function ToolsMcpPanel({
-  servers,
-  onInsert,
-  onManage,
-}: {
-  servers: McpServerConfig[];
-  onInsert: (serverId: string) => void;
-  onManage: () => void;
-}) {
-  return (
-    <>
-      {servers.length === 0 ? (
-        <div className="composer-tools-empty">
-          No MCP servers configured yet. Open Settings to add Higgsfield,
-          GitHub, Filesystem, or a custom server.
-        </div>
-      ) : (
-        <div className="composer-tools-list">
-          {servers.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              role="menuitem"
-              className="composer-tools-row"
-              onClick={() => onInsert(s.id)}
-              title={`Insert a hint that nudges the model to use ${s.label || s.id}`}
-            >
-              <Icon name="link" size={12} />
-              <span className="composer-tools-row-body">
-                <strong>{s.label || s.id}</strong>
-                <span className="composer-tools-row-meta">{s.transport}</span>
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
-      <button
-        type="button"
-        role="menuitem"
-        className="composer-tools-row composer-tools-row-action"
-        onClick={onManage}
-      >
-        <Icon name="settings" size={12} />
-        <span>Manage MCP servers…</span>
-      </button>
-    </>
-  );
-}
-
-function ToolsImportPanel({
-  t,
-  onLinkFolder,
-}: {
-  t: TranslateFn;
-  onLinkFolder: () => Promise<void> | void;
-}) {
-  return (
-    <div className="composer-tools-list">
-      <ImportItem icon="upload" label={t('chat.importFig')} t={t} />
-      <ImportItem icon="grid" label={t('chat.importWeb')} t={t} />
-      <ImportItem
-        icon="folder"
-        label={t('chat.importFolder')}
-        t={t}
-        enabled
-        onClick={() => void onLinkFolder()}
-      />
-      <ImportItem icon="sparkles" label={t('chat.importSkills')} t={t} />
-      <ImportItem icon="file" label={t('chat.importProject')} t={t} />
-    </div>
-  );
-}
-
-function ToolsPetPanel({
-  t,
-  petConfig,
-  onTogglePet,
-  onAdoptPet,
-  onOpenPetSettings,
-}: {
-  t: TranslateFn;
-  petConfig: AppConfig['pet'] | undefined;
-  onTogglePet: () => void;
-  onAdoptPet: (id: string) => void;
-  onOpenPetSettings: () => void;
-}) {
-  return (
-    <div className="composer-tools-pet">
-      <div className="composer-tools-pet-head">
-        <span className="hint">{t('pet.composerMenuHint')}</span>
-      </div>
-      {petConfig?.adopted ? (
-        <button
-          type="button"
-          role="menuitem"
-          className="composer-tools-row composer-tools-row-toggle"
-          onClick={onTogglePet}
-        >
-          <Icon name={petConfig.enabled ? 'eye' : 'sparkles'} size={12} />
-          <span>{petConfig.enabled ? t('pet.tuck') : t('pet.wake')}</span>
-        </button>
-      ) : null}
-      <div className="composer-tools-pet-grid">
-        {BUILT_IN_PETS.map((p) => {
-          const active = petConfig?.adopted && petConfig.petId === p.id;
-          return (
-            <button
-              type="button"
-              role="menuitem"
-              key={p.id}
-              className={`composer-tools-pet-item${active ? ' active' : ''}`}
-              onClick={() => onAdoptPet(p.id)}
-              style={{ ['--pet-accent' as string]: p.accent }}
-              title={p.flavor}
-            >
-              <span aria-hidden>{p.glyph}</span>
-              <span>{p.name}</span>
-            </button>
-          );
-        })}
-      </div>
-      <button
-        type="button"
-        role="menuitem"
-        className="composer-tools-row composer-tools-row-action"
-        onClick={onOpenPetSettings}
-      >
-        <Icon name="settings" size={12} />
-        <span>{t('pet.composerOpenSettings')}</span>
-      </button>
-    </div>
-  );
-}
-
 function ImportItem({
   icon,
   label,
   t,
-  enabled,
+  enabled = false,
   onClick,
 }: {
   icon: "upload" | "link" | "grid" | "folder" | "sparkles" | "file";
@@ -1157,18 +1178,152 @@ function ImportItem({
   return (
     <button
       type="button"
-      className={`composer-import-item${enabled ? ' composer-import-item-enabled' : ''}`}
+      className={`composer-import-item${enabled ? " enabled" : ""}`}
       role="menuitem"
       tabIndex={-1}
       disabled={!enabled}
       title={enabled ? label : t('chat.importComingSoon')}
-      onClick={enabled && onClick ? onClick : (e) => e.preventDefault()}
+      onClick={(e) => {
+        if (!enabled) {
+          e.preventDefault();
+          return;
+        }
+        onClick?.();
+      }}
     >
       <span className="ico" aria-hidden>
         <Icon name={icon} size={14} />
       </span>
       <span className="composer-import-item-label">{label}</span>
-      {!enabled && <span className="composer-import-item-soon">{t('chat.importSoon')}</span>}
+      <span className="composer-import-item-soon">
+        {enabled ? <Icon name="chevron-right" size={11} /> : t('chat.importSoon')}
+      </span>
+    </button>
+  );
+}
+
+function ImportedContextChips({
+  contexts,
+  onRemove,
+}: {
+  contexts: ImportedContext[];
+  onRemove: (id: string) => void;
+}) {
+  return (
+    <div className="staged-row imported-context-row">
+      {contexts.map((item) => (
+        <div key={item.id} className={`staged-chip imported-${item.kind}`}>
+          <span className="staged-icon" aria-hidden>
+            <Icon
+              name={
+                item.kind === "skill"
+                  ? "sparkles"
+                  : item.kind === "design-system"
+                    ? "grid"
+                    : "folder"
+              }
+              size={13}
+            />
+          </span>
+          <span className="staged-name" title={item.summary}>
+            {item.title}
+          </span>
+          <button
+            className="staged-remove"
+            onClick={() => onRemove(item.id)}
+            title="移除匯入內容"
+            aria-label={`移除 ${item.title}`}
+          >
+            <Icon name="close" size={11} />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ImportResourcePanel({
+  title,
+  emptyLabel,
+  onBack,
+  children,
+}: {
+  title: string;
+  emptyLabel: string;
+  onBack: () => void;
+  children: ReactNode;
+}) {
+  const hasChildren = Children.count(children) > 0;
+  return (
+    <div className="composer-import-panel">
+      <div className="composer-import-panel-head">
+        <button
+          type="button"
+          className="composer-import-back"
+          onClick={onBack}
+          aria-label="返回匯入選單"
+        >
+          <Icon name="chevron-left" size={13} />
+        </button>
+        <strong>{title}</strong>
+      </div>
+      <div className="composer-import-panel-list">
+        {hasChildren ? children : (
+          <div className="composer-import-empty">{emptyLabel}</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ImportResourceItem({
+  icon,
+  title,
+  meta,
+  summary,
+  active = false,
+  loading = false,
+  draggable = false,
+  dragPayload,
+  onClick,
+}: {
+  icon: "sparkles" | "grid" | "folder" | "file";
+  title: string;
+  meta: string;
+  summary: string;
+  active?: boolean;
+  loading?: boolean;
+  draggable?: boolean;
+  dragPayload?: unknown;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={`composer-resource-item${active ? " active" : ""}`}
+      disabled={active || loading}
+      draggable={draggable}
+      onDragStart={(event) => {
+        if (!dragPayload) return;
+        event.dataTransfer.setData(
+          "application/x-open-design-component",
+          JSON.stringify(dragPayload),
+        );
+        event.dataTransfer.effectAllowed = "copy";
+      }}
+      onClick={onClick}
+    >
+      <span className="composer-resource-icon" aria-hidden>
+        <Icon name={loading ? "spinner" : icon} size={14} />
+      </span>
+      <span className="composer-resource-body">
+        <span className="composer-resource-title">{title}</span>
+        <span className="composer-resource-meta">{meta}</span>
+        <span className="composer-resource-summary">{summary}</span>
+      </span>
+      <span className="composer-resource-state">
+        {active ? <Icon name="check" size={13} /> : null}
+      </span>
     </button>
   );
 }
@@ -1268,6 +1423,86 @@ function MentionPopover({
 
 function looksLikeImage(name: string): boolean {
   return /\.(png|jpe?g|gif|webp|svg|avif|bmp)$/i.test(name);
+}
+
+function looksLikeCode(name: string): boolean {
+  return /\.(ts|tsx|js|jsx|mjs|cjs|css|scss|html|md|json|yml|yaml|sql|py|go|rs|java|kt|swift|rb|php|sh)$/i.test(
+    name,
+  );
+}
+
+function fileKey(file: ProjectFile): string {
+  return file.path ?? file.name;
+}
+
+function filesInDirectory(files: ProjectFile[], dir: string): string[] {
+  const prefix = dir.endsWith("/") ? dir : `${dir}/`;
+  return files
+    .filter((file) => file.type === undefined || file.type === "file")
+    .map(fileKey)
+    .filter((path) => path.startsWith(prefix) && looksLikeCode(path));
+}
+
+function deriveCodeDirectories(files: ProjectFile[]): Array<{
+  path: string;
+  fileCount: number;
+  sampleFiles: string[];
+}> {
+  const byDir = new Map<string, string[]>();
+  for (const file of files) {
+    if (file.type !== undefined && file.type !== "file") continue;
+    const key = fileKey(file);
+    if (!looksLikeCode(key) || !key.includes("/")) continue;
+    const parts = key.split("/");
+    for (let i = 1; i < parts.length; i += 1) {
+      const dir = parts.slice(0, i).join("/");
+      const list = byDir.get(dir) ?? [];
+      list.push(key);
+      byDir.set(dir, list);
+    }
+  }
+  return Array.from(byDir.entries())
+    .map(([path, dirFiles]) => ({
+      path,
+      fileCount: dirFiles.length,
+      sampleFiles: dirFiles.slice(0, 3).map((name) => name.split("/").pop() || name),
+    }))
+    .sort((a, b) => b.fileCount - a.fileCount || a.path.localeCompare(b.path))
+    .slice(0, 12);
+}
+
+function deriveComponentCandidates(files: ProjectFile[]): ProjectFile[] {
+  const usefulKinds = new Set<ProjectFile["kind"]>([
+    "html",
+    "code",
+    "text",
+    "image",
+    "sketch",
+  ]);
+  return files
+    .filter((file) => file.type === undefined || file.type === "file")
+    .filter((file) => usefulKinds.has(file.kind))
+    .filter((file) => {
+      const key = fileKey(file);
+      if (file.kind === "image" || file.kind === "sketch") return true;
+      return /\.(html?|tsx?|jsx?|css|scss|md)$/i.test(key);
+    })
+    .sort((a, b) => {
+      const aScore = componentScore(a);
+      const bScore = componentScore(b);
+      return bScore - aScore || fileKey(a).localeCompare(fileKey(b));
+    })
+    .slice(0, 16);
+}
+
+function componentScore(file: ProjectFile): number {
+  const key = fileKey(file).toLowerCase();
+  let score = 0;
+  if (file.kind === "html") score += 30;
+  if (/\b(component|card|section|hero|slide|panel|widget)\b/.test(key)) score += 20;
+  if (key.endsWith(".tsx") || key.endsWith(".jsx")) score += 15;
+  if (file.kind === "image") score += 5;
+  return score;
 }
 
 function prettySize(bytes: number): string {

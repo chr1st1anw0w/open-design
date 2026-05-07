@@ -4,6 +4,7 @@ import { cases, promptGallery } from "../../lib/data";
 import { renderPrompt, extractPlaceholders } from "../../lib/prompt-engine";
 import { AiAgentPopover } from "../prompt-studio/AiAgentPopover";
 import { callGeminiCopilot } from "../../lib/gemini-client";
+import { Toolbar, type AnnotationTool } from "@/components/ui/toolbar";
 import "./Workbench.css";
 
 function formatParamLabel(
@@ -16,19 +17,54 @@ function formatParamLabel(
 
 interface Props {
   navigate: (r: Route) => void;
+  initialCategoryId?: string;
   initialTemplateId?: string;
 }
 
 type Mode = "template" | "gallery";
 type SidebarMode = "category" | "templates";
+type AnnotationPoint = { x: number; y: number };
+type AnnotationShape = "arrow" | "rect" | "ellipse";
+type ImageAnnotation =
+  | {
+      id: string;
+      type: "text";
+      x: number;
+      y: number;
+      color: string;
+      text: string;
+    }
+  | {
+      id: string;
+      type: AnnotationShape;
+      x: number;
+      y: number;
+      x2: number;
+      y2: number;
+      color: string;
+    }
+  | {
+      id: string;
+      type: "pencil";
+      color: string;
+      points: AnnotationPoint[];
+    };
 
-export function Workbench({ navigate, initialTemplateId }: Props) {
+const clampPercent = (value: number) => Math.min(100, Math.max(0, value));
+
+export function Workbench({
+  navigate,
+  initialCategoryId,
+  initialTemplateId,
+}: Props) {
   const [mode, setMode] = useState<Mode>("template");
   const [sidebarMode, setSidebarMode] = useState<SidebarMode>(
-    initialTemplateId ? "templates" : "category",
+    initialTemplateId || initialCategoryId ? "templates" : "category",
   );
   const [selectedCategory, setSelectedCategory] = useState<string>(
-    initialTemplateId ? cases.templates[initialTemplateId]?.category || "" : "",
+    initialTemplateId
+      ? cases.templates[initialTemplateId]?.category || initialCategoryId || ""
+      : initialCategoryId || "",
   );
   const [selectedTemplateId, setSelectedTemplateId] = useState(
     initialTemplateId || "",
@@ -51,12 +87,18 @@ export function Workbench({ navigate, initialTemplateId }: Props) {
   const [imageNote, setImageNote] = useState("");
   const [revisionNote, setRevisionNote] = useState("");
   const [threadHistory, setThreadHistory] = useState<string[]>([]);
+  const [annotationTool, setAnnotationTool] =
+    useState<AnnotationTool>("select");
+  const [annotationColor, setAnnotationColor] = useState("#f97316");
+  const [annotations, setAnnotations] = useState<ImageAnnotation[]>([]);
+  const [activeDrawingId, setActiveDrawingId] = useState<string | null>(null);
   const [isAiPopoverOpen, setIsAiPopoverOpen] = useState(false);
   const [activeFieldForAi, setActiveFieldForAi] = useState<string | undefined>(
     undefined,
   );
   const [aiIsLoading, setAiIsLoading] = useState(false);
   const aiFieldRef = useRef<HTMLElement | null>(null);
+  const annotationStageRef = useRef<SVGSVGElement | null>(null);
   const revisionSessionId = useMemo(
     () => (selectedTemplateId || selectedGalleryItem?.id || "default").trim(),
     [selectedTemplateId, selectedGalleryItem],
@@ -92,6 +134,22 @@ export function Workbench({ navigate, initialTemplateId }: Props) {
     setArchiveStatus(null);
     setCopyStatus(null);
   }, [template]);
+
+  useEffect(() => {
+    if (initialTemplateId) {
+      setSelectedTemplateId(initialTemplateId);
+      setSelectedCategory(
+        cases.templates[initialTemplateId]?.category || initialCategoryId || "",
+      );
+      setSidebarMode("templates");
+      return;
+    }
+    if (initialCategoryId) {
+      setSelectedCategory(initialCategoryId);
+      setSelectedTemplateId("");
+      setSidebarMode("templates");
+    }
+  }, [initialCategoryId, initialTemplateId]);
 
   const renderResult = useMemo(() => {
     if (!template?.content) return null;
@@ -146,11 +204,142 @@ export function Workbench({ navigate, initialTemplateId }: Props) {
     }
   };
 
+  const getAnnotationPoint = (
+    event: React.PointerEvent<SVGSVGElement>,
+  ): AnnotationPoint | null => {
+    const stage = annotationStageRef.current;
+    if (!stage) return null;
+    const rect = stage.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    return {
+      x: clampPercent(((event.clientX - rect.left) / rect.width) * 100),
+      y: clampPercent(((event.clientY - rect.top) / rect.height) * 100),
+    };
+  };
+
+  const formatAnnotations = (items = annotations) =>
+    items
+      .map((item, idx) => {
+        const prefix = `${idx + 1}.`;
+        if (item.type === "text") {
+          return `${prefix} 文字「${item.text}」位於 ${item.x.toFixed(1)}%, ${item.y.toFixed(1)}%，顏色 ${item.color}`;
+        }
+        if (item.type === "pencil") {
+          const first = item.points[0];
+          const last = item.points[item.points.length - 1];
+          if (!first || !last) return "";
+          return `${prefix} 手繪線條從 ${first.x.toFixed(1)}%, ${first.y.toFixed(1)}% 到 ${last.x.toFixed(1)}%, ${last.y.toFixed(1)}%，顏色 ${item.color}`;
+        }
+        const label =
+          item.type === "arrow"
+            ? "箭頭"
+            : item.type === "rect"
+              ? "矩形框"
+              : "圓形框";
+        return `${prefix} ${label}從 ${item.x.toFixed(1)}%, ${item.y.toFixed(1)}% 指向/覆蓋 ${item.x2.toFixed(1)}%, ${item.y2.toFixed(1)}%，顏色 ${item.color}`;
+      })
+      .filter(Boolean)
+      .join("\n");
+
+  const buildRevisionPrompt = () => {
+    const base = activePrompt ?? "";
+    const annotationText = formatAnnotations();
+    return `${base}${
+      revisionNote.trim() ? `\n\n[Revision Note]\n${revisionNote.trim()}` : ""
+    }${imageNote.trim() ? `\n\n[Image Note]\n${imageNote.trim()}` : ""}${
+      annotationText ? `\n\n[Image Annotations]\n${annotationText}` : ""
+    }`;
+  };
+
+  const applyAnnotationsToNote = () => {
+    const annotationText = formatAnnotations();
+    if (!annotationText) return;
+    setImageNote((prev) =>
+      [prev.trim(), `[Image Annotations]\n${annotationText}`]
+        .filter(Boolean)
+        .join("\n\n"),
+    );
+  };
+
+  const handleAnnotationPointerDown = (
+    event: React.PointerEvent<SVGSVGElement>,
+  ) => {
+    const point = getAnnotationPoint(event);
+    if (!point || annotationTool === "select") return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+
+    const id = `annotation_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    if (annotationTool === "text") {
+      const text = window.prompt("輸入標註文字")?.trim();
+      if (!text) return;
+      setAnnotations((prev) => [
+        ...prev,
+        { id, type: "text", color: annotationColor, text, ...point },
+      ]);
+      return;
+    }
+
+    if (annotationTool === "pencil") {
+      setAnnotations((prev) => [
+        ...prev,
+        { id, type: "pencil", color: annotationColor, points: [point] },
+      ]);
+      setActiveDrawingId(id);
+      return;
+    }
+
+    setAnnotations((prev) => [
+      ...prev,
+      {
+        id,
+        type: annotationTool,
+        color: annotationColor,
+        x: point.x,
+        y: point.y,
+        x2: clampPercent(point.x + 12),
+        y2: clampPercent(point.y + 8),
+      },
+    ]);
+    setActiveDrawingId(id);
+  };
+
+  const handleAnnotationPointerMove = (
+    event: React.PointerEvent<SVGSVGElement>,
+  ) => {
+    if (!activeDrawingId) return;
+    const point = getAnnotationPoint(event);
+    if (!point) return;
+    setAnnotations((prev) =>
+      prev.map((item) => {
+        if (item.id !== activeDrawingId) return item;
+        if (item.type === "pencil") {
+          return { ...item, points: [...item.points, point] };
+        }
+        if (item.type === "text") return item;
+        return { ...item, x2: point.x, y2: point.y };
+      }),
+    );
+  };
+
+  const handleAnnotationPointerUp = (
+    event: React.PointerEvent<SVGSVGElement>,
+  ) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    setActiveDrawingId(null);
+  };
+
+  const handleUndoAnnotation = () => {
+    setAnnotations((prev) => prev.slice(0, -1));
+  };
+
   const handleSendToChatGPT = async () => {
     if (!activePrompt) return;
     setGenStatus("generating");
     setGenResult(null);
     setGenError("");
+    setAnnotations([]);
     try {
       const response = await fetch("/api/garden/gpt-image2/generate", {
         method: "POST",
@@ -188,6 +377,137 @@ export function Workbench({ navigate, initialTemplateId }: Props) {
     }
   };
 
+  const handleSendRevisionToChatGPT = async () => {
+    const base = activePrompt ?? "";
+    const annotationText = formatAnnotations();
+    if (!base || (!revisionNote.trim() && !imageNote.trim() && !annotationText)) {
+      return;
+    }
+    const composed = buildRevisionPrompt();
+
+    setThreadHistory((prev) =>
+      [`Send: ${new Date().toLocaleString()}`, ...prev].slice(0, 8),
+    );
+    setGenStatus("generating");
+    setGenResult(null);
+    setGenError("");
+    try {
+      await fetch("/api/garden/gpt-image2/save-revision", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: revisionSessionId,
+          imageNote: [imageNote.trim(), annotationText && `[Image Annotations]\n${annotationText}`]
+            .filter(Boolean)
+            .join("\n\n"),
+          revisionNote,
+          prompt: composed,
+        }),
+      });
+      const response = await fetch("/api/garden/gpt-image2/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: composed,
+          category:
+            mode === "gallery" ? selectedGalleryItem?.category : template?.category,
+          template:
+            mode === "gallery" ? selectedGalleryItem?.id : template?.name,
+          idx: `revision_${Date.now()}`,
+          provider: "chatgpt-web",
+        }),
+      });
+      const data = await response.json();
+      if (data.status === "success") {
+        setGenResult({ base64: data.imageBase64, ext: data.ext });
+        setGenStatus("success");
+        setAnnotations([]);
+      } else {
+        setGenStatus("error");
+        setGenError(data.error?.message || data.message || "續改生成失敗");
+      }
+    } catch (err) {
+      setGenStatus("error");
+      setGenError(err instanceof Error ? err.message : "無法連線至伺服器");
+    }
+  };
+
+  const renderRevisionPanel = () => {
+    if (!genResult) return null;
+    return (
+      <div className="wb-phase4">
+        <h3 className="mono">圖片備註與續改</h3>
+        <div className="wb-phase4-annotation-row">
+          <span className="mono">
+            已加入 {annotations.length} 個圖片標註
+          </span>
+          <button
+            className="wb-phase4-link"
+            type="button"
+            onClick={() => setPreviewExpanded(true)}
+          >
+            開啟標註工具
+          </button>
+        </div>
+        <label className="mono wb-phase4-label">圖片備註</label>
+        <textarea
+          className="wb-phase4-input"
+          value={imageNote}
+          onChange={(e) => setImageNote(e.target.value)}
+          placeholder="例如：主視覺太暗、按鈕可讀性不足、角色臉部需更自然..."
+        />
+        <label className="mono wb-phase4-label">續改指令</label>
+        <textarea
+          className="wb-phase4-input"
+          value={revisionNote}
+          onChange={(e) => setRevisionNote(e.target.value)}
+          placeholder="例如：保持構圖，改成淺色背景並提升字體對比..."
+        />
+        <div className="wb-phase4-actions">
+          <button
+            className="wb-btn wb-btn-copy"
+            onClick={() => {
+              const base = activePrompt ?? "";
+              const annotationText = formatAnnotations();
+              if (!base || (!revisionNote.trim() && !imageNote.trim() && !annotationText)) {
+                return;
+              }
+              const composed = buildRevisionPrompt();
+              navigator.clipboard.writeText(composed);
+              setCopyStatus("已複製續改提示詞！");
+              setThreadHistory((prev) =>
+                [`Revision: ${revisionNote.trim()}`, ...prev].slice(0, 8),
+              );
+              setTimeout(() => setCopyStatus(null), 2000);
+            }}
+          >
+            產生續改提示詞
+          </button>
+          <button
+            className={`wb-btn wb-btn-chatgpt ${genStatus === "generating" ? "loading" : ""}`}
+            disabled={
+              genStatus === "generating" ||
+              !activePrompt ||
+              (!revisionNote.trim() && !imageNote.trim() && annotations.length === 0)
+            }
+            onClick={() => void handleSendRevisionToChatGPT()}
+          >
+            帶備註續改並傳送
+          </button>
+        </div>
+        {threadHistory.length > 0 && (
+          <div className="wb-phase4-history">
+            {threadHistory.map((item, idx) => (
+              <div key={`${item}-${idx}`} className="wb-phase4-history-item mono">
+                {item}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const allCategories = useMemo(
     () =>
       Object.values(cases.categories).sort((a, b) =>
@@ -214,10 +534,12 @@ export function Workbench({ navigate, initialTemplateId }: Props) {
   const handleSelectCategory = (categoryKey: string) => {
     setSelectedCategory(categoryKey);
     setSidebarMode("templates");
+    navigate({ name: "workbench", categoryId: categoryKey });
   };
 
   const handleBackToCategories = () => {
     setSidebarMode("category");
+    navigate({ name: "workbench" });
   };
 
   const galleryCategories = useMemo(() => promptGallery.categories, []);
@@ -244,6 +566,11 @@ export function Workbench({ navigate, initialTemplateId }: Props) {
     setSelectedGalleryItem(null);
     setGenStatus("idle");
     setGenResult(null);
+    navigate({
+      name: "workbench",
+      categoryId: cases.templates[key]?.category,
+      templateId: key,
+    });
   };
 
   const handleRefineField = async (intent: string) => {
@@ -296,6 +623,87 @@ export function Workbench({ navigate, initialTemplateId }: Props) {
     };
     void run();
   }, [revisionSessionId]);
+
+  const renderAnnotation = (annotation: ImageAnnotation) => {
+    if (annotation.type === "text") {
+      return (
+        <text
+          key={annotation.id}
+          x={annotation.x}
+          y={annotation.y}
+          fill={annotation.color}
+          className="wb-annotation-text"
+        >
+          {annotation.text}
+        </text>
+      );
+    }
+
+    if (annotation.type === "pencil") {
+      return (
+        <polyline
+          key={annotation.id}
+          points={annotation.points
+            .map((point) => `${point.x},${point.y}`)
+            .join(" ")}
+          fill="none"
+          stroke={annotation.color}
+          strokeWidth="0.65"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      );
+    }
+
+    if (annotation.type === "arrow") {
+      return (
+        <line
+          key={annotation.id}
+          x1={annotation.x}
+          y1={annotation.y}
+          x2={annotation.x2}
+          y2={annotation.y2}
+          stroke={annotation.color}
+          strokeWidth="0.75"
+          strokeLinecap="round"
+          markerEnd="url(#wb-arrow-head)"
+        />
+      );
+    }
+
+    const x = Math.min(annotation.x, annotation.x2);
+    const y = Math.min(annotation.y, annotation.y2);
+    const width = Math.abs(annotation.x2 - annotation.x);
+    const height = Math.abs(annotation.y2 - annotation.y);
+
+    if (annotation.type === "ellipse") {
+      return (
+        <ellipse
+          key={annotation.id}
+          cx={x + width / 2}
+          cy={y + height / 2}
+          rx={width / 2}
+          ry={height / 2}
+          fill="none"
+          stroke={annotation.color}
+          strokeWidth="0.7"
+        />
+      );
+    }
+
+    return (
+      <rect
+        key={annotation.id}
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        fill="none"
+        stroke={annotation.color}
+        strokeWidth="0.7"
+      />
+    );
+  };
 
   return (
     <div className="wb">
@@ -489,6 +897,7 @@ export function Workbench({ navigate, initialTemplateId }: Props) {
                 <span className="wb-gen-downloaded mono">✅ 已下載至本機</span>
               </div>
             )}
+            {renderRevisionPanel()}
 
             <div className="wb-gallery-view">
               {selectedGalleryItem.previewImageUrl && (
@@ -586,6 +995,7 @@ export function Workbench({ navigate, initialTemplateId }: Props) {
                 <span className="wb-gen-downloaded mono">✅ 已下載至本機</span>
               </div>
             )}
+            {renderRevisionPanel()}
 
             <div className="wb-grid">
               <section className="wb-params">
@@ -659,124 +1069,6 @@ export function Workbench({ navigate, initialTemplateId }: Props) {
                     </div>
                   )}
                 </div>
-                <div className="wb-phase4">
-                  <h3 className="mono">Phase 4：圖片備註與續改</h3>
-                  <label className="mono wb-phase4-label">圖片備註</label>
-                  <textarea
-                    className="wb-phase4-input"
-                    value={imageNote}
-                    onChange={(e) => setImageNote(e.target.value)}
-                    placeholder="例如：主視覺太暗、按鈕可讀性不足、角色臉部需更自然..."
-                  />
-                  <label className="mono wb-phase4-label">續改指令</label>
-                  <textarea
-                    className="wb-phase4-input"
-                    value={revisionNote}
-                    onChange={(e) => setRevisionNote(e.target.value)}
-                    placeholder="例如：保持構圖，改成淺色背景並提升字體對比..."
-                  />
-                  <div className="wb-phase4-actions">
-                    <button
-                      className="wb-btn wb-btn-copy"
-                      onClick={() => {
-                        const base = activePrompt ?? "";
-                        if (!base || !revisionNote.trim()) return;
-                        const composed = `${base}\n\n[Revision Note]\n${revisionNote.trim()}${
-                          imageNote.trim()
-                            ? `\n\n[Image Note]\n${imageNote.trim()}`
-                            : ""
-                        }`;
-                        navigator.clipboard.writeText(composed);
-                        setCopyStatus("已複製續改提示詞！");
-                        setThreadHistory((prev) =>
-                          [`Revision: ${revisionNote.trim()}`, ...prev].slice(
-                            0,
-                            8,
-                          ),
-                        );
-                        setTimeout(() => setCopyStatus(null), 2000);
-                      }}
-                    >
-                      產生續改提示詞
-                    </button>
-                    <button
-                      className={`wb-btn wb-btn-chatgpt ${genStatus === "generating" ? "loading" : ""}`}
-                      disabled={genStatus === "generating" || !activePrompt}
-                      onClick={async () => {
-                        const base = activePrompt ?? "";
-                        const composed = `${base}${
-                          revisionNote.trim()
-                            ? `\n\n[Revision Note]\n${revisionNote.trim()}`
-                            : ""
-                        }${
-                          imageNote.trim()
-                            ? `\n\n[Image Note]\n${imageNote.trim()}`
-                            : ""
-                        }`;
-                        setThreadHistory((prev) =>
-                          [
-                            `Send: ${new Date().toLocaleString()}`,
-                            ...prev,
-                          ].slice(0, 8),
-                        );
-                        setGenStatus("generating");
-                        setGenResult(null);
-                        try {
-                          await fetch("/api/garden/gpt-image2/save-revision", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              sessionId: revisionSessionId,
-                              imageNote,
-                              revisionNote,
-                              prompt: composed,
-                            }),
-                          });
-                          const response = await fetch(
-                            "/api/garden/gpt-image2/generate",
-                            {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({
-                                prompt: composed,
-                                category: template?.category,
-                                template: template?.name,
-                                idx: `revision_${Date.now()}`,
-                                provider: "chatgpt-web",
-                              }),
-                            },
-                          );
-                          const data = await response.json();
-                          if (data.status === "success") {
-                            setGenResult({
-                              base64: data.imageBase64,
-                              ext: data.ext,
-                            });
-                            setGenStatus("success");
-                          } else {
-                            setGenStatus("error");
-                          }
-                        } catch {
-                          setGenStatus("error");
-                        }
-                      }}
-                    >
-                      帶備註續改並傳送
-                    </button>
-                  </div>
-                  {threadHistory.length > 0 && (
-                    <div className="wb-phase4-history">
-                      {threadHistory.map((item, idx) => (
-                        <div
-                          key={`${item}-${idx}`}
-                          className="wb-phase4-history-item mono"
-                        >
-                          {item}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
               </section>
             </div>
           </div>
@@ -807,21 +1099,103 @@ export function Workbench({ navigate, initialTemplateId }: Props) {
       />
 
       {previewExpanded && genResult && (
-        <div className="wb-lightbox" onClick={() => setPreviewExpanded(false)}>
+        <div className="wb-lightbox">
           <button
             className="wb-lightbox-close"
-            onClick={(e) => {
-              e.stopPropagation();
-              setPreviewExpanded(false);
-            }}
+            onClick={() => setPreviewExpanded(false)}
+            type="button"
           >
             ✕
           </button>
-          <img
-            src={`data:image/${genResult.ext};base64,${genResult.base64}`}
-            alt="生成圖片全覽"
-            onClick={(e) => e.stopPropagation()}
-          />
+          <div className="wb-annotation-shell">
+            <div className="wb-annotation-toolbar">
+              <Toolbar
+                activeTool={annotationTool}
+                color={annotationColor}
+                onToolChange={setAnnotationTool}
+                onColorChange={setAnnotationColor}
+                onUndo={handleUndoAnnotation}
+                onClear={() => setAnnotations([])}
+              />
+            </div>
+            <div className="wb-annotation-body">
+              <div className="wb-annotation-stage-wrap">
+                <div className="wb-annotation-stage">
+                  <img
+                    className="wb-annotation-image"
+                    src={`data:image/${genResult.ext};base64,${genResult.base64}`}
+                    alt="生成圖片全覽"
+                  />
+                  <svg
+                    ref={annotationStageRef}
+                    className={`wb-annotation-layer tool-${annotationTool}`}
+                    viewBox="0 0 100 100"
+                    preserveAspectRatio="none"
+                    onPointerDown={handleAnnotationPointerDown}
+                    onPointerMove={handleAnnotationPointerMove}
+                    onPointerUp={handleAnnotationPointerUp}
+                    onPointerCancel={handleAnnotationPointerUp}
+                    aria-label="圖片標註畫布"
+                  >
+                    <defs>
+                      <marker
+                        id="wb-arrow-head"
+                        markerWidth="6"
+                        markerHeight="6"
+                        refX="5"
+                        refY="3"
+                        orient="auto"
+                        markerUnits="strokeWidth"
+                      >
+                        <path d="M0,0 L6,3 L0,6 Z" fill="context-stroke" />
+                      </marker>
+                    </defs>
+                    {annotations.map(renderAnnotation)}
+                  </svg>
+                </div>
+              </div>
+              <aside className="wb-annotation-panel">
+                <div>
+                  <span className="mono wb-annotation-kicker">Annotation</span>
+                  <h3>標註後回傳 ChatGPT</h3>
+                  <p>
+                    在圖片上加入文字、箭頭、手繪線與幾何框，系統會把座標摘要併入續改提示詞。
+                  </p>
+                </div>
+                <div className="wb-annotation-summary">
+                  {annotations.length > 0 ? (
+                    <pre>{formatAnnotations()}</pre>
+                  ) : (
+                    <span className="mono">尚未加入標註</span>
+                  )}
+                </div>
+                <div className="wb-annotation-actions">
+                  <button
+                    className="wb-btn wb-btn-copy"
+                    type="button"
+                    disabled={annotations.length === 0}
+                    onClick={applyAnnotationsToNote}
+                  >
+                    套用到圖片備註
+                  </button>
+                  <button
+                    className="wb-btn wb-btn-chatgpt"
+                    type="button"
+                    disabled={
+                      genStatus === "generating" ||
+                      !activePrompt ||
+                      (!revisionNote.trim() &&
+                        !imageNote.trim() &&
+                        annotations.length === 0)
+                    }
+                    onClick={() => void handleSendRevisionToChatGPT()}
+                  >
+                    標註續改傳送
+                  </button>
+                </div>
+              </aside>
+            </div>
+          </div>
         </div>
       )}
     </div>
