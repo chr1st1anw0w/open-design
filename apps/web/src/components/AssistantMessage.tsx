@@ -56,7 +56,12 @@ export function AssistantMessage({
 }: Props) {
   const t = useT();
   const events = message.events ?? [];
-  const blocks = buildBlocks(events, message.content);
+  let blocks = buildBlocks(events);
+
+  // Fallback for historical messages that might have content but no events.
+  if (blocks.length === 0 && message.content && !streaming) {
+    blocks = [{ kind: 'text', text: message.content }];
+  }
   const usage = events.find((e) => e.kind === 'usage') as
     | Extract<AgentEvent, { kind: 'usage' }>
     | undefined;
@@ -372,15 +377,7 @@ function ProseBlock({
   locallySubmitted: Set<string>;
   onSubmitForm: (formId: string, text: string) => void;
 }) {
-  const cleaned = useMemo(() => {
-    const next = stripArtifact(text);
-    // Legacy messages may only contain <artifact>...</artifact>. If we
-    // strip everything, the chat row collapses to just role/time, which
-    // looks like "missing history". Fall back to raw text so content
-    // always remains visible in scrollback.
-    if (next.trim().length === 0 && text.trim().length > 0) return text;
-    return next;
-  }, [text]);
+  const cleaned = useMemo(() => stripArtifact(text), [text]);
   const segments = useMemo(() => splitOnQuestionForms(cleaned), [cleaned]);
   // Each text segment is further split on `<system-reminder>` blocks so
   // those render as their own collapsible chip instead of raw markup.
@@ -680,7 +677,7 @@ type Block =
  * single tool-group block so the chat surface stays compact during chains
  * of edits / reads.
  */
-function buildBlocks(events: AgentEvent[], fallbackContent = ''): Block[] {
+function buildBlocks(events: AgentEvent[]): Block[] {
   const out: Block[] = [];
   const resultByToolId = new Map<string, Extract<AgentEvent, { kind: 'tool_result' }>>();
   for (const ev of events) {
@@ -723,9 +720,6 @@ function buildBlocks(events: AgentEvent[], fallbackContent = ''): Block[] {
       out.push({ kind: 'status', label: ev.label, detail: ev.detail });
       continue;
     }
-  }
-  if (out.length === 0 && fallbackContent.trim()) {
-    out.push({ kind: 'text', text: fallbackContent });
   }
   return out;
 }
