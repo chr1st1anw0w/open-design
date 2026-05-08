@@ -164,6 +164,12 @@ import {
   VERCEL_PROVIDER_ID,
   writeDeployConfig,
 } from './deploy.js';
+import {
+  allowedBrowserPorts,
+  configuredAllowedOrigins,
+  isAllowedBrowserOrigin,
+  isLocalSameOrigin,
+} from './origin-validation.js';
 
 /** @typedef {import('@open-design/contracts').ApiErrorCode} ApiErrorCode */
 /** @typedef {import('@open-design/contracts').ApiError} ApiError */
@@ -1517,36 +1523,13 @@ export function createSseResponse(
 
 export async function startServer({ port = 7456, host = process.env.OD_BIND_HOST || '127.0.0.1', returnServer = false } = {}) {
   let resolvedPort = port;
+  const extraAllowedOrigins = configuredAllowedOrigins();
   const app = express();
   app.use(express.json({ limit: '4mb' }));
 
-  // Build the set of allowed browser origins for the current bind config.
-  // Shared by the global origin middleware and isLocalSameOrigin() so
-  // both use the same policy (loopback + explicit bind host, HTTP + HTTPS,
-  // OD_WEB_PORT support).
-  function buildAllowedOrigins() {
-    const ports = [resolvedPort];
-    const webPort = Number(process.env.OD_WEB_PORT);
-    if (webPort && webPort !== resolvedPort) ports.push(webPort);
-    const schemes = ['http', 'https'];
-    const loopbackHosts = ['127.0.0.1', 'localhost', '[::1]'];
-    return new Set(
-      ports.flatMap((p) => [
-        ...schemes.flatMap((s) => loopbackHosts.map((h) => `${s}://${h}:${p}`)),
-        // When bound to a specific non-loopback address (e.g. Tailscale,
-        // LAN IP, or 0.0.0.0), allow browser requests from that address
-        // too so the documented --host escape hatch remains usable.
-        ...schemes.map((s) => `${s}://${host}:${p}`),
-      ]),
-    );
-  }
-
-  // Portless loopback origins (e.g. http://127.0.0.1 without a port).
   // Chrome may strip the port from the Origin header on same-origin GET
-  // requests. Only used as a fallback for safe, idempotent GET requests;
-  // mutating routes (POST/PUT/PATCH/DELETE) always require an exact
-  // port-match via buildAllowedOrigins() or isLocalSameOrigin() to
-  // prevent local CSRF from a page on the default port (80).
+  // requests. Only use this as a fallback for safe, idempotent GET requests;
+  // mutating routes always require an exact origin/host match.
   function isPortlessLoopbackOrigin(origin) {
     return /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])$/.test(origin);
   }
@@ -1585,14 +1568,8 @@ export async function startServer({ port = 7456, host = process.env.OD_BIND_HOST
       return res.status(403).json({ error: 'Server initializing' });
     }
 
-    if (!buildAllowedOrigins().has(String(origin))) {
-      // Fallback: Chrome may strip the port from the Origin header on
-      // same-origin requests (e.g. http://127.0.0.1 instead of
-      // http://127.0.0.1:6313). Allow portless loopback origins only
-      // for GET requests, which are idempotent and safe from CSRF.
-      // Mutating methods (POST/PUT/PATCH/DELETE) always require an
-      // exact port-match to prevent a page on the default port (80)
-      // from triggering state-changing operations.
+    const ports = allowedBrowserPorts(resolvedPort);
+    if (!isAllowedBrowserOrigin(origin, req.headers.host, ports, host, extraAllowedOrigins)) {
       if (req.method !== 'GET' || !isPortlessLoopbackOrigin(String(origin))) {
         return res.status(403).json({ error: 'Cross-origin requests are not allowed' });
       }
@@ -5726,41 +5703,4 @@ export function rewriteSkillAssetUrls(html: string, skillId: string): string {
       return `${attr}${openQuote}${prefix}${relPath}${closeQuote}`;
     },
   );
-}
-
-export function isLocalSameOrigin(req, port) {
-  // Accepts http + https, loopback hosts, OD_WEB_PORT, and the explicit
-  // bind host — matching the global origin middleware policy exactly.
-  const host = String(req.headers.host || '');
-  const origin = req.headers.origin;
-
-  // Build allowed set inline (same logic as buildAllowedOrigins in
-  // startServer, but self-contained so the exported helper works
-  // without closing over server-scoped variables).
-  const ports = [port];
-  const webPort = Number(process.env.OD_WEB_PORT);
-  if (webPort && webPort !== port) ports.push(webPort);
-  const bindHost = process.env.OD_BIND_HOST || '127.0.0.1';
-  const loopbackHosts = ['127.0.0.1', 'localhost', '[::1]'];
-  const allowedHosts = new Set(
-    ports.flatMap((p) => [
-      ...loopbackHosts.map((h) => `${h}:${p}`),
-      `${bindHost}:${p}`,
-    ]),
-  );
-
-  // Reject unknown Host first (DNS rebinding / Host header attack)
-  if (!allowedHosts.has(host)) return false;
-
-  // Non-browser client with valid Host → allow
-  if (origin == null || origin === '') return true;
-
-  const schemes = ['http', 'https'];
-  const allowedOrigins = new Set(
-    ports.flatMap((p) => [
-      ...schemes.flatMap((s) => loopbackHosts.map((h) => `${s}://${h}:${p}`)),
-      ...schemes.map((s) => `${s}://${bindHost}:${p}`),
-    ]),
-  );
-  return allowedOrigins.has(String(origin));
 }
