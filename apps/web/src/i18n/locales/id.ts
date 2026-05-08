@@ -296,6 +296,9 @@ export const id: Dict = {
   'connectors.statusConnected': 'Terhubung',
   'connectors.statusError': 'Error',
   'connectors.statusDisabled': 'Nonaktif',
+  'connectors.authorizationPending': 'Menunggu otorisasi...',
+  'connectors.authorizationPendingHint': 'Selesaikan otorisasi di jendela yang terbuka.',
+  'connectors.cancelAuthorization': 'Batal',
   'connectors.gateTitle': 'Konfigurasikan API key Composio',
   'connectors.gateBody':
     'Konektor membutuhkan API key Composio. Tambahkan di Pengaturan untuk membuka integrasi yang tersedia.',
@@ -372,6 +375,8 @@ export const id: Dict = {
   'connectors.toolsSection': 'Alat',
   'connectors.toolsLoading': 'Memuat alat...',
   'connectors.noToolsAvailable': 'Belum ada alat tersedia. Hubungkan untuk melihat apa yang disediakan integrasi ini.',
+  'connectors.toolDetailsUnavailable': 'Detail alat tidak tersedia, tetapi konektor ini melaporkan {n} alat.',
+  'connectors.loadMoreTools': 'Muat alat lainnya',
   'connectors.openDetailsAria': 'Buka detail {name}',
   'connectors.toolsBadgeNone': 'Tidak ada alat',
   'connectors.toolsBadgeOne': '{n} alat',

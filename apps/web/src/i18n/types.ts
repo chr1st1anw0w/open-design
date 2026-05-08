@@ -328,6 +328,9 @@ export interface Dict {
   'connectors.tools': string;
   'connectors.connect': string;
   'connectors.disconnect': string;
+  'connectors.authorizationPending': string;
+  'connectors.authorizationPendingHint': string;
+  'connectors.cancelAuthorization': string;
   'connectors.configure': string;
   'connectors.unavailable': string;
   'connectors.phaseStubTitle': string;
@@ -407,6 +410,8 @@ export interface Dict {
   'connectors.toolsSection': string;
   'connectors.toolsLoading': string;
   'connectors.noToolsAvailable': string;
+  'connectors.toolDetailsUnavailable': string;
+  'connectors.loadMoreTools': string;
   'connectors.openDetailsAria': string;
   'connectors.toolsBadgeNone': string;
   'connectors.toolsBadgeOne': string;
