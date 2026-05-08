@@ -3825,6 +3825,7 @@ export async function startServer({ port = 7456, host = process.env.OD_BIND_HOST
             : undefined,
         voice: req.body?.voice,
         audioKind: req.body?.audioKind,
+        language: typeof req.body?.language === 'string' ? req.body.language : undefined,
         compositionDir: req.body?.compositionDir,
         image: req.body?.image,
         onProgress: (line) => appendTaskProgress(task, line),
