@@ -6007,7 +6007,15 @@ button.connector-action.is-loading {
   min-width: 0;
 }
 .inspect-panel-title strong {
+  /* Long target.label values (deeply-nested component selectors) used
+     to spill past the title container and out of the panel because
+     this rule had no overflow constraint. Truncate with ellipsis;
+     the <strong> carries title={label} so the full string is still
+     visible on hover. Issue #780. */
   font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .inspect-panel-title code {
   color: var(--text-muted);
