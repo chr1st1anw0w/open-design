@@ -6145,6 +6145,7 @@ export async function startServer({ port = 7456, host = process.env.OD_BIND_HOST
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify(payload),
+        redirect: 'error',
       });
 
       if (!response.ok) {
@@ -6240,6 +6241,7 @@ export async function startServer({ port = 7456, host = process.env.OD_BIND_HOST
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify(payload),
+        redirect: 'error',
       });
 
       if (!response.ok) {
@@ -6339,6 +6341,7 @@ export async function startServer({ port = 7456, host = process.env.OD_BIND_HOST
           'api-key': apiKey,
         },
         body: JSON.stringify(payload),
+        redirect: 'error',
       });
 
       if (!response.ok) {
@@ -6436,6 +6439,7 @@ export async function startServer({ port = 7456, host = process.env.OD_BIND_HOST
           'x-goog-api-key': apiKey,
         },
         body: JSON.stringify(payload),
+        redirect: 'error',
       });
 
       if (!response.ok) {
