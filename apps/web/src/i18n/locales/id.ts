@@ -955,6 +955,8 @@ export const id: Dict = {
   'pet.slashPetTuck': 'Sembunyikan pet untuk sekarang.',
   'pet.slashHatch': 'Buat pet Codex lewat skill hatch-pet.',
   'pet.slashHatchArg': '<konsep>',
+  'pet.slashSearch': 'Cari web lewat perintah OD research.',
+  'pet.slashSearchArg': '<kueri>',
   'pet.codexTitle': 'Baru di-hatch',
   'pet.codexSubtitle': 'Pet yang dikemas oleh skill hatch-pet muncul di sini untuk adopsi sekali klik.',
   'pet.codexSubtitleWithDir': 'Memindai {dir} untuk pet yang dikemas oleh skill hatch-pet.',
