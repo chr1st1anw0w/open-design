@@ -52,11 +52,17 @@ import { renderDesignSystemPreview } from './design-system-preview.js';
 import { renderDesignSystemShowcase } from './design-system-showcase.js';
 import { createChatRunService } from './runs.js';
 import {
+  redactSecrets,
   testAgentConnection,
   testProviderConnection,
   validateBaseUrl,
 } from './connectionTest.js';
 import { importClaudeDesignZip } from './claude-design-import.js';
+import {
+  finalizeDesignPackage,
+  FinalizePackageLockedError,
+  FinalizeUpstreamError,
+} from './finalize-design.js';
 import { listPromptTemplates, readPromptTemplate } from './prompt-templates.js';
 import { buildDocumentPreview } from './document-preview.js';
 import { lintArtifact, renderFindingsForAgent } from './lint-artifact.js';
@@ -106,6 +112,7 @@ import {
   deleteProjectFile,
   detectEntryFile,
   ensureProject,
+  isSafeId,
   listFiles,
   mimeFor,
   projectDir,
@@ -3765,6 +3772,101 @@ export async function startServer({ port = 7456, host = process.env.OD_BIND_HOST
         status === 404 ? 'FILE_NOT_FOUND' : 'BAD_REQUEST',
         String(err?.message || err),
       );
+    }
+  });
+
+  app.post('/api/projects/:id/finalize/anthropic', async (req, res) => {
+    const { apiKey, baseUrl, model, maxTokens } = req.body || {};
+    try {
+      // Centralized path-traversal guard. `isSafeId` (apps/daemon/src/projects.ts)
+      // rejects pure-dot ids (`.`, `..`, etc.) which would otherwise pass
+      // the char-class regex and resolve to the parent directory under
+      // path.join. Express decodes percent-encoded `%2e%2e` to `..` before
+      // we see it, so this check covers both URL-supplied and stored-row
+      // attack vectors.
+      if (!isSafeId(req.params.id)) {
+        return sendApiError(res, 400, 'BAD_REQUEST', 'invalid project id');
+      }
+
+      if (typeof apiKey !== 'string' || !apiKey.trim()) {
+        return sendApiError(res, 400, 'BAD_REQUEST', 'apiKey is required');
+      }
+      if (typeof model !== 'string' || !model.trim()) {
+        return sendApiError(res, 400, 'BAD_REQUEST', 'model is required');
+      }
+      if (baseUrl !== undefined) {
+        if (typeof baseUrl !== 'string' || !baseUrl.trim()) {
+          return sendApiError(res, 400, 'BAD_REQUEST', 'baseUrl must be a non-empty string when provided');
+        }
+        const validated = validateExternalApiBaseUrl(baseUrl);
+        if (validated.error) {
+          return sendApiError(
+            res,
+            validated.forbidden ? 403 : 400,
+            validated.forbidden ? 'FORBIDDEN' : 'BAD_REQUEST',
+            validated.error,
+          );
+        }
+      }
+      if (maxTokens !== undefined && (typeof maxTokens !== 'number' || maxTokens <= 0)) {
+        return sendApiError(res, 400, 'BAD_REQUEST', 'maxTokens must be a positive number when provided');
+      }
+
+      const project = getProject(db, req.params.id);
+      if (!project) {
+        return sendApiError(res, 404, 'PROJECT_NOT_FOUND', 'project not found');
+      }
+
+      const result = await finalizeDesignPackage(
+        db,
+        PROJECTS_DIR,
+        DESIGN_SYSTEMS_DIR,
+        req.params.id,
+        { apiKey, baseUrl, model, maxTokens },
+      );
+      res.json(result);
+    } catch (err) {
+      // Concurrent finalize - the lockfile was already held by another
+      // call. Caller can retry after a short wait; not a client error.
+      // Maps to the shared CONFLICT code per @lefarcen P2 on PR #832.
+      if (err instanceof FinalizePackageLockedError) {
+        return sendApiError(res, 409, 'CONFLICT', err.message);
+      }
+
+      // Upstream Anthropic error - status-aware mapping using shared
+      // ApiErrorCode values. Run the raw upstream body through
+      // redactSecrets so the API key cannot leak even if Anthropic
+      // echoes the inbound headers. Codes per @lefarcen P2 on PR #832:
+      // 401 -> UNAUTHORIZED, 429 -> RATE_LIMITED, others -> UPSTREAM_UNAVAILABLE.
+      if (err instanceof FinalizeUpstreamError) {
+        const safeDetails = redactSecrets(err.rawText || '', [apiKey]);
+        const init = safeDetails ? { details: safeDetails } : {};
+        if (err.status === 401) {
+          return sendApiError(res, 401, 'UNAUTHORIZED', err.message, init);
+        }
+        if (err.status === 429) {
+          return sendApiError(res, 429, 'RATE_LIMITED', err.message, init);
+        }
+        return sendApiError(res, 502, 'UPSTREAM_UNAVAILABLE', err.message, init);
+      }
+
+      // The blocking call hit our 120s AbortController timeout - or the
+      // caller passed an already-aborted signal. Either way, surface as
+      // 503 with the shared UPSTREAM_UNAVAILABLE code (no dedicated
+      // TIMEOUT code in the contracts ApiErrorCode union).
+      const errName =
+        err && typeof err === 'object' && 'name' in err ? (err as { name?: unknown }).name : '';
+      if (errName === 'AbortError') {
+        return sendApiError(res, 503, 'UPSTREAM_UNAVAILABLE', 'finalize timed out');
+      }
+
+      // Unexpected runtime failure (file IO, db access, prompt build).
+      // Log via console.error per the daemon convention; client sees a
+      // generic 500 with the shared INTERNAL_ERROR code. Run the message
+      // through redactSecrets defensively.
+      console.error('[finalize/anthropic]', err);
+      const safeMsg = redactSecrets(String(err?.message || err), [apiKey]);
+      return sendApiError(res, 500, 'INTERNAL_ERROR', safeMsg);
     }
   });
 
