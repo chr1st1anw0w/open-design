@@ -1704,7 +1704,7 @@ export function createSseResponse(
 
   return {
     /** @param {ChatSseEvent['event'] | ProxySseEvent['event'] | string} event */
-    send(event, data, id = null) {
+    send(event, data, id: string | number | null | undefined = null) {
       if (!canWrite()) return false;
       if (id !== null && id !== undefined) res.write(`id: ${id}\n`);
       res.write(`event: ${event}\n`);
