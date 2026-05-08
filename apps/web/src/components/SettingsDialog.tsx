@@ -2498,7 +2498,7 @@ function IntegrationsSection() {
           </pre>
           <button
             type="button"
-            className="ghost"
+            className="ghost mcp-copy-btn"
             onClick={onCopy}
             disabled={!snippet}
             style={{
