@@ -156,6 +156,10 @@ export interface Dict {
   'settings.modelCustomPlaceholder': string;
   'settings.mediaProviders': string;
   'settings.mediaProvidersHint': string;
+  'settings.mcpServerTitle': string;
+  'settings.mcpServerHint': string;
+  'settings.externalMcpTitle': string;
+  'settings.externalMcpHint': string;
   'settings.mediaProviderApiKey': string;
   'settings.mediaProviderBaseUrl': string;
   'settings.mediaProviderConfigured': string;

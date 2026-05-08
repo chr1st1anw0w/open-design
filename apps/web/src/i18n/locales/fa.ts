@@ -135,6 +135,10 @@ export const fa: Dict = {
   'settings.mediaProviders': 'ارائه‌دهندگان رسانه',
   'settings.mediaProvidersHint':
     'کلیدهای API برای تولید تصویر، ویدئو و صدا. به صورت محلی ذخیره و با daemon محلی همگام می‌شود.',
+  'settings.mcpServerTitle': 'سرور MCP',
+  'settings.mcpServerHint': 'Open Design را به‌عنوان سرور MCP برای عامل برنامه‌نویسی خود در دسترس قرار دهید.',
+  'settings.externalMcpTitle': 'MCP خارجی',
+  'settings.externalMcpHint': 'افزودن ابزارهای MCP از سرویس‌های خارجی (Higgsfield, GitHub, …).',
   'settings.mediaProviderApiKey': 'کلید API',
   'settings.mediaProviderBaseUrl': 'آدرس پایه',
   'settings.mediaProviderConfigured': 'پیکربندی شده',
