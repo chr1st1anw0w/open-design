@@ -4,7 +4,10 @@ import { dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { BrowserWindow, dialog, ipcMain, shell } from "electron";
-import type { DesktopExportPdfInput, DesktopExportPdfResult } from "@open-design/sidecar-proto";
+import type {
+  DesktopExportPdfInput,
+  DesktopExportPdfResult,
+} from "@open-design/sidecar-proto";
 
 import { exportPdfFromHtml, waitForPrintReadyHandshake } from "./pdf-export.js";
 
@@ -30,7 +33,9 @@ export type PathValidationResult =
  * the openPath bridge is "show the project folder," rejecting `.app`
  * keeps the bridge limited to the actual feature surface.
  */
-export async function validateExistingDirectory(p: string): Promise<PathValidationResult> {
+export async function validateExistingDirectory(
+  p: string,
+): Promise<PathValidationResult> {
   if (typeof p !== "string" || p.length === 0) {
     return { ok: false, reason: "path must be a non-empty string" };
   }
@@ -55,7 +60,10 @@ export async function validateExistingDirectory(p: string): Promise<PathValidati
   // macOS app bundles are directories; treat them as opaque files
   // because shell.openPath on a `.app` *launches* the application.
   if (resolvedReal.toLowerCase().endsWith(".app")) {
-    return { ok: false, reason: "application bundles are not project directories" };
+    return {
+      ok: false,
+      reason: "application bundles are not project directories",
+    };
   }
   return { ok: true, resolved: resolvedReal };
 }
@@ -94,7 +102,10 @@ export function isOpenPathAllowedForProject(
   context: ResolvedProjectDirContext,
 ): { ok: true } | { ok: false; reason: string } {
   if (context.hasBaseDir && !context.fromTrustedPicker) {
-    return { ok: false, reason: "project did not come from the trusted picker flow" };
+    return {
+      ok: false,
+      reason: "project did not come from the trusted picker flow",
+    };
   }
   return { ok: true };
 }
@@ -119,7 +130,10 @@ export async function fetchResolvedProjectDir(
   apiBaseUrl: string,
   projectId: string,
   fetchImpl: typeof globalThis.fetch = globalThis.fetch,
-): Promise<{ ok: true; context: ResolvedProjectDirContext } | { ok: false; reason: string }> {
+): Promise<
+  | { ok: true; context: ResolvedProjectDirContext }
+  | { ok: false; reason: string }
+> {
   if (typeof projectId !== "string" || projectId.length === 0) {
     return { ok: false, reason: "project id must be a non-empty string" };
   }
@@ -136,9 +150,14 @@ export async function fetchResolvedProjectDir(
   }
   let resp: Response;
   try {
-    resp = await fetchImpl(`${apiBaseUrl.replace(/\/+$/, "")}/api/projects/${encodeURIComponent(projectId)}`);
+    resp = await fetchImpl(
+      `${apiBaseUrl.replace(/\/+$/, "")}/api/projects/${encodeURIComponent(projectId)}`,
+    );
   } catch (err) {
-    return { ok: false, reason: `daemon fetch failed: ${err instanceof Error ? err.message : String(err)}` };
+    return {
+      ok: false,
+      reason: `daemon fetch failed: ${err instanceof Error ? err.message : String(err)}`,
+    };
   }
   if (!resp.ok) {
     return { ok: false, reason: `daemon returned HTTP ${resp.status}` };
@@ -168,7 +187,7 @@ export async function fetchResolvedProjectDir(
     metadata != null &&
     typeof metadata === "object" &&
     typeof (metadata as { baseDir?: unknown }).baseDir === "string" &&
-    ((metadata as { baseDir: string }).baseDir.length > 0);
+    (metadata as { baseDir: string }).baseDir.length > 0;
   const fromTrustedPicker =
     metadata != null &&
     typeof metadata === "object" &&
@@ -198,7 +217,9 @@ export function signDesktopImportToken(
   const signature = createHmac("sha256", secret)
     .update(`${baseDir}\n${options.nonce}\n${options.exp}`)
     .digest("base64url");
-  return [options.nonce, options.exp, signature].join(DESKTOP_IMPORT_TOKEN_FIELD_SEP);
+  return [options.nonce, options.exp, signature].join(
+    DESKTOP_IMPORT_TOKEN_FIELD_SEP,
+  );
 }
 
 const PENDING_POLL_MS = 120;
@@ -339,7 +360,11 @@ export type PickAndImportFolderDeps = {
   baseDir: string;
   desktopAuthSecret: Buffer;
   fetchImpl?: typeof globalThis.fetch;
-  init?: { name?: string; skillId?: string | null; designSystemId?: string | null };
+  init?: {
+    name?: string;
+    skillId?: string | null;
+    designSystemId?: string | null;
+  };
   /** Round-5: lazy re-registration hook. Called once on 503. */
   registerDesktopAuth?: () => Promise<boolean>;
   /** Injected for tests; defaults to the production HMAC mint. */
@@ -360,7 +385,9 @@ export async function pickAndImportFolder(
     baseDir: deps.baseDir,
     ...(deps.init?.name == null ? {} : { name: deps.init.name }),
     ...(deps.init?.skillId === undefined ? {} : { skillId: deps.init.skillId }),
-    ...(deps.init?.designSystemId === undefined ? {} : { designSystemId: deps.init.designSystemId }),
+    ...(deps.init?.designSystemId === undefined
+      ? {}
+      : { designSystemId: deps.init.designSystemId }),
   });
 
   async function postOnce(): Promise<Response | { ok: false; reason: string }> {
@@ -375,7 +402,10 @@ export async function pickAndImportFolder(
         method: "POST",
       });
     } catch (err) {
-      return { ok: false, reason: `daemon fetch failed: ${err instanceof Error ? err.message : String(err)}` };
+      return {
+        ok: false,
+        reason: `daemon fetch failed: ${err instanceof Error ? err.message : String(err)}`,
+      };
     }
   }
 
@@ -397,7 +427,12 @@ export async function pickAndImportFolder(
       body = null;
     }
     const code =
-      body != null && typeof body === "object" && "error" in body && body.error != null && typeof body.error === "object" && "code" in body.error
+      body != null &&
+      typeof body === "object" &&
+      "error" in body &&
+      body.error != null &&
+      typeof body.error === "object" &&
+      "code" in body.error
         ? (body.error as { code?: unknown }).code
         : undefined;
     if (code === "DESKTOP_AUTH_PENDING") {
@@ -430,10 +465,10 @@ export async function pickAndImportFolder(
 
 const MAC_WINDOW_CHROME =
   process.platform === "darwin"
-    ? ({
+    ? {
         titleBarStyle: "hiddenInset" as const,
         trafficLightPosition: { x: 14, y: 12 },
-      })
+      }
     : {};
 
 const MAC_WINDOW_CHROME_CSS = `
@@ -551,7 +586,9 @@ function mapConsoleLevel(level: number): string {
 
 async function applyWindowChromeCss(window: BrowserWindow): Promise<void> {
   if (process.platform !== "darwin" || window.isDestroyed()) return;
-  await window.webContents.insertCSS(MAC_WINDOW_CHROME_CSS, { cssOrigin: "user" });
+  await window.webContents.insertCSS(MAC_WINDOW_CHROME_CSS, {
+    cssOrigin: "user",
+  });
 }
 
 // Exported for unit tests in `apps/packaged/tests/desktop-url-allowlist.test.ts`
@@ -598,7 +635,10 @@ export function isAllowedChildWindowUrl(url: string): boolean {
   }
 }
 
-export function resolveDesktopStatusUrl(currentUrl: string | null, pendingUrl: string | null): string | null {
+export function resolveDesktopStatusUrl(
+  currentUrl: string | null,
+  pendingUrl: string | null,
+): string | null {
   return pendingUrl ?? currentUrl;
 }
 
@@ -651,8 +691,13 @@ function attachDownloadSaveAsDialog(window: BrowserWindow): void {
   });
 }
 
-export async function createDesktopRuntime(options: DesktopRuntimeOptions): Promise<DesktopRuntime> {
-  const preloadPath = join(dirname(fileURLToPath(import.meta.url)), "preload.cjs");
+export async function createDesktopRuntime(
+  options: DesktopRuntimeOptions,
+): Promise<DesktopRuntime> {
+  const preloadPath = join(
+    dirname(fileURLToPath(import.meta.url)),
+    "preload.cjs",
+  );
 
   // ipcMain.handle() registers a handler in an internal map that is *not*
   // surfaced via eventNames(); the previous `!eventNames().includes(...)`
@@ -688,7 +733,14 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
   // import boundary while leaving web-only deployments untouched.
   ipcMain.handle(
     "dialog:pick-and-import",
-    async (_event, init?: { name?: string; skillId?: string | null; designSystemId?: string | null }) => {
+    async (
+      _event,
+      init?: {
+        name?: string;
+        skillId?: string | null;
+        designSystemId?: string | null;
+      },
+    ) => {
       // Defensive failsafe for non-production runtimes (test harnesses
       // that construct createDesktopRuntime without a secret). Round-5
       // production wiring in runDesktopMain ALWAYS passes the per-process
@@ -706,12 +758,15 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
       // omits `discoverDaemonUrl` and we fall back to the web URL
       // (which is itself an http://127.0.0.1 URL in dev).
       const apiBaseUrl =
-        (options.discoverDaemonUrl ? await options.discoverDaemonUrl() : null) ??
-        (await options.discoverUrl());
+        (options.discoverDaemonUrl
+          ? await options.discoverDaemonUrl()
+          : null) ?? (await options.discoverUrl());
       if (!apiBaseUrl) {
         return { ok: false, reason: "daemon API URL not available" };
       }
-      const result = await dialog.showOpenDialog({ properties: ["openDirectory"] });
+      const result = await dialog.showOpenDialog({
+        properties: ["openDirectory"],
+      });
       if (result.canceled || result.filePaths.length === 0) {
         return { ok: false, canceled: true };
       }
@@ -772,7 +827,9 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
     if (!resolved.ok) return `open-path: ${resolved.reason}`;
     const allowed = isOpenPathAllowedForProject(resolved.context);
     if (!allowed.ok) return `open-path: ${allowed.reason}`;
-    const validated = await validateExistingDirectory(resolved.context.resolvedDir);
+    const validated = await validateExistingDirectory(
+      resolved.context.resolvedDir,
+    );
     if (!validated.ok) return `open-path: ${validated.reason}`;
     try {
       return await shell.openPath(validated.resolved);
@@ -805,43 +862,51 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
   showWindowButtons(window);
   attachDownloadSaveAsDialog(window);
 
-  ipcMain.removeHandler('od:print-pdf');
-  ipcMain.handle('od:print-pdf', async (_event, html: unknown, nonce: unknown): Promise<void> => {
-    if (typeof html !== 'string') {
-      throw new Error('Invalid print payload: expected HTML string');
-    }
-    const printNonce = typeof nonce === 'string' ? nonce : '';
+  ipcMain.removeHandler("od:print-pdf");
+  ipcMain.handle(
+    "od:print-pdf",
+    async (_event, html: unknown, nonce: unknown): Promise<void> => {
+      if (typeof html !== "string") {
+        throw new Error("Invalid print payload: expected HTML string");
+      }
+      const printNonce = typeof nonce === "string" ? nonce : "";
 
-    const printWindow = new BrowserWindow({
-      width: 800,
-      height: 600,
-      show: false,
-      webPreferences: {
-        contextIsolation: true,
-        nodeIntegration: false,
-        sandbox: true,
-      },
-    });
-
-    printWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
-    printWindow.webContents.on('will-navigate', (e) => e.preventDefault());
-
-    try {
-      await printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
-      await waitForPrintReadyHandshake(printWindow.webContents, printNonce);
-      printWindow.show();
-
-      await new Promise<void>((resolve, reject) => {
-        printWindow.webContents.print({ printBackground: true }, (success: boolean, failureReason?: string) => {
-          if (success) resolve();
-          else if (failureReason === 'Print job canceled') resolve();
-          else reject(new Error(failureReason ?? 'Print failed'));
-        });
+      const printWindow = new BrowserWindow({
+        width: 800,
+        height: 600,
+        show: false,
+        webPreferences: {
+          contextIsolation: true,
+          nodeIntegration: false,
+          sandbox: true,
+        },
       });
-    } finally {
-      if (!printWindow.isDestroyed()) printWindow.close();
-    }
-  });
+
+      printWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+      printWindow.webContents.on("will-navigate", (e) => e.preventDefault());
+
+      try {
+        await printWindow.loadURL(
+          `data:text/html;charset=utf-8,${encodeURIComponent(html)}`,
+        );
+        await waitForPrintReadyHandshake(printWindow.webContents, printNonce);
+        printWindow.show();
+
+        await new Promise<void>((resolve, reject) => {
+          printWindow.webContents.print(
+            { printBackground: true },
+            (success: boolean, failureReason?: string) => {
+              if (success) resolve();
+              else if (failureReason === "Print job canceled") resolve();
+              else reject(new Error(failureReason ?? "Print failed"));
+            },
+          );
+        });
+      } finally {
+        if (!printWindow.isDestroyed()) printWindow.close();
+      }
+    },
+  );
 
   let currentUrl: string | null = null;
   let pendingUrl: string | null = null;
@@ -875,17 +940,23 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
     });
   }
 
-  (window.webContents as any).on("console-message", (event: { level?: number | string; message?: string }) => {
-    const level = typeof event.level === "number" ? mapConsoleLevel(event.level) : (event.level ?? "log");
-    consoleEntries.push({
-      level,
-      text: event.message ?? "",
-      timestamp: new Date().toISOString(),
-    });
-    if (consoleEntries.length > MAX_CONSOLE_ENTRIES) {
-      consoleEntries.splice(0, consoleEntries.length - MAX_CONSOLE_ENTRIES);
-    }
-  });
+  (window.webContents as any).on(
+    "console-message",
+    (event: { level?: number | string; message?: string }) => {
+      const level =
+        typeof event.level === "number"
+          ? mapConsoleLevel(event.level)
+          : (event.level ?? "log");
+      consoleEntries.push({
+        level,
+        text: event.message ?? "",
+        timestamp: new Date().toISOString(),
+      });
+      if (consoleEntries.length > MAX_CONSOLE_ENTRIES) {
+        consoleEntries.splice(0, consoleEntries.length - MAX_CONSOLE_ENTRIES);
+      }
+    },
+  );
 
   await window.loadURL(createPendingHtml());
   showWindowButtons(window);
@@ -948,12 +1019,19 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
       return { entries: [...consoleEntries] };
     },
     async eval(input) {
-      if (window.isDestroyed()) return { error: "desktop window is destroyed", ok: false };
+      if (window.isDestroyed())
+        return { error: "desktop window is destroyed", ok: false };
       try {
-        const value = await window.webContents.executeJavaScript(input.expression, true);
+        const value = await window.webContents.executeJavaScript(
+          input.expression,
+          true,
+        );
         return { ok: true, value };
       } catch (error) {
-        return { error: error instanceof Error ? error.message : String(error), ok: false };
+        return {
+          error: error instanceof Error ? error.message : String(error),
+          ok: false,
+        };
       }
     },
     exportPdf(input) {
