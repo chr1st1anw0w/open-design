@@ -34,6 +34,8 @@ import type {
   AppTheme,
   AppVersionInfo,
   ConnectionTestResponse,
+  OrbitRunSummary,
+  OrbitStatusResponse,
   ExecMode,
   SkillSummary,
 } from '../types';
@@ -2403,22 +2405,6 @@ function ConnectorSection({
   );
 }
 
-interface OrbitRunSummary {
-  id?: string;
-  startedAt?: string;
-  completedAt: string;
-  trigger?: 'manual' | 'scheduled';
-  connectorsChecked: number;
-  connectorsSucceeded: number;
-  connectorsFailed: number;
-  connectorsSkipped: number;
-  artifactId?: string | null;
-  artifactProjectId?: string | null;
-  /** Identifier of the daemon run that produced this summary. Useful for log correlation. */
-  agentRunId?: string | null;
-  markdown: string;
-}
-
 interface OrbitRunStartResponse {
   projectId: string;
   agentRunId: string;
@@ -2448,12 +2434,6 @@ export function configForManualOrbitRun(config: AppConfig): AppConfig {
 
 export function isOrbitRunDisabled(isBusy: boolean, connectedCount: number | null): boolean {
   return isBusy || connectedCount === null || connectedCount === 0;
-}
-
-interface OrbitStatusResponse {
-  running?: boolean;
-  nextRunAt?: string | null;
-  lastRun?: OrbitRunSummary | null;
 }
 
 function formatRelative(
@@ -2501,6 +2481,9 @@ function OrbitSection({
   const [running, setRunning] = useState(false);
   const [notice, setNotice] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [legacyLastRunTemplateSkillId, setLegacyLastRunTemplateSkillId] = useState<string | null>(null);
+  const legacyLastRunIdentity = status?.lastRun?.id
+    ?? `${status?.lastRun?.completedAt ?? ''}:${status?.lastRun?.agentRunId ?? ''}:${status?.lastRun?.markdown ?? ''}`;
   // Orbit-scenario skill templates fetched from /api/skills. We fetch on mount
   // and keep three states for graceful UX: `null` = still loading, `[]` =
   // loaded with no orbit templates available, `SkillSummary[]` = ready. If
@@ -2610,6 +2593,17 @@ function OrbitSection({
   // were on the default. Manual runs persist this effective value before
   // launching so the daemon uses the same template the UI displays.
   const effectiveTemplateSkillId = orbit.templateSkillId || DEFAULT_ORBIT.templateSkillId || '';
+  const supportsTemplateScopedHistory = status?.lastRunsByTemplate !== undefined;
+
+  useEffect(() => {
+    const hasTemplateScopedHistory = Object.keys(status?.lastRunsByTemplate ?? {}).length > 0;
+    const hasLegacyUnscopedLastRun = Boolean(status?.lastRun && !status.lastRun.templateSkillId);
+    if (!hasLegacyUnscopedLastRun || hasTemplateScopedHistory) {
+      setLegacyLastRunTemplateSkillId(null);
+      return;
+    }
+    setLegacyLastRunTemplateSkillId((current) => current ?? (effectiveTemplateSkillId || null));
+  }, [effectiveTemplateSkillId, legacyLastRunIdentity, status]);
 
   const selectedTemplate = useMemo(() => {
     if (!effectiveTemplateSkillId || !orbitTemplates) return null;
@@ -2647,7 +2641,18 @@ function OrbitSection({
     })();
   };
 
-  const lastRun = status?.lastRun ?? null;
+  const templateScopedLastRun = effectiveTemplateSkillId
+    ? status?.lastRunsByTemplate?.[effectiveTemplateSkillId] ?? null
+    : null;
+  const hasLegacyUnscopedLastRun = Boolean(
+    status?.lastRun
+    && !status.lastRun.templateSkillId
+    && legacyLastRunTemplateSkillId
+    && legacyLastRunTemplateSkillId === effectiveTemplateSkillId,
+  );
+  const lastRun = supportsTemplateScopedHistory
+    ? (templateScopedLastRun ?? (hasLegacyUnscopedLastRun ? status?.lastRun ?? null : null))
+    : status?.lastRun ?? null;
   const nextRunLabel = status?.nextRunAt ? new Date(status.nextRunAt).toLocaleString() : null;
   const lastRunAbs = lastRun ? new Date(lastRun.completedAt).toLocaleString() : null;
   const lastRunRel = formatRelative(lastRun?.completedAt, t);
