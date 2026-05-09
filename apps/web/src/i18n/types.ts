@@ -770,6 +770,7 @@ export interface Dict {
   'designFiles.downloadSelected': string;
   'designFiles.deleteSelected': string;
   'designFiles.clearSelection': string;
+  'designFiles.selectPage': string;
   'designFiles.selectAll': string;
   'designFiles.dropTitle': string;
   'designFiles.dropDesc': string;
@@ -799,6 +800,15 @@ export interface Dict {
   'designFiles.kindSpreadsheet': string;
   'designFiles.kindLiveArtifact': string;
   'designFiles.kindBinary': string;
+  'designFiles.colName': string;
+  'designFiles.colKind': string;
+  'designFiles.colModified': string;
+  'designFiles.perPage': string;
+  'designFiles.all': string;
+  'designFiles.prev': string;
+  'designFiles.next': string;
+  'designFiles.jumpToPage': string;
+  'designFiles.pageInfo': string;
   'quickSwitcher.placeholder': string;
   'quickSwitcher.empty': string;
   'quickSwitcher.noMatches': string;
