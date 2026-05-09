@@ -1,1 +1,1 @@
-export type Route = { name: string } | string;
+export * from "./types/index";

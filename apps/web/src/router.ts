@@ -11,7 +11,7 @@ export type Route =
   | {
       kind: 'tool';
       toolId: 'web-design' | 'gpt-image2';
-      page?: 'prompt-studio' | 'workbench' | null;
+      page?: 'prompt-studio' | 'workbench' | 'c1' | null;
     };
 
 export function parseRoute(pathname: string): Route {
@@ -21,7 +21,9 @@ export function parseRoute(pathname: string): Route {
     if (parts[1] === 'web-design' || parts[1] === 'gpt-image2') {
       const page =
         parts[1] === 'gpt-image2' &&
-        (parts[2] === 'prompt-studio' || parts[2] === 'workbench')
+        (parts[2] === 'prompt-studio' ||
+          parts[2] === 'workbench' ||
+          parts[2] === 'c1')
           ? parts[2]
           : null;
       return { kind: 'tool', toolId: parts[1], page };

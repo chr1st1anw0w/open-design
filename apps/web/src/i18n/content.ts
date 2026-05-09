@@ -5,17 +5,6 @@ import type {
 } from '../types';
 import type { Locale } from './types';
 import {
-  FR_DESIGN_SYSTEM_CATEGORIES,
-  FR_DESIGN_SYSTEM_IDS_WITH_EN_FALLBACK,
-  FR_DESIGN_SYSTEM_SUMMARIES,
-  FR_PROMPT_TEMPLATE_CATEGORIES,
-  FR_PROMPT_TEMPLATE_COPY,
-  FR_PROMPT_TEMPLATE_IDS_WITH_EN_FALLBACK,
-  FR_PROMPT_TEMPLATE_TAGS,
-  FR_SKILL_COPY,
-  FR_SKILL_IDS_WITH_EN_FALLBACK,
-} from './content.fr';
-import {
   RU_DESIGN_SYSTEM_CATEGORIES,
   RU_DESIGN_SYSTEM_IDS_WITH_EN_FALLBACK,
   RU_DESIGN_SYSTEM_SUMMARIES,
@@ -81,16 +70,6 @@ const DE_SKILL_COPY: Record<string, LocalizedSkillCopy> = {
     examplePrompt:
       'Eine Dokumentationsseite — linke Navigation, scrollbarer Artikelbereich, rechte Inhaltsübersicht.',
   },
-  'open-design-landing': {
-    examplePrompt:
-      'Entwerfen Sie die Open-Design-Marketing-Landingpage im Atelier-Zero- / Monocle-Stil — warme Papierleinwand, surreale Plaster-und-Architektur-Collage, übergroße gemischte Italic-Serif-Display-Type, römische Ziffern als Sektionsmarker und ein einziger Korallenakzent.',
-  },
-  'open-design-landing-deck': {
-    examplePrompt:
-      'Erstellen Sie das Open-Design-Pitch-Deck im Atelier-Zero-Stil — Cover mit Hero-Plate, römische Sektions-Trenner, Stats-Slide (31 Skills · 72 Systeme · 12 CLIs), Kundenzitat, CTA und Mega-Italic-Serif-End-Card. Horizontal-Swipe-Pagination wie eine Print-Magazine.',
-    description:
-      'Erstellt ein Single-File-Slide-Deck im Atelier-Zero-Stil (warmes Papier, italic-serif Akzent-Spans, korallenfarbene Schluss-Dots, surreale Collage-Platten). Horizontale Magazin-Pagination mit Pfeiltasten- und Leertaste-Navigation, Live-HUD mit Slide-Zähler und Fortschrittsbalken; teilt sich Stylesheet und 16-Slot-Bildbibliothek mit der Schwester-Skill `open-design-landing`.',
-  },
   'email-marketing': {
     examplePrompt:
       'Entwerfen Sie eine Launch-E-Mail für eine sportliche Laufschuhmarke — Masthead, Hero, großes Headline-Lockup, Specs Grid, CTA.',
@@ -106,10 +85,6 @@ const DE_SKILL_COPY: Record<string, LocalizedSkillCopy> = {
   'gamified-app': {
     examplePrompt:
       'Entwerfen Sie eine gamifizierte Life-Management-App — mobiler Multi-Screen-Prototyp: Cover-Poster, heutige Quests mit XP und Quest-Detail. ‚Daily quests for becoming a better human.‘',
-  },
-  'magazine-web-ppt': {
-    examplePrompt:
-      'Erstellen Sie mir ein Magazin-PPT über ‚Ein-Personen-Unternehmen · von AI gefaltete Organisationen‘, 25-minütiger Vortrag, Zielgruppe Designer + Gründer. Empfehlen Sie zuerst eine Richtung (Monocle / WIRED / Kinfolk / Domus / Lab), damit ich wählen kann.',
   },
   'hatch-pet': {
     examplePrompt:
@@ -153,25 +128,9 @@ const DE_SKILL_COPY: Record<string, LocalizedSkillCopy> = {
     examplePrompt:
       'Erstellen Sie eine Rechnung eines freiberuflichen Designstudios an einen Kunden für ein Brand-Identity-Projekt — drei Positionen, 10% Retainer, 9% Umsatzsteuer.',
   },
-  'kami-deck': {
-    examplePrompt:
-      'Erstellen Sie ein sechsteiliges Konferenz-Deck im kami-Stil (紙) — warmes Pergament, Tintenblau auf dem Cover, eine Serifenschnittstärke, horizontaler Magazin-Swipe.',
-    description:
-      'Erzeugt ein druckreifes Slide-Deck im kami-Designsystem: warmes Pergament (oder Tintenblau auf Cover/Kapitel), Serif nur in einer Schnittstärke, Tintenblau-Akzent ≤5% pro Folie, ohne Kursiv. Horizontale Magazin-Pagination (←/→ · Rad · Wischen · ESC-Übersicht). Eine eigenständige HTML-Datei, nur Google Fonts.',
-  },
-  'kami-landing': {
-    examplePrompt:
-      'Entwerfen Sie eine einseitige Studio-One-Pager im kami-Stil — Pergament-Leinwand, Tintenblau-Akzent, editorial wie ein Whitepaper.',
-    description:
-      'Erzeugt eine druckreife Einseiter im kami-Stil (紙): warmes Pergament, Tintenblau-Akzent, Serif in einer Schnittstärke, kein Kursiv, keine kühlen Grautöne. Liest sich wie Whitepaper oder Studio-One-Pager, nicht wie App-UI. Mehrsprachig (EN · zh-CN · ja). Eine eigenständige HTML-Datei ohne Abhängigkeiten.',
-  },
   'kanban-board': {
     examplePrompt:
       'Erstellen Sie ein Kanban-Board für ein 5-köpfiges Growth-Team mitten im Sprint — Backlog, Doing, Review, Done.',
-  },
-  'live-artifact': {
-    examplePrompt:
-      'Erstellen Sie ein interaktives Live-Artefakt mit Statuskarten, Datentabelle und einem Detailpanel, das auf Auswahländerungen reagiert.',
   },
   'magazine-poster': {
     examplePrompt:
@@ -257,8 +216,6 @@ const DE_DESIGN_SYSTEM_SUMMARIES: Record<string, string> = {
   airbnb: 'Reisemarktplatz. Warmer Korallenakzent, fotogetrieben, abgerundete UI.',
   airtable: 'Spreadsheet-Datenbank-Hybrid. Farbenfroh, freundlich, strukturierte Datenästhetik.',
   apple: 'Unterhaltungselektronik. Premium-Weißraum, SF Pro, filmische Bildsprache.',
-  'atelier-zero':
-    'Editoriales Studio-System. Warme Papierleinwand, surreale Plaster-und-Architektur-Collage, gemischte Italic-Serif-Display-Type, römische Ziffern als Sektionsmarker und ein einziger Korallenakzent — gemacht für Magazin-Landingpages, Studio-Sites und Manifestseiten.',
   binance: 'Krypto-Börse. Kräftiger gelber Akzent auf Monochrom, Trading-Floor-Dringlichkeit.',
   bmw: 'Luxusautomobil. Dunkle Premium-Flächen, präzise deutsche Engineering-Ästhetik.',
   bugatti: 'Hypercar-Marke. Kinodunkle Leinwand, monochrome Strenge, monumentale Display-Type.',
@@ -355,73 +312,20 @@ const DE_DESIGN_SYSTEM_CATEGORIES: Record<string, string> = {
   'Media & Consumer': 'Medien & Consumer',
   Automotive: 'Automotive',
   'Editorial & Print': 'Editorial & Print',
-  'Editorial · Studio': 'Editorial · Studio',
   'Retro & Nostalgic': 'Retro & Nostalgisch',
   'Themed & Unique': 'Thematisch & Einzigartig',
-  'Editorial / Personal / Publication': 'Editorial / Persönlich / Publikation',
   Uncategorized: 'Nicht kategorisiert',
 };
 
 const DE_SKILL_IDS_WITH_EN_FALLBACK = [
-  'clinical-case-report',
-  'dcf-valuation',
-  'flowai-live-dashboard-template',
   'html-ppt-taste-brutalist',
   'html-ppt-taste-editorial',
-  // Vendored upstream English-language Zara templates (zarazhangrui/beautiful-html-templates).
-  // Localized copy is not maintained; fall back to the upstream English description.
-  'html-ppt-zhangzara-8-bit-orbit',
-  'html-ppt-zhangzara-biennale-yellow',
-  'html-ppt-zhangzara-block-frame',
-  'html-ppt-zhangzara-blue-professional',
-  'html-ppt-zhangzara-bold-poster',
-  'html-ppt-zhangzara-broadside',
-  'html-ppt-zhangzara-capsule',
-  'html-ppt-zhangzara-cartesian',
-  'html-ppt-zhangzara-cobalt-grid',
-  'html-ppt-zhangzara-coral',
-  'html-ppt-zhangzara-creative-mode',
-  'html-ppt-zhangzara-daisy-days',
-  'html-ppt-zhangzara-editorial-tri-tone',
-  'html-ppt-zhangzara-grove',
-  'html-ppt-zhangzara-long-table',
-  'html-ppt-zhangzara-mat',
-  'html-ppt-zhangzara-monochrome',
-  'html-ppt-zhangzara-neo-grid-bold',
-  'html-ppt-zhangzara-peoples-platform',
-  'html-ppt-zhangzara-pin-and-paper',
-  'html-ppt-zhangzara-pink-script',
-  'html-ppt-zhangzara-playful',
-  'html-ppt-zhangzara-raw-grid',
-  'html-ppt-zhangzara-retro-windows',
-  'html-ppt-zhangzara-retro-zine',
-  'html-ppt-zhangzara-sakura-chroma',
-  'html-ppt-zhangzara-scatterbrain',
-  'html-ppt-zhangzara-signal',
-  'html-ppt-zhangzara-soft-editorial',
-  'html-ppt-zhangzara-stencil-tablet',
-  'html-ppt-zhangzara-studio',
-  'html-ppt-zhangzara-vellum',
-  // IB pitch-book skill (#888): English-only skill copy for now.
-  'ib-pitch-book',
-  'last30days',
-  'live-dashboard',
-  'orbit-general',
-  'orbit-github',
-  'orbit-gmail',
-  'orbit-linear',
-  'orbit-notion',
-  // TODO: add localized copy for social-media-dashboard (introduced in #678).
-  // Fallback for now so the localized-content coverage test passes.
-  'social-media-dashboard',
-  'social-media-matrix-tracker-template',
   'web-prototype-taste-brutalist',
   'web-prototype-taste-editorial',
   'web-prototype-taste-soft',
-  'waitlist-page',
-  'x-research',
-  'trading-analysis-dashboard-template',
-  'github-dashboard',
+  'iiot-dashboard-ui',
+  'proposal-deck',
+  'zh-tw-design-brief',
 ] as const;
 
 const DE_DESIGN_SYSTEM_IDS_WITH_EN_FALLBACK = [
@@ -431,12 +335,10 @@ const DE_DESIGN_SYSTEM_IDS_WITH_EN_FALLBACK = [
   'arc',
   'artistic',
   'bento',
-  'bmw-m',
   'bold',
   'brutalism',
   'cafe',
   'canva',
-  'cisco',
   'claymorphism',
   'clean',
   'colorful',
@@ -468,7 +370,6 @@ const DE_DESIGN_SYSTEM_IDS_WITH_EN_FALLBACK = [
   'luxury',
   'material',
   'minimal',
-  'mission-control',
   'modern',
   'mono',
   'neobrutalism',
@@ -486,16 +387,12 @@ const DE_DESIGN_SYSTEM_IDS_WITH_EN_FALLBACK = [
   'shadcn',
   'simple',
   'skeumorphism',
-  'slack',
   'sleek',
   'spacious',
   'storytelling',
-  'totality-festival',
   'tetris',
-  'urdu',
   'vibrant',
   'vintage',
-  'webex',
 ] as const;
 
 const DE_PROMPT_TEMPLATE_CATEGORIES: Record<string, string> = {
@@ -508,6 +405,7 @@ const DE_PROMPT_TEMPLATE_CATEGORIES: Record<string, string> = {
   'Social Media Post': 'Social-Media-Post',
   General: 'Allgemein',
   Advertising: 'Werbung',
+  'Cosmetic Packaging': 'Kosmetikverpackung',
   'Motion Graphics': 'Motion Graphics',
   Cinematic: 'Filmisch',
   'VFX / Fantasy': 'VFX / Fantasy',
@@ -519,24 +417,29 @@ const DE_PROMPT_TEMPLATE_CATEGORIES: Record<string, string> = {
   Product: 'Produkt',
   'Short Form': 'Short Form',
   Travel: 'Reise',
-  'Live Artifact': 'Live-Artefakt',
 };
 
-const DE_PROMPT_TEMPLATE_IDS_WITH_EN_FALLBACK = ['notion-team-dashboard-live-artifact'] as const;
+const DE_PROMPT_TEMPLATE_IDS_WITH_EN_FALLBACK = [] as const;
 
 const DE_PROMPT_TEMPLATE_TAGS: Record<string, string> = {
+  '16:9': '16:9',
   '3d': '3D',
   '3d-render': '3D-Render',
+  '45deg': '45°',
   action: 'Action',
+  advertising: 'Advertising',
   'ancient-china': 'Altes China',
   anime: 'Anime',
   'app-showcase': 'App-Showcase',
   archery: 'Archery',
   arpg: 'ARPG',
   'audio-reactive': 'Audio-reaktiv',
+  botanicals: 'Botanicals',
   'boss-fight': 'Boss Fight',
   brand: 'Brand',
   branding: 'Branding',
+  campaign: 'Campaign',
+  'cat-dog': 'Cat / Dog',
   captions: 'Untertitel',
   cavalry: 'Cavalry',
   chart: 'Chart',
@@ -559,9 +462,22 @@ const DE_PROMPT_TEMPLATE_TAGS: Record<string, string> = {
   'escort-mission': 'Escort Mission',
   fantasy: 'Fantasy',
   fashion: 'Mode',
+  'flat-lay': 'Flat Lay',
   'fighting-game': 'Fighting Game',
   food: 'Food',
+  fragrance: 'Fragrance',
   'game-cinematic': 'Game Cinematic',
+  lifestyle: 'Lifestyle',
+  'living-room': 'Living Room',
+  muhuotu: 'Muhuotu',
+  'natural-light': 'Natural Light',
+  pet: 'Pet',
+  'pet-friendly': 'Pet Friendly',
+  'product-shot': 'Product Shot',
+  'sage-green': 'Sage Green',
+  'top-down': 'Top-down',
+  'wabi-sabi': 'Wabi-sabi',
+  'white-bg': 'White BG',
   'game-ui': 'Spiel-UI',
   'grid-sheet': 'Grid Sheet',
   guanyu: 'Guanyu',
@@ -579,7 +495,6 @@ const DE_PROMPT_TEMPLATE_TAGS: Record<string, string> = {
   'key-visual': 'Key Visual',
   'kinetic-typography': 'Kinetische Typografie',
   'linear-style': 'Linear-Stil',
-  'live-artifact': 'Live-Artefakt',
   logo: 'Logo',
   lyubu: 'Lyu Bu',
   map: 'Karte',
@@ -640,6 +555,31 @@ const DE_PROMPT_TEMPLATE_COPY: Record<string, LocalizedPromptTemplateCopy> = {
     title: 'E-Commerce-Livestream-UI-Mockup',
     summary:
       'Erzeugt ein realistisches Social-Media-Livestream-Interface über einem Porträt, inklusive anpassbarer Chat-Nachrichten, Geschenk-Popups und Produktkaufkarte.',
+  },
+  'muhuotu-cosmetic-45deg-sage-green': {
+    title: 'Muhuotu - Kosmetikpackshot (45° Sage Green)',
+    summary:
+      'Erzeugt ein 45° Produktfoto einer Kosmetikverpackung mit salbeigrünem Farbakzent und weichem Studio- bzw. Tageslicht.',
+  },
+  'muhuotu-cosmetic-flat-lay': {
+    title: 'Muhuotu - Kosmetik Flat Lay',
+    summary:
+      'Erzeugt eine top-down Flat-lay Komposition mit Kosmetikverpackung, botanischen Props und natürlichem Licht.',
+  },
+  'muhuotu-cosmetic-front-white-bg': {
+    title: 'Muhuotu - Kosmetik Frontansicht (Weißer Hintergrund)',
+    summary:
+      'Erzeugt eine saubere Frontansicht einer Kosmetikverpackung vor weißem Hintergrund als klassischen Packshot.',
+  },
+  'muhuotu-cosmetic-key-visual': {
+    title: 'Muhuotu - Kosmetik Key Visual',
+    summary:
+      'Erzeugt ein Werbe-Key-Visual für Kosmetikverpackung mit Kampagnen-Look, Produktfokus und markenfreundlichem Layout.',
+  },
+  'muhuotu-cosmetic-lifestyle-living-room': {
+    title: 'Muhuotu - Kosmetik Lifestyle (Wohnzimmer)',
+    summary:
+      'Erzeugt ein Lifestyle-Produktfoto einer Kosmetikverpackung in einer wohnlichen Living-Room-Szene mit natürlichem Licht.',
   },
   'illustrated-city-food-map': {
     title: 'Illustrierte Stadt-Food-Map',
@@ -1089,17 +1029,6 @@ const LOCALIZED_CONTENT: Partial<Record<Locale, LocalizedContentBundle>> = {
     promptTemplateTags: RU_PROMPT_TEMPLATE_TAGS,
     promptTemplateCopy: RU_PROMPT_TEMPLATE_COPY,
   },
-  fr: {
-    skillCopy: FR_SKILL_COPY,
-    skillIdsWithEnFallback: FR_SKILL_IDS_WITH_EN_FALLBACK,
-    designSystemSummaries: FR_DESIGN_SYSTEM_SUMMARIES,
-    designSystemCategories: FR_DESIGN_SYSTEM_CATEGORIES,
-    designSystemIdsWithEnFallback: FR_DESIGN_SYSTEM_IDS_WITH_EN_FALLBACK,
-    promptTemplateCategories: FR_PROMPT_TEMPLATE_CATEGORIES,
-    promptTemplateIdsWithEnFallback: FR_PROMPT_TEMPLATE_IDS_WITH_EN_FALLBACK,
-    promptTemplateTags: FR_PROMPT_TEMPLATE_TAGS,
-    promptTemplateCopy: FR_PROMPT_TEMPLATE_COPY,
-  },
 };
 
 function buildLocalizedContentIds(content: LocalizedContentBundle): LocalizedContentIds {
@@ -1125,12 +1054,10 @@ function buildLocalizedContentIds(content: LocalizedContentBundle): LocalizedCon
 export const LOCALIZED_CONTENT_IDS = {
   de: buildLocalizedContentIds(LOCALIZED_CONTENT.de!),
   ru: buildLocalizedContentIds(LOCALIZED_CONTENT.ru!),
-  fr: buildLocalizedContentIds(LOCALIZED_CONTENT.fr!),
-} satisfies Record<'de' | 'ru' | 'fr', LocalizedContentIds>;
+} satisfies Record<'de' | 'ru', LocalizedContentIds>;
 
 export const GERMAN_CONTENT_IDS = LOCALIZED_CONTENT_IDS.de;
 export const RUSSIAN_CONTENT_IDS = LOCALIZED_CONTENT_IDS.ru;
-export const FRENCH_CONTENT_IDS = LOCALIZED_CONTENT_IDS.fr;
 
 function getLocalizedContent(locale: Locale): LocalizedContentBundle | undefined {
   return LOCALIZED_CONTENT[locale];

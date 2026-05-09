@@ -60,7 +60,7 @@
 | [GPT-IMAGE2-BROWSER-AUTOMATION.md](./GPT-IMAGE2-BROWSER-AUTOMATION.md)   | 瀏覽器自動化整合（OpenCLI CDP，Phase 1）     | ✅ 實作完成，待測試     |
 | [gpt-image2-prompt-gallery.md](./gpt-image2-prompt-gallery.md)           | Prompt Templates 圖片庫整合計劃（Phase A–C） | ✅ 實作完成，build 通過 |
 
-| [thesys-c1-elevenlabs-integration-plan.md](./thesys-c1-elevenlabs-integration-plan.md) | Thesys C1 + ElevenLabs UI 整合計劃（4 Phase） | 📋 規劃中，等待確認 |
+| [thesys-c1-elevenlabs-integration-plan.md](./thesys-c1-elevenlabs-integration-plan.md) | Thesys C1 + ElevenLabs UI 整合計劃（4 Phase） | 🔄 Phase 1–2 已接入，Phase 3 開發中 |
 
 ### GPT Image 2 開發時間線
 
@@ -81,7 +81,17 @@ Phase 4 ❌  圖片備註 + 對話繼續修改（下一階段規劃）
 
 ---
 
-## 六、快速參考
+## 六、Perplexity MCP 優先策略
+
+| 文件                                                                                  | 說明                                                                 | 狀態      |
+| ------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | --------- |
+| [perplexity-mcp-priority-plan-zh-tw.md](./perplexity-mcp-priority-plan-zh-tw.md) | Perplexity 優先 MCP 開發策略（P0），adapter 固定順序：codex → claude-code → api-fallback | 📋 規劃中 |
+| [perplexity-mcp-tool-schema.md](./perplexity-mcp-tool-schema.md) | Perplexity P0 MCP tools I/O schema（discovery/planning/document/execution gating） | 🔄 進行中 |
+| [perplexity-mcp-rollout-checklist.md](./perplexity-mcp-rollout-checklist.md) | 本機 connector 驗收步驟、go/no-go 與錯誤診斷文案 | 🔄 進行中 |
+
+---
+
+## 七、快速參考
 
 **最新完成**：GPT Image 2 Phase 1–3（瀏覽器自動化 + Workbench UI + 圖片提示詞庫）  
 **進行中**：建置驗證通過，等待 Chrome CDP 端對端測試  

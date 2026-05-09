@@ -5,6 +5,7 @@ function parseHash(): Route {
   const h = window.location.hash.replace(/^#\/?/, '');
   if (!h) return { name: 'home' };
   if (h === 'skills') return { name: 'skills' };
+  if (h === 'c1') return { name: 'c1' };
   if (h === 'workbench') return { name: 'workbench' };
   if (h.startsWith('workbench/')) {
     const parts = h
@@ -49,6 +50,8 @@ function routeToHash(route: Route): string {
       return route.categoryId
         ? `#/workbench/${encodeURIComponent(route.categoryId)}`
         : '#/workbench';
+    case 'c1':
+      return '#/c1';
     case 'promptStudio':
       return '#/prompt-studio';
     case 'uiuxStudio':

@@ -331,6 +331,16 @@ const PROMPT_TEMPLATES_DIR = resolveDaemonResourceDir(
   "prompt-templates",
   path.join(PROJECT_ROOT, "prompt-templates"),
 );
+const GPT_IMAGE2_CASES_JSON = path.join(
+  PROJECT_ROOT,
+  "apps",
+  "web",
+  "src",
+  "garden",
+  "gpt-image2",
+  "data",
+  "cases.json",
+);
 export function resolveDataDir(raw, projectRoot) {
   if (!raw) return path.join(projectRoot, ".od");
   const expanded = raw.startsWith("~/")
@@ -2677,8 +2687,19 @@ export async function startServer({
       .join("\n\n");
   };
 
+  const loadPromptExpertTemplates = () => {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(GPT_IMAGE2_CASES_JSON, "utf8"));
+      return Object.values(parsed?.templates || {}).filter(
+        (item) => item && typeof item === "object",
+      );
+    } catch {
+      return [];
+    }
+  };
+
   const localPromptExpertReply = (message, context) => {
-    const templates = Object.values(casesJson.templates || {});
+    const templates = loadPromptExpertTemplates();
     const query = String(message || "").toLowerCase();
     const suggestions = templates
       .filter((tpl) => {

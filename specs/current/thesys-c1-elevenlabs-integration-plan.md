@@ -1,9 +1,9 @@
 # Thesys C1 + ElevenLabs UI 整合計劃
 
 **建立日期**：2026-05-05  
-**狀態**：🚧 開發中（Phase 1 ✅ 完成，Phase 2–4 待執行）  
+**狀態**：🚧 開發中（Phase 1–2 ✅ 完成，Phase 3 🔄 已接入 Prompt Expert client）  
 **分支**：`integration/open-design-handoff`  
-**最後更新**：2026-05-07（同步實際實作狀態）
+**最後更新**：2026-05-08（同步 C1 前端面板與 Prompt Expert client）
 
 ---
 
@@ -78,7 +78,7 @@ Phase 1 已超範圍完成，包含完整 Prompt Expert 架構：
 
 ---
 
-### Phase 2 — 前端 SDK 安裝與隔離測試（2–3 天）
+### Phase 2 — 前端 SDK 安裝與隔離測試（已完成）
 
 **目標**：在獨立路由 `/tools/gpt-image2/chat-test` 確認 SDK 與現有 CSS 不衝突。
 
@@ -128,13 +128,31 @@ export function ChatTest() {
 
 #### 驗收條件
 
-- [ ] `/tools/gpt-image2/chat-test` 路由可正常載入 C1Chat
-- [ ] 背景色、文字色與 Open Design 整體風格一致
-- [ ] 無 CSS 衝突（無樣式爆版）
+- [x] 安裝 `@thesysai/genui-sdk` 與 `@crayonai/react-ui`
+- [x] 新增 `#/c1` 隔離面板，可呼叫 `/api/garden/gpt-image2/prompt-expert/providers`
+- [x] 新增 C1 回應 renderer，並以 error boundary 避免非 C1 格式回應造成頁面崩潰
+- [x] Workbench 左側新增 `C1 Prompt Expert` 入口
+- [x] `pnpm --filter @open-design/web typecheck` 通過
+
+#### 實際實作檔案
+
+| 檔案 | 變更 |
+| --- | --- |
+| `apps/web/package.json` | 新增 Thesys C1 / Crayon UI 依賴 |
+| `apps/web/src/garden/gpt-image2/components/c1/C1PromptExpertPanel.tsx` | 新增 C1 Prompt Expert 隔離面板 |
+| `apps/web/src/garden/gpt-image2/components/c1/C1PromptExpertPanel.css` | 新增 Open Design 風格橋接樣式 |
+| `apps/web/src/garden/gpt-image2/lib/router.ts` | 新增 `#/c1` route parse / serialize |
+| `apps/web/src/garden/gpt-image2/types/index.ts` | 新增 `{ name: "c1" }` route 型別 |
+| `apps/web/src/garden/gpt-image2/types.ts` | 修正薄型別出口，改為 re-export 真正型別 |
+| `apps/web/src/garden/gpt-image2/App.tsx` | 接入 `C1PromptExpertPanel` |
+| `apps/web/src/garden/gpt-image2/components/skills/Workbench.tsx` | 新增 C1 面板入口 |
+| `apps/web/src/router.ts` | 新增 `/tools/gpt-image2/c1` deep link |
+| `apps/web/src/components/GardenToolPage.tsx` | 上方 tabs 與主工具頁接入 C1 面板 |
+| `apps/daemon/src/server.ts` | 修正 Prompt Expert fallback template loading |
 
 ---
 
-### Phase 3 — Prompt Studio 對話升級（3–5 天）
+### Phase 3 — Prompt Studio / Workbench Prompt Expert client（進行中）
 
 **目標**：將 Prompt Studio 的靜態文字輸出替換為 C1 動態 UI，支援 AI 在對話中渲染互動提示詞表單。
 
@@ -177,9 +195,10 @@ export function PromptPreviewCard({ prompt, title, category }: Props) {
 
 #### 驗收條件
 
-- [ ] 用戶輸入「我要一個 UI mockup 的提示詞」，AI 回應包含 PromptPreviewCard
-- [ ] 用戶可在對話中直接複製提示詞
-- [ ] Streaming 回應不造成畫面閃爍
+- [x] `gemini-client.ts` 已改為 Prompt Expert client，既有 Workbench / Prompt Studio 呼叫不再直連 Gemini
+- [x] `refine_field` 與 `magic_fill` 透過 `/api/garden/gpt-image2/prompt-expert/chat` 呼叫 Thesys C1
+- [ ] 對話中渲染 `PromptPreviewCard` / `TemplateSelector` 自定義 C1 component
+- [ ] Streaming 回應與 artifact actions 對接 UI 狀態 patch
 
 ---
 

@@ -717,6 +717,13 @@ export function Workbench({
           </button>
           <h2 className="serif">提示詞工作臺</h2>
           <p className="wb-sidebar-sub">定製化您的完美提示詞</p>
+          <button
+            type="button"
+            className="wb-c1-entry"
+            onClick={() => navigate({ name: "c1" })}
+          >
+            C1 Prompt Expert
+          </button>
         </div>
 
         <div className="wb-nav">

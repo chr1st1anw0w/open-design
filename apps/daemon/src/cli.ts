@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // @ts-nocheck
 import { startServer } from './server.js';
+import { startPerplexityMcpServer } from './mcp/perplexity-server.js';
 
 const argv = process.argv.slice(2);
 
@@ -48,46 +49,51 @@ const MEDIA_GENERATE_BOOLEAN_FLAGS = new Set([
 
 const SUBCOMMAND_MAP = {
   media: runMedia,
+  mcp: runMcp,
 };
 
 const first = argv.find((a) => !a.startsWith('-'));
-if (first && SUBCOMMAND_MAP[first]) {
+const handledSubcommand = Boolean(first && SUBCOMMAND_MAP[first]);
+if (handledSubcommand) {
   const idx = argv.indexOf(first);
   const rest = [...argv.slice(0, idx), ...argv.slice(idx + 1)];
   await SUBCOMMAND_MAP[first](rest);
-  process.exit(0);
+  // MCP server is a long-running stdio process and must keep this process alive.
+  if (first !== "mcp") process.exit(0);
 }
 
-// Default: daemon mode.
-let port = Number(process.env.OD_PORT) || 7456;
-let host = process.env.OD_BIND_HOST || '127.0.0.1';
-let open = true;
+if (!handledSubcommand) {
+  // Default: daemon mode.
+  let port = Number(process.env.OD_PORT) || 7456;
+  let host = process.env.OD_BIND_HOST || '127.0.0.1';
+  let open = true;
 
-for (let i = 0; i < argv.length; i++) {
-  const a = argv[i];
-  if (a === '-p' || a === '--port') {
-    port = Number(argv[++i]);
-  } else if (a === '--host') {
-    host = argv[++i];
-  } else if (a === '--no-open') {
-    open = false;
-  } else if (a === '-h' || a === '--help') {
-    printRootHelp();
-    process.exit(0);
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === '-p' || a === '--port') {
+      port = Number(argv[++i]);
+    } else if (a === '--host') {
+      host = argv[++i];
+    } else if (a === '--no-open') {
+      open = false;
+    } else if (a === '-h' || a === '--help') {
+      printRootHelp();
+      process.exit(0);
+    }
   }
+
+  startServer({ port, host }).then(url => {
+    console.log(`[od] listening on ${url}`);
+    if (open) {
+      const opener = process.platform === 'darwin' ? 'open'
+        : process.platform === 'win32' ? 'start'
+        : 'xdg-open';
+      import('node:child_process').then(({ spawn }) => {
+        spawn(opener, [url], { detached: true, stdio: 'ignore' }).unref();
+      });
+    }
+  });
 }
-
-startServer({ port, host }).then(url => {
-  console.log(`[od] listening on ${url}`);
-  if (open) {
-    const opener = process.platform === 'darwin' ? 'open'
-      : process.platform === 'win32' ? 'start'
-      : 'xdg-open';
-    import('node:child_process').then(({ spawn }) => {
-      spawn(opener, [url], { detached: true, stdio: 'ignore' }).unref();
-    });
-  }
-});
 
 function printRootHelp() {
   console.log(`Usage:
@@ -101,6 +107,9 @@ function printRootHelp() {
 
   od media doctor chatgpt-web
       Check local ChatGPT Web automation prerequisites.
+
+  od mcp perplexity [--project-root <path>]
+      Start local stdio MCP server for Perplexity-first workflow.
 
 Options:
   --port <n>       Port to listen on (default: 7456, env: OD_PORT).
@@ -310,6 +319,47 @@ async function runMediaDoctor(rawArgs) {
   }
   const failed = checks.some((c) => !c.ok && !c.optional);
   process.exit(failed ? 1 : 0);
+}
+
+// ---------------------------------------------------------------------------
+// Subcommand: od mcp …
+// ---------------------------------------------------------------------------
+async function runMcp(args) {
+  const sub = args.find((a) => !a.startsWith('-')) || '';
+  if (sub === 'help' || sub === '-h' || sub === '--help' || sub === '') {
+    printMcpHelp();
+    return;
+  }
+  if (sub !== 'perplexity') {
+    console.error(`unknown subcommand: od mcp ${sub}`);
+    printMcpHelp();
+    process.exit(1);
+  }
+  const idx = args.indexOf(sub);
+  const subArgs = [...args.slice(0, idx), ...args.slice(idx + 1)];
+  const flags = parseFlags(subArgs, {
+    string: new Set(['project-root']),
+    boolean: new Set(['help', 'h']),
+  });
+  if (flags.help || flags.h) {
+    printMcpHelp();
+    return;
+  }
+
+  const projectRoot = flags['project-root'] || process.cwd();
+  // MCP stdio server keeps process in foreground.
+  startPerplexityMcpServer({ projectRoot });
+  await new Promise(() => {});
+}
+
+function printMcpHelp() {
+  console.log(`Usage:
+  od mcp perplexity [--project-root <path>]
+      Start local stdio MCP server for Perplexity-first workflow.
+
+Notes:
+  * Adapter gating is fixed for P0: codex -> claude-code -> api-fallback.
+  * This command is local-first and intended for Perplexity Mac app MCP connector.`);
 }
 
 function runDoctorCommand(command, args) {

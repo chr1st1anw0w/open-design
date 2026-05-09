@@ -11,6 +11,7 @@ import {
 import { useT } from '../i18n';
 import type { Dict } from '../i18n/types';
 import {
+  fetchDesignSystems,
   fetchDesignSystem,
   fetchSkill,
   fetchSkills,
@@ -178,7 +179,9 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
     const [skillInstallUrl, setSkillInstallUrl] = useState('');
     const [skillInstalling, setSkillInstalling] = useState(false);
     const [skillInstallError, setSkillInstallError] = useState<string | null>(null);
+    const [importResourcesLoading, setImportResourcesLoading] = useState(false);
     const [skillsState, setSkillsState] = useState<SkillSummary[]>(skills);
+    const [designSystemsState, setDesignSystemsState] = useState<DesignSystemSummary[]>(designSystems);
     const [skillsQuery, setSkillsQuery] = useState('');
     const [skillsPage, setSkillsPage] = useState(1);
     const [designSystemQuery, setDesignSystemQuery] = useState('');
@@ -216,8 +219,29 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
       setSkillsState(skills);
     }, [skills]);
     useEffect(() => {
+      setDesignSystemsState(designSystems);
+    }, [designSystems]);
+    useEffect(() => {
       setSkillsPage(1);
     }, [skillsQuery]);
+    useEffect(() => {
+      if (!importOpen) return;
+      if (skillsState.length > 0 || designSystemsState.length > 0) return;
+      let cancelled = false;
+      setImportResourcesLoading(true);
+      void Promise.all([fetchSkills(), fetchDesignSystems()])
+        .then(([nextSkills, nextDesignSystems]) => {
+          if (cancelled) return;
+          setSkillsState(nextSkills);
+          setDesignSystemsState(nextDesignSystems);
+        })
+        .finally(() => {
+          if (!cancelled) setImportResourcesLoading(false);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [importOpen, skillsState.length, designSystemsState.length]);
 
     useEffect(() => {
       if (!importOpen) return;
@@ -582,7 +606,8 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
 
     async function handleRemoveDesignSystem(id: string) {
       try {
-        await removeDesignSystemById(id);
+        const result = await removeDesignSystemById(id);
+        setDesignSystemsState(result.designSystems ?? []);
       } catch (err) {
         setSkillInstallError(err instanceof Error ? err.message : String(err));
       }
@@ -605,12 +630,12 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
     );
     const filteredDesignSystems = useMemo(() => {
       const q = designSystemQuery.trim().toLowerCase();
-      if (!q) return designSystems;
-      return designSystems.filter((system) => {
+      if (!q) return designSystemsState;
+      return designSystemsState.filter((system) => {
         const haystack = `${system.title} ${system.id} ${system.summary} ${system.category}`.toLowerCase();
         return haystack.includes(q);
       });
-    }, [designSystems, designSystemQuery]);
+    }, [designSystemsState, designSystemQuery]);
 
     async function importDesignSystemContext(system: DesignSystemSummary) {
       const contextId = `design-system:${system.id}`;
@@ -966,7 +991,7 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
                         icon="sparkles"
                         label={t('chat.importSkills')}
                         t={t}
-                        enabled={skills.length > 0 || designSystems.length > 0}
+                        enabled={importResourcesLoading || skillsState.length > 0 || designSystemsState.length > 0}
                         onClick={() => setImportPanel("skills")}
                       />
                       <ImportItem icon="file" label={t('chat.importProject')} t={t} />

@@ -30,10 +30,12 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
+    "@crayonai/react-ui": "^0.9.16",
     "@open-design/contracts": "workspace:0.3.0",
     "@open-design/platform": "workspace:0.3.0",
     "@open-design/sidecar": "workspace:0.3.0",
     "@open-design/sidecar-proto": "workspace:0.3.0",
+    "@thesysai/genui-sdk": "^0.9.2",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.14.0",
     "next": "^16.2.4",

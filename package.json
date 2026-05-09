@@ -13,6 +13,7 @@
     "postinstall": "node ./scripts/postinstall.mjs",
     "tools-dev": "pnpm exec tools-dev",
     "tools-pack": "pnpm exec tools-pack",
+    "mcp:perplexity:check": "node scripts/mcp-perplexity-check.mjs",
     "build": "pnpm --filter @open-design/web build",
     "check:residual-js": "node --experimental-strip-types scripts/check-residual-js.ts",
     "sync:community-pets": "node --experimental-strip-types scripts/sync-community-pets.ts",

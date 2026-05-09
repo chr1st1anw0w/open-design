@@ -32,16 +32,6 @@ export const RU_SKILL_COPY: Record<string, { description?: string; examplePrompt
     examplePrompt:
       'Страница документации — левая навигация, прокручиваемая область статьи, оглавление справа.',
   },
-  'open-design-landing': {
-    examplePrompt:
-      'Спроектируйте маркетинговый лендинг Open Design в стиле Atelier Zero / Monocle — теплая бумажная основа, сюрреалистичный коллаж из гипса и архитектуры, сверхкрупная смешанная display-типографика с курсивной антиквой, римские цифры как маркеры секций и один коралловый акцент.',
-  },
-  'open-design-landing-deck': {
-    examplePrompt:
-      'Создайте pitch deck Open Design в стиле Atelier Zero — обложка с hero-плашкой, римские разделители секций, слайд со статистикой (31 скилл · 72 системы · 12 CLI), клиентская цитата, финальный CTA и mega-italic-serif end-card. Горизонтальная свайп-пагинация как в печатном журнале.',
-    description:
-      'Создает однофайловую презентацию в стиле Atelier Zero: теплая бумага, акцентные spans курсивной антиквой, коралловые финальные точки, сюрреалистичные коллажные плашки. Горизонтальная журнальная пагинация с навигацией стрелками и пробелом, live HUD со счетчиком слайдов и progress bar; разделяет stylesheet и 16-слотовую библиотеку изображений с sibling-навыком `open-design-landing`.',
-  },
   'email-marketing': {
     examplePrompt:
       'Спроектируйте письмо о запуске для бренда беговых кроссовок — masthead, hero-блок, крупный заголовочный lockup, сетка характеристик, CTA.',
@@ -57,10 +47,6 @@ export const RU_SKILL_COPY: Record<string, { description?: string; examplePrompt
   'gamified-app': {
     examplePrompt:
       'Спроектируйте геймифицированное приложение для управления жизнью — мобильный мультиэкранный прототип: постер-обложка, сегодняшние квесты с XP и детализация квеста. "Daily quests for becoming a better human."',
-  },
-  'magazine-web-ppt': {
-    examplePrompt:
-      'Сделайте для меня журнальную презентацию о теме "одночеловеческие компании · организации, сжатые ИИ", выступление на 25 минут, аудитория — дизайнеры и фаундеры. Сначала предложите направление (Monocle / WIRED / Kinfolk / Domus / Lab), чтобы я мог выбрать.',
   },
   'hatch-pet': {
     examplePrompt:
@@ -104,25 +90,9 @@ export const RU_SKILL_COPY: Record<string, { description?: string; examplePrompt
     examplePrompt:
       'Создайте счет от фриланс-дизайн-студии клиенту за проект по фирменному стилю — три позиции, аванс 10%, НДС 9%.',
   },
-  'kami-deck': {
-    examplePrompt:
-      'Создайте шестислайдовую презентацию в стиле kami (紙) — теплый пергамент, синие чернила на обложке, одно начертание антиквы, горизонтальная журнальная прокрутка.',
-    description:
-      'Генерирует презентацию уровня печати в дизайн-системе kami: теплый пергамент (или синие чернила для обложки и глав), антиква одного кегля, акцент синими чернилами ≤5% на слайд, без курсива. Горизонтальная пагинация как в журнале. Один самодостаточный HTML-файл, только Google Fonts.',
-  },
-  'kami-landing': {
-    examplePrompt:
-      'Спроектируйте одностраничный studio one-pager в стиле kami — пергамент, акцент синими чернилами, редакционный тон whitepaper.',
-    description:
-      'Создает одностраничный документ уровня печати в стиле kami (紙): теплый пергамент, акцент синими чернилами, антиква одного кегля, без курсива, без холодных серых. Читается как whitepaper или студийный one-pager, не как UI приложения. Мультиязычность (EN · zh-CN · ja). Один HTML-файл без зависимостей.',
-  },
   'kanban-board': {
     examplePrompt:
-      'Создайте канбан-доску для growth-команды из 5 человек в середине спринта — Backlog, Doing, Review, Done.',
-  },
-  'live-artifact': {
-    examplePrompt:
-      'Создайте интерактивный live-артефакт с карточками статуса, таблицей данных и панелью деталей, которая реагирует на изменение выбора.',
+      'Создайте канбан-доску для команды роста из 5 человек в разгар спринта — Backlog, Doing, Review, Done.',
   },
   'magazine-poster': {
     examplePrompt:
@@ -208,8 +178,6 @@ export const RU_DESIGN_SYSTEM_SUMMARIES: Record<string, string> = {
   airbnb: 'Маркетплейс путешествий. Теплый коралловый акцент, опора на фотографию, скругленный UI.',
   airtable: 'Гибрид таблицы и базы данных. Ярко, дружелюбно, с эстетикой структурированных данных.',
   apple: 'Потребительская электроника. Премиальный воздух, SF Pro, кинематографичная подача.',
-  'atelier-zero':
-    'Редакционная студийная система. Теплое бумажное полотно, сюрреалистичный коллаж из гипса и архитектуры, смешанная display-типографика с курсивной антиквой, римские цифры как маркеры секций и один коралловый акцент — для журнальных лендингов, сайтов студий и manifesto-страниц.',
   binance: 'Криптобиржа. Сильный желтый акцент на монохроме, энергетика trading floor.',
   bmw: 'Премиальный автопром. Темные статусные поверхности, точная немецкая инженерная эстетика.',
   bugatti: 'Бренд гиперкаров. Кинематографично темное полотно, монохромная строгость, монументальная display-типографика.',
@@ -306,73 +274,20 @@ export const RU_DESIGN_SYSTEM_CATEGORIES: Record<string, string> = {
   'Media & Consumer': 'Медиа и потребительские',
   Automotive: 'Автомобили',
   'Editorial & Print': 'Редакционные и печатные',
-  'Editorial · Studio': 'Редакционная студия',
   'Retro & Nostalgic': 'Ретро и ностальгия',
   'Themed & Unique': 'Тематические и уникальные',
-  'Editorial / Personal / Publication': 'Редакционные / Персональные / Публикации',
   Uncategorized: 'Без категории',
 };
 
 export const RU_SKILL_IDS_WITH_EN_FALLBACK = [
-  'clinical-case-report',
-  'dcf-valuation',
-  'flowai-live-dashboard-template',
   'html-ppt-taste-brutalist',
   'html-ppt-taste-editorial',
-  // Vendored upstream English-language Zara templates (zarazhangrui/beautiful-html-templates).
-  // Localized copy is not maintained; fall back to the upstream English description.
-  'html-ppt-zhangzara-8-bit-orbit',
-  'html-ppt-zhangzara-biennale-yellow',
-  'html-ppt-zhangzara-block-frame',
-  'html-ppt-zhangzara-blue-professional',
-  'html-ppt-zhangzara-bold-poster',
-  'html-ppt-zhangzara-broadside',
-  'html-ppt-zhangzara-capsule',
-  'html-ppt-zhangzara-cartesian',
-  'html-ppt-zhangzara-cobalt-grid',
-  'html-ppt-zhangzara-coral',
-  'html-ppt-zhangzara-creative-mode',
-  'html-ppt-zhangzara-daisy-days',
-  'html-ppt-zhangzara-editorial-tri-tone',
-  'html-ppt-zhangzara-grove',
-  'html-ppt-zhangzara-long-table',
-  'html-ppt-zhangzara-mat',
-  'html-ppt-zhangzara-monochrome',
-  'html-ppt-zhangzara-neo-grid-bold',
-  'html-ppt-zhangzara-peoples-platform',
-  'html-ppt-zhangzara-pin-and-paper',
-  'html-ppt-zhangzara-pink-script',
-  'html-ppt-zhangzara-playful',
-  'html-ppt-zhangzara-raw-grid',
-  'html-ppt-zhangzara-retro-windows',
-  'html-ppt-zhangzara-retro-zine',
-  'html-ppt-zhangzara-sakura-chroma',
-  'html-ppt-zhangzara-scatterbrain',
-  'html-ppt-zhangzara-signal',
-  'html-ppt-zhangzara-soft-editorial',
-  'html-ppt-zhangzara-stencil-tablet',
-  'html-ppt-zhangzara-studio',
-  'html-ppt-zhangzara-vellum',
-  // IB pitch-book skill (#888): English-only skill copy for now.
-  'ib-pitch-book',
-  'last30days',
-  'live-dashboard',
-  'orbit-general',
-  'orbit-github',
-  'orbit-gmail',
-  'orbit-linear',
-  'orbit-notion',
-  // TODO: add localized copy for social-media-dashboard (introduced in #678).
-  // Fallback for now so the localized-content coverage test passes.
-  'social-media-dashboard',
-  'social-media-matrix-tracker-template',
   'web-prototype-taste-brutalist',
   'web-prototype-taste-editorial',
   'web-prototype-taste-soft',
-  'waitlist-page',
-  'x-research',
-  'trading-analysis-dashboard-template',
-  'github-dashboard',
+  'iiot-dashboard-ui',
+  'proposal-deck',
+  'zh-tw-design-brief',
 ] as const;
 
 export const RU_DESIGN_SYSTEM_IDS_WITH_EN_FALLBACK = [
@@ -382,12 +297,10 @@ export const RU_DESIGN_SYSTEM_IDS_WITH_EN_FALLBACK = [
   'arc',
   'artistic',
   'bento',
-  'bmw-m',
   'bold',
   'brutalism',
   'cafe',
   'canva',
-  'cisco',
   'claymorphism',
   'clean',
   'colorful',
@@ -419,7 +332,6 @@ export const RU_DESIGN_SYSTEM_IDS_WITH_EN_FALLBACK = [
   'luxury',
   'material',
   'minimal',
-  'mission-control',
   'modern',
   'mono',
   'neobrutalism',
@@ -437,16 +349,12 @@ export const RU_DESIGN_SYSTEM_IDS_WITH_EN_FALLBACK = [
   'shadcn',
   'simple',
   'skeumorphism',
-  'slack',
   'sleek',
   'spacious',
   'storytelling',
-  'totality-festival',
   'tetris',
-  'urdu',
   'vibrant',
   'vintage',
-  'webex',
 ] as const;
 
 export const RU_PROMPT_TEMPLATE_CATEGORIES: Record<string, string> = {
@@ -459,6 +367,7 @@ export const RU_PROMPT_TEMPLATE_CATEGORIES: Record<string, string> = {
   'Social Media Post': 'Пост для соцсетей',
   General: 'Общее',
   Advertising: 'Реклама',
+  'Cosmetic Packaging': 'Косметическая упаковка',
   'Motion Graphics': 'Моушен-графика',
   Cinematic: 'Кинематографичное',
   'VFX / Fantasy': 'VFX / фэнтези',
@@ -470,24 +379,29 @@ export const RU_PROMPT_TEMPLATE_CATEGORIES: Record<string, string> = {
   Product: 'Продукт',
   'Short Form': 'Короткий формат',
   Travel: 'Путешествия',
-  'Live Artifact': 'Live-артефакт',
 };
 
-export const RU_PROMPT_TEMPLATE_IDS_WITH_EN_FALLBACK = ['notion-team-dashboard-live-artifact'] as const;
+export const RU_PROMPT_TEMPLATE_IDS_WITH_EN_FALLBACK = [] as const;
 
 export const RU_PROMPT_TEMPLATE_TAGS: Record<string, string> = {
+  '16:9': '16:9',
   '3d': '3D',
   '3d-render': '3D-рендер',
+  '45deg': '45°',
   action: 'Экшен',
+  advertising: 'Реклама',
   'ancient-china': 'Древний Китай',
   anime: 'Аниме',
   'app-showcase': 'Демонстрация приложения',
   archery: 'Стрельба из лука',
   arpg: 'ARPG',
   'audio-reactive': 'Аудиореактивный',
+  botanicals: 'Ботаника',
   'boss-fight': 'Битва с боссом',
   brand: 'Бренд',
   branding: 'Брендинг',
+  campaign: 'Кампания',
+  'cat-dog': 'Кошка / собака',
   captions: 'Субтитры',
   cavalry: 'Кавалерия',
   chart: 'Диаграмма',
@@ -510,7 +424,20 @@ export const RU_PROMPT_TEMPLATE_TAGS: Record<string, string> = {
   'escort-mission': 'Миссия сопровождения',
   fantasy: 'Фэнтези',
   fashion: 'Мода',
+  'flat-lay': 'Флэт-лэй',
   'fighting-game': 'Файтинг',
+  fragrance: 'Аромат',
+  lifestyle: 'Лайфстайл',
+  'living-room': 'Гостиная',
+  muhuotu: 'Muhuotu',
+  'natural-light': 'Естественный свет',
+  pet: 'Питомец',
+  'pet-friendly': 'Подходит для питомцев',
+  'product-shot': 'Предметная съемка',
+  'sage-green': 'Шалфейно-зеленый',
+  'top-down': 'Сверху вниз',
+  'wabi-sabi': 'Ваби-саби',
+  'white-bg': 'Белый фон',
   food: 'Еда',
   'game-cinematic': 'Игровой синематик',
   'game-ui': 'Игровой UI',
@@ -530,7 +457,6 @@ export const RU_PROMPT_TEMPLATE_TAGS: Record<string, string> = {
   'key-visual': 'Ключевой визуал',
   'kinetic-typography': 'Кинетическая типографика',
   'linear-style': 'Стиль Linear',
-  'live-artifact': 'Live-артефакт',
   logo: 'Логотип',
   lyubu: 'Люй Бу',
   map: 'Карта',
@@ -591,6 +517,31 @@ export const RU_PROMPT_TEMPLATE_COPY: Record<string, Partial<Pick<PromptTemplate
     title: 'Макет UI для e-commerce-стрима',
     summary:
       'Создает реалистичный интерфейс соцсетевого лайвстрима поверх портретного кадра, включая настраиваемый чат, всплывающие подарки и карточку покупки товара.',
+  },
+  'muhuotu-cosmetic-45deg-sage-green': {
+    title: 'Muhuotu - косметика (45°, шалфейно-зеленый)',
+    summary:
+      'Создает предметный packshot косметической упаковки под углом 45° с шалфейно-зеленым акцентом и мягким светом.',
+  },
+  'muhuotu-cosmetic-flat-lay': {
+    title: 'Muhuotu - косметика flat lay',
+    summary:
+      'Создает top-down flat-lay композицию с косметической упаковкой, ботаническими props и естественным светом.',
+  },
+  'muhuotu-cosmetic-front-white-bg': {
+    title: 'Muhuotu - косметика фронтально (белый фон)',
+    summary:
+      'Создает чистый фронтальный packshot косметической упаковки на белом фоне.',
+  },
+  'muhuotu-cosmetic-key-visual': {
+    title: 'Muhuotu - косметика key visual',
+    summary:
+      'Создает рекламный key visual для косметической упаковки с фокусом на продукт и кампанийным настроением.',
+  },
+  'muhuotu-cosmetic-lifestyle-living-room': {
+    title: 'Muhuotu - косметика lifestyle (гостиная)',
+    summary:
+      'Создает lifestyle-фото косметической упаковки в сцене гостиной с естественным светом.',
   },
   'illustrated-city-food-map': {
     title: 'Иллюстрированная гастрономическая карта города',

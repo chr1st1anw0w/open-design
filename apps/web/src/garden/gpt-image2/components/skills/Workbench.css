@@ -32,6 +32,28 @@
   color: var(--text-faint);
 }
 
+.wb-c1-entry {
+  width: 100%;
+  margin-top: var(--s-4);
+  padding: 11px 14px;
+  border: 1px solid var(--vermilion);
+  border-radius: var(--r-pill);
+  background: var(--vermilion);
+  color: var(--inverse-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background var(--t-fast) var(--ease-out),
+    transform var(--t-fast) var(--ease-out);
+}
+
+.wb-c1-entry:hover {
+  background: var(--vermilion-deep);
+  transform: translateY(-1px);
+}
+
 .wb-nav {
   display: flex;
   flex-direction: column;

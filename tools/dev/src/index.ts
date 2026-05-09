@@ -290,6 +290,9 @@ function prependNodePath(entries: string[], current = process.env.NODE_PATH): st
   return [...entries, ...existing].join(path.delimiter);
 }
 
+const BETTER_SQLITE3_MISMATCH_PATTERN =
+  /better[_-]sqlite3|better_sqlite3\.node|compiled against a different Node\.js version|NODE_MODULE_VERSION/i;
+
 async function openAppLog(config: ToolDevConfig, appName: ToolDevAppName): Promise<FileHandle> {
   const logPath = appConfig(config, appName).latestLogPath;
   await mkdir(path.dirname(logPath), { recursive: true });
@@ -376,6 +379,39 @@ async function assertNoStaleActiveProcess(config: ToolDevConfig, appName: ToolDe
   const active = await findAppProcessTree(config, appName);
   if (active.pids.length > 0) {
     process.stderr.write(`[tools-dev] ${appName} has stale processes, cleaning up...\n`); await stopApp(config, appName);
+  }
+}
+
+async function maybeAutoRebuildDaemonNativeDeps(config: ToolDevConfig, lines: readonly string[]): Promise<boolean> {
+  const text = lines.join("\n");
+  if (!BETTER_SQLITE3_MISMATCH_PATTERN.test(text)) return false;
+
+  const logHandle = await openAppLog(config, APP_KEYS.DAEMON);
+  try {
+    await logHandle.write(
+      `[tools-dev] detected better-sqlite3 ABI mismatch, rebuilding native dependency at ${new Date().toISOString()}\n`,
+    );
+    const invocation = createPackageManagerInvocation(
+      ["--filter", "@open-design/daemon", "rebuild", "better-sqlite3", "--pending"],
+      process.env,
+    );
+    await runLoggedCommand({
+      command: invocation.command,
+      args: invocation.args,
+      cwd: config.workspaceRoot,
+      env: process.env,
+      logFd: logHandle.fd,
+      windowsVerbatimArguments: invocation.windowsVerbatimArguments,
+    });
+    await logHandle.write("[tools-dev] native dependency rebuild finished\n");
+    return true;
+  } catch (error) {
+    await logHandle.write(
+      `[tools-dev] native dependency rebuild failed: ${formatError(error)}\n`,
+    );
+    return false;
+  } finally {
+    await logHandle.close();
   }
 }
 
@@ -582,6 +618,30 @@ async function startDaemon(config: ToolDevConfig, options: CliOptions) {
     const logPath = config.apps.daemon.latestLogPath;
     const lines = await readLogTail(logPath, 80).catch(() => []);
     await stopApp(config, APP_KEYS.DAEMON).catch(() => undefined);
+
+    const rebuilt = await maybeAutoRebuildDaemonNativeDeps(config, lines);
+    if (rebuilt) {
+      const retried = await spawnDaemonRuntime(config, options);
+      try {
+        const status = await waitForDaemonRuntime(runtimeLookup(config));
+        return {
+          app: APP_KEYS.DAEMON,
+          created: true,
+          logPath: config.apps.daemon.latestLogPath,
+          pid: retried.pid,
+          status,
+        };
+      } catch (retryError) {
+        const retryLines = await readLogTail(logPath, 80).catch(() => []);
+        await stopApp(config, APP_KEYS.DAEMON).catch(() => undefined);
+        throw appendStartupLogDiagnostics(
+          retryError,
+          APP_KEYS.DAEMON,
+          createStartupLogDiagnostics(logPath, retryLines),
+        );
+      }
+    }
+
     throw appendStartupLogDiagnostics(error, APP_KEYS.DAEMON, createStartupLogDiagnostics(logPath, lines));
   }
 }

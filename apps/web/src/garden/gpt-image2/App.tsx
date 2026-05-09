@@ -3,6 +3,7 @@ import { Hero } from "./components/hero/Hero";
 import { CaseDetail } from "./components/gallery/CaseDetail";
 import { SkillsPage } from "./components/skills/SkillsPage";
 import { Workbench } from "./components/skills/Workbench";
+import { C1PromptExpertPanel } from "./components/c1/C1PromptExpertPanel";
 import { PromptStudio } from "./components/prompt-studio/PromptStudio";
 import { UiUxPromptStudio } from "./components/prompt-studio/UiUxPromptStudio";
 import { ThemeToggle } from "./components/shared/ThemeToggle";
@@ -86,6 +87,8 @@ export function App() {
           initialCategoryId={route.categoryId}
           initialTemplateId={route.templateId}
         />
+      ) : route.name === "c1" ? (
+        <C1PromptExpertPanel navigate={navigate} />
       ) : route.name === "promptStudio" ? (
         <PromptStudio />
       ) : route.name === "uiuxStudio" ? (

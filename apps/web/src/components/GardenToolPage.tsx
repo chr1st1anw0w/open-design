@@ -2,6 +2,7 @@ import React from "react";
 import { navigate } from "../router";
 import WebDesignApp from "../garden/web-design/App";
 import { App as GptImage2App } from "../garden/gpt-image2/App";
+import { C1PromptExpertPanel } from "../garden/gpt-image2/components/c1/C1PromptExpertPanel";
 import { PromptStudio } from "../garden/gpt-image2/components/prompt-studio/PromptStudio";
 import { Workbench } from "../garden/gpt-image2/components/skills/Workbench";
 import { ThemeToggle } from "../garden/gpt-image2/components/shared/ThemeToggle";
@@ -12,7 +13,7 @@ import "./GardenToolPage.css";
 
 interface Props {
   toolId: "web-design" | "gpt-image2";
-  page?: "prompt-studio" | "workbench" | null;
+  page?: "prompt-studio" | "workbench" | "c1" | null;
 }
 
 interface DesignSystemColor {
@@ -30,6 +31,8 @@ export function GardenToolPage({ toolId, page = null }: Props) {
       navigate({ kind: "tool", toolId: "gpt-image2", page: "prompt-studio" });
     } else if (route.name === "workbench") {
       navigate({ kind: "tool", toolId: "gpt-image2", page: "workbench" });
+    } else if (route.name === "c1") {
+      navigate({ kind: "tool", toolId: "gpt-image2", page: "c1" });
     } else {
       navigate({ kind: "tool", toolId: "gpt-image2", page: null });
     }
@@ -113,6 +116,19 @@ export function GardenToolPage({ toolId, page = null }: Props) {
             >
               Workbench
             </button>
+            <button
+              type="button"
+              className={page === "c1" ? "active" : ""}
+              onClick={() =>
+                navigate({
+                  kind: "tool",
+                  toolId: "gpt-image2",
+                  page: "c1",
+                })
+              }
+            >
+              C1 Prompt Expert
+            </button>
           </nav>
         </>
       ) : null}
@@ -122,6 +138,8 @@ export function GardenToolPage({ toolId, page = null }: Props) {
         <PromptStudio />
       ) : page === "workbench" ? (
         <Workbench navigate={navigateGptImage2} />
+      ) : page === "c1" ? (
+        <C1PromptExpertPanel navigate={navigateGptImage2} />
       ) : (
         <GptImage2App />
       )}

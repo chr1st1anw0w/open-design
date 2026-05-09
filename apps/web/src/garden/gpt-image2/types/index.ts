@@ -95,6 +95,7 @@ export type Route =
   | { name: "case"; id: string }
   | { name: "skills" }
   | { name: "workbench"; categoryId?: string; templateId?: string }
+  | { name: "c1" }
   | { name: "promptStudio" }
   | { name: "uiuxStudio" };
 
