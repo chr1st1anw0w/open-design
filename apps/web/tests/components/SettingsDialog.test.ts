@@ -1,11 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   agentRefreshOptionsForConfig,
+  canFetchProviderModels,
   canRunProviderConnectionTest,
   deriveComposioCredentialState,
   configForManualOrbitRun,
   isOrbitRunDisabled,
   isValidApiBaseUrl,
+  mergeProviderModelOptions,
   sanitizeSettingsSavePayload,
   shouldEnableSettingsSave,
   shouldShowCustomModelInput,
@@ -196,6 +198,57 @@ describe('SettingsDialog provider connection test requirements', () => {
     expect(
       canRunProviderConnectionTest({ ...baseConfig, model: '' }),
     ).toBe(false);
+  });
+});
+
+describe('SettingsDialog provider model fetch helpers', () => {
+  it('requires key, valid base URL, and a supported protocol', () => {
+    expect(
+      canFetchProviderModels(
+        { apiKey: 'sk-openai', baseUrl: 'https://api.openai.com/v1' },
+        'openai',
+      ),
+    ).toBe(true);
+    expect(
+      canFetchProviderModels(
+        { apiKey: '', baseUrl: 'https://api.openai.com/v1' },
+        'openai',
+      ),
+    ).toBe(false);
+    expect(
+      canFetchProviderModels(
+        { apiKey: 'sk-openai', baseUrl: 'http://10.0.0.5:11434/v1' },
+        'openai',
+      ),
+    ).toBe(false);
+    expect(
+      canFetchProviderModels(
+        { apiKey: 'azure-key', baseUrl: 'https://example.openai.azure.com' },
+        'azure',
+      ),
+    ).toBe(false);
+    expect(
+      canFetchProviderModels(
+        { apiKey: 'ollama-key', baseUrl: 'https://ollama.com' },
+        'ollama',
+      ),
+    ).toBe(false);
+  });
+
+  it('merges fetched provider models before static suggestions without duplicates', () => {
+    expect(
+      mergeProviderModelOptions(
+        [
+          { id: 'remote-a', label: 'Remote A' },
+          { id: 'gpt-4o', label: 'Remote GPT' },
+        ],
+        ['gpt-4o', 'o4-mini'],
+      ),
+    ).toEqual([
+      { id: 'remote-a', label: 'Remote A' },
+      { id: 'gpt-4o', label: 'Remote GPT' },
+      { id: 'o4-mini', label: 'o4-mini' },
+    ]);
   });
 });
 

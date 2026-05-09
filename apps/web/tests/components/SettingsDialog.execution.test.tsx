@@ -15,6 +15,7 @@ const {
   fetchDesignSystemsMock,
   fetchSkillMock,
   fetchDesignSystemMock,
+  fetchProviderModelsMock,
 } = vi.hoisted(() => ({
   playSoundMock: vi.fn(),
   requestNotificationPermissionMock: vi.fn(),
@@ -26,6 +27,7 @@ const {
   fetchDesignSystemsMock: vi.fn(),
   fetchSkillMock: vi.fn(),
   fetchDesignSystemMock: vi.fn(),
+  fetchProviderModelsMock: vi.fn(),
 }));
 
 vi.mock('../../src/utils/notifications', async () => {
@@ -56,6 +58,10 @@ vi.mock('../../src/providers/registry', async () => {
     codexPetSpritesheetUrl: (pet: { spritesheetUrl: string }) => pet.spritesheetUrl,
   };
 });
+
+vi.mock('../../src/providers/provider-models', () => ({
+  fetchProviderModels: fetchProviderModelsMock,
+}));
 
 import { SettingsDialog } from '../../src/components/SettingsDialog';
 import type { SettingsSection } from '../../src/components/SettingsDialog';
@@ -262,6 +268,7 @@ beforeEach(() => {
   fetchDesignSystemsMock.mockReset();
   fetchSkillMock.mockReset();
   fetchDesignSystemMock.mockReset();
+  fetchProviderModelsMock.mockReset();
   notificationPermissionMock.mockReturnValue('default');
   requestNotificationPermissionMock.mockResolvedValue('granted');
   showCompletionNotificationMock.mockResolvedValue('shown');
@@ -287,6 +294,12 @@ beforeEach(() => {
     id,
     body: `design system body for ${id}`,
   }));
+  fetchProviderModelsMock.mockResolvedValue({
+    ok: true,
+    kind: 'success',
+    latencyMs: 1,
+    models: [],
+  });
 });
 
 describe('SettingsDialog execution settings BYOK interactions', () => {
@@ -483,6 +496,127 @@ describe('SettingsDialog execution settings BYOK interactions', () => {
       }),
       {},
     );
+  });
+
+  it('enables model fetching only for supported BYOK provider drafts', () => {
+    renderSettingsDialog({ apiProtocol: 'openai', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o', apiProviderBaseUrl: 'https://api.openai.com/v1' });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'OpenAI' }));
+    const fetchButton = screen.getByRole('button', { name: 'Fetch models' }) as HTMLButtonElement;
+    expect(fetchButton.disabled).toBe(true);
+
+    fireEvent.change(screen.getByLabelText('API key'), {
+      target: { value: 'sk-openai' },
+    });
+    expect(fetchButton.disabled).toBe(false);
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Azure OpenAI' }));
+    expect((screen.getByRole('button', { name: 'Fetch models' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText(/Automatic deployment discovery is not available/)).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Ollama Cloud' }));
+    fireEvent.change(screen.getByLabelText('API key'), {
+      target: { value: 'ollama-key' },
+    });
+    expect((screen.getByRole('button', { name: 'Fetch models' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText('Model discovery is not available for this protocol.')).toBeTruthy();
+  });
+
+  it('fetches provider models, merges them into the picker, and preserves a custom current model', async () => {
+    fetchProviderModelsMock.mockResolvedValueOnce({
+      ok: true,
+      kind: 'success',
+      latencyMs: 12,
+      models: [
+        { id: 'remote-alpha', label: 'Remote Alpha' },
+        { id: 'gpt-4o', label: 'gpt-4o' },
+      ],
+    });
+    renderSettingsDialog({
+      apiProtocol: 'openai',
+      apiKey: 'sk-openai',
+      baseUrl: 'https://api.openai.com/v1',
+      model: 'custom-still-here',
+      apiProviderBaseUrl: 'https://api.openai.com/v1',
+    });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'OpenAI' }));
+    expect((screen.getByLabelText('Custom model id') as HTMLInputElement).value).toBe('custom-still-here');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fetch models' }));
+
+    expect(await screen.findByText('Fetched 2 models.')).toBeTruthy();
+    expect(fetchProviderModelsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        protocol: 'openai',
+        baseUrl: 'https://api.openai.com/v1',
+        apiKey: 'sk-openai',
+      }),
+      expect.any(AbortSignal),
+    );
+    const select = screen.getByLabelText('Model') as HTMLSelectElement;
+    expect(Array.from(select.options).map((o) => o.value)).toEqual(
+      expect.arrayContaining(['remote-alpha', 'gpt-4o', '__custom__']),
+    );
+    expect(
+      Array.from(select.options).some((o) =>
+        o.textContent === 'Remote Alpha (remote-alpha)',
+      ),
+    ).toBe(true);
+    expect((screen.getByLabelText('Custom model id') as HTMLInputElement).value).toBe('custom-still-here');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fetch models' }));
+    expect(fetchProviderModelsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears stale fetched-model status when provider fields change', async () => {
+    fetchProviderModelsMock.mockResolvedValueOnce({
+      ok: true,
+      kind: 'success',
+      latencyMs: 12,
+      models: [{ id: 'remote-alpha', label: 'Remote Alpha' }],
+    });
+    renderSettingsDialog({
+      apiProtocol: 'openai',
+      apiKey: 'sk-openai',
+      baseUrl: 'https://api.openai.com/v1',
+      model: 'gpt-4o',
+      apiProviderBaseUrl: 'https://api.openai.com/v1',
+    });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'OpenAI' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Fetch models' }));
+    expect(await screen.findByText('Fetched 1 models.')).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText('Base URL'), {
+      target: { value: 'https://proxy.example.com/v1' },
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText('Fetched 1 models.')).toBeNull();
+    });
+  });
+
+  it('renders provider model fetch failures inline', async () => {
+    fetchProviderModelsMock.mockResolvedValueOnce({
+      ok: false,
+      kind: 'auth_failed',
+      latencyMs: 12,
+      status: 401,
+      detail: 'bad key',
+    });
+    renderSettingsDialog({
+      apiProtocol: 'openai',
+      apiKey: 'sk-openai',
+      baseUrl: 'https://api.openai.com/v1',
+      model: 'gpt-4o',
+      apiProviderBaseUrl: 'https://api.openai.com/v1',
+    });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'OpenAI' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Fetch models' }));
+
+    expect(await screen.findByText('Authentication failed. Check your API key.')).toBeTruthy();
   });
 });
 

@@ -1,6 +1,8 @@
 import type { Dict } from '../types';
+import { en } from './en';
 
 export const zhTW: Dict = {
+  ...en,
   'common.cancel': '取消',
   'common.save': '儲存',
   'common.close': '關閉',

@@ -129,6 +129,13 @@ export interface Dict {
   'settings.show': string;
   'settings.hide': string;
   'settings.model': string;
+  'settings.fetchModels': string;
+  'settings.fetchModelsTitle': string;
+  'settings.fetchModelsRunning': string;
+  'settings.fetchModelsSuccess': string;
+  'settings.fetchModelsEmpty': string;
+  'settings.fetchModelsUnsupported': string;
+  'settings.fetchModelsFailed': string;
   'settings.suggestedModelsHint': string;
   'settings.maxTokens': string;
   'settings.maxTokensHint': string;
@@ -136,6 +143,7 @@ export interface Dict {
   'settings.baseUrlInvalid': string;
   'settings.azureDeploymentModel': string;
   'settings.azureDeploymentModelHint': string;
+  'settings.azureModelFetchHint': string;
   'settings.apiVersion': string;
   'settings.apiHint': string;
   'settings.skipForNow': string;

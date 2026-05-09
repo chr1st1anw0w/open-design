@@ -60,6 +60,7 @@ import {
   testProviderConnection,
   validateBaseUrl,
 } from './connectionTest.js';
+import { listProviderModels } from './providerModels.js';
 import { importClaudeDesignZip } from './claude-design-import.js';
 import {
   finalizeDesignPackage,
@@ -6719,6 +6720,62 @@ export async function startServer({
   // failures so the web layer can render a categorized inline status without
   // unwrapping nested error envelopes; real 4xx/5xx here mean a malformed
   // request or daemon bug.
+  app.post('/api/provider/models', async (req, res) => {
+    const controller = new AbortController();
+    const abortIfRequestAborted = () => {
+      if ((req.aborted || !req.complete) && !res.writableEnded) {
+        controller.abort();
+      }
+    };
+    const abortIfResponseClosed = () => {
+      if (!res.writableEnded) controller.abort();
+    };
+    req.on('close', abortIfRequestAborted);
+    res.on('close', abortIfResponseClosed);
+    const body = req.body || {};
+    const protocol = body.protocol;
+    if (
+      typeof protocol !== 'string' ||
+      !['anthropic', 'openai', 'azure', 'google', 'ollama'].includes(protocol)
+    ) {
+      return sendApiError(
+        res,
+        400,
+        'BAD_REQUEST',
+        'protocol must be one of anthropic|openai|azure|google|ollama',
+      );
+    }
+    if (
+      typeof body.baseUrl !== 'string' ||
+      typeof body.apiKey !== 'string' ||
+      !body.baseUrl.trim() ||
+      !body.apiKey.trim()
+    ) {
+      return sendApiError(
+        res,
+        400,
+        'BAD_REQUEST',
+        'baseUrl and apiKey are required',
+      );
+    }
+    try {
+      const result = await listProviderModels({
+        protocol,
+        baseUrl: body.baseUrl,
+        apiKey: body.apiKey,
+        apiVersion:
+          typeof body.apiVersion === 'string' ? body.apiVersion : undefined,
+        signal: controller.signal,
+      });
+      return res.json(result);
+    } catch (err) {
+      console.warn(
+        `[provider:models] uncaught: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return sendApiError(res, 500, 'INTERNAL', 'Provider model discovery failed');
+    }
+  });
+
   app.post('/api/test/connection', async (req, res) => {
     const controller = new AbortController();
     const abortIfRequestAborted = () => {

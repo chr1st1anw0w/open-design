@@ -102,6 +102,13 @@ export const zhCN: Dict = {
   'settings.show': '显示',
   'settings.hide': '隐藏',
   'settings.model': '模型',
+  'settings.fetchModels': '拉取模型',
+  'settings.fetchModelsTitle': '从当前提供方拉取可用模型',
+  'settings.fetchModelsRunning': '正在拉取模型…',
+  'settings.fetchModelsSuccess': '已拉取 {count} 个模型。',
+  'settings.fetchModelsEmpty': '未返回可兼容的文本模型。',
+  'settings.fetchModelsUnsupported': '此协议暂不支持自动发现模型。',
+  'settings.fetchModelsFailed': '无法拉取模型：{detail}',
   'settings.suggestedModelsHint':
     '这些是此协议的建议模型。你的提供方可能支持不同的模型。',
   'settings.baseUrl': 'Base URL',
@@ -109,6 +116,8 @@ export const zhCN: Dict = {
   'settings.azureDeploymentModel': '部署名称',
   'settings.azureDeploymentModelHint':
     '对于 Azure OpenAI，此字段会作为 /openai/deployments/<model> 中的部署名称使用。请填写你在 Azure 中创建的部署名称。',
+  'settings.azureModelFetchHint':
+    '对于 Azure OpenAI，请填写你在 Azure 中创建的部署名称。当前 BYOK 端点无法自动发现 deployment。',
   'settings.apiVersion': 'API 版本',
   'settings.maxTokens': '最大 tokens（可选）',
   'settings.maxTokensHint':

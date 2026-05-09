@@ -40,9 +40,12 @@ import type {
   OrbitRunSummary,
   OrbitStatusResponse,
   ExecMode,
+  ProviderModelOption,
+  ProviderModelsResponse,
   SkillSummary,
 } from '../types';
 import { testAgent, testApiProvider } from '../providers/connection-test';
+import { fetchProviderModels } from '../providers/provider-models';
 import { fetchConnectors, fetchSkills } from '../providers/registry';
 import { MEDIA_PROVIDERS } from '../media/models';
 import type { MediaProvider } from '../media/models';
@@ -263,6 +266,11 @@ type TestState =
   | { status: 'running' }
   | { status: 'done'; result: ConnectionTestResponse };
 
+type ProviderModelsState =
+  | { status: 'idle' }
+  | { status: 'running'; cacheKey: string }
+  | { status: 'done'; cacheKey: string; result: ProviderModelsResponse };
+
 // Map a test result to the visual severity of its inline status node so
 // the same green/red/amber palette as the Rescan status applies.
 export function testStatusVariant(
@@ -293,6 +301,50 @@ export function canRunProviderConnectionTest(
     Boolean(config.baseUrl.trim()) &&
     Boolean(config.model.trim())
   );
+}
+
+export function canFetchProviderModels(
+  config: Pick<AppConfig, 'apiKey' | 'baseUrl'>,
+  protocol: ApiProtocol,
+): boolean {
+  return (
+    protocol !== 'azure' &&
+    protocol !== 'ollama' &&
+    Boolean(config.apiKey.trim()) &&
+    Boolean(config.baseUrl.trim()) &&
+    isValidApiBaseUrl(config.baseUrl)
+  );
+}
+
+export function providerModelsCacheKey(
+  protocol: ApiProtocol,
+  baseUrl: string,
+  apiKey: string,
+  apiVersion = '',
+): string {
+  return [
+    protocol,
+    baseUrl.trim().replace(/\/+$/, ''),
+    apiKey,
+    protocol === 'azure' ? apiVersion.trim() : '',
+  ].join('\n');
+}
+
+export function mergeProviderModelOptions(
+  fetchedModels: readonly ProviderModelOption[],
+  suggestedModelIds: readonly string[],
+): ProviderModelOption[] {
+  const seen = new Set<string>();
+  const out: ProviderModelOption[] = [];
+  const add = (model: ProviderModelOption) => {
+    const id = model.id.trim();
+    if (!id || seen.has(id)) return;
+    seen.add(id);
+    out.push({ id, label: model.label.trim() || id });
+  };
+  for (const model of fetchedModels) add(model);
+  for (const id of suggestedModelIds) add({ id, label: id });
+  return out;
 }
 
 const AGENT_CLI_ENV_FIELDS = [
@@ -473,6 +525,20 @@ export function agentRefreshOptionsForConfig(cfg: AppConfig): AgentRefreshOption
   };
 }
 
+function providerModelsStatusVariant(
+  result: ProviderModelsResponse,
+): 'success' | 'warn' | 'error' {
+  if (result.ok) return 'success';
+  if (result.kind === 'rate_limited' || result.kind === 'no_models') return 'warn';
+  return 'error';
+}
+
+function apiModelOptionLabel(model: ProviderModelOption): string {
+  return model.label && model.label !== model.id
+    ? `${model.label} (${model.id})`
+    : model.id;
+}
+
 /**
  * Returns whether the modal's footer Save button should be enabled for the
  * currently active sidebar section.
@@ -622,10 +688,17 @@ export function SettingsDialog({
   const [providerTestState, setProviderTestState] = useState<TestState>({
     status: 'idle',
   });
+  const [providerModelsState, setProviderModelsState] =
+    useState<ProviderModelsState>({ status: 'idle' });
+  const [providerModelsCache, setProviderModelsCache] = useState<
+    Record<string, ProviderModelOption[]>
+  >({});
   const agentTestAbortRef = useRef<AbortController | null>(null);
   const providerTestAbortRef = useRef<AbortController | null>(null);
+  const providerModelsAbortRef = useRef<AbortController | null>(null);
   const agentTestRevisionRef = useRef(0);
   const providerTestRevisionRef = useRef(0);
+  const providerModelsRevisionRef = useRef(0);
   const [apiModelCustomEditing, setApiModelCustomEditing] = useState(false);
   const [agentCustomModelIds, setAgentCustomModelIds] = useState<
     ReadonlySet<string>
@@ -672,12 +745,24 @@ export function SettingsDialog({
     cfg.model,
     cfg.apiVersion,
   ]);
+  useEffect(() => {
+    providerModelsRevisionRef.current += 1;
+    setProviderModelsState((state) =>
+      state.status === 'running' ? state : { status: 'idle' },
+    );
+  }, [
+    cfg.apiProtocol,
+    cfg.apiKey,
+    cfg.baseUrl,
+    cfg.apiVersion,
+  ]);
   // Releasing the abort controllers on unmount avoids the "setState after
   // unmount" warning if the dialog closes while a test is still running.
   useEffect(() => {
     return () => {
       agentTestAbortRef.current?.abort();
       providerTestAbortRef.current?.abort();
+      providerModelsAbortRef.current?.abort();
     };
   }, []);
 
@@ -857,6 +942,89 @@ export function SettingsDialog({
     }
   };
 
+  const handleFetchProviderModels = async () => {
+    if (providerModelsState.status === 'running') {
+      return;
+    }
+    if (!canFetchProviderModels(cfg, apiProtocol)) {
+      return;
+    }
+    const cacheKey = providerModelsCacheKey(
+      apiProtocol,
+      cfg.baseUrl,
+      cfg.apiKey,
+      cfg.apiVersion ?? '',
+    );
+    const cachedModels = providerModelsCache[cacheKey];
+    if (cachedModels) {
+      setProviderModelsState({
+        status: 'done',
+        cacheKey,
+        result: {
+          ok: true,
+          kind: 'success',
+          latencyMs: 0,
+          models: cachedModels,
+        },
+      });
+      return;
+    }
+    const controller = new AbortController();
+    const revision = providerModelsRevisionRef.current;
+    providerModelsAbortRef.current = controller;
+    setProviderModelsState({ status: 'running', cacheKey });
+    const clearIfStale = () => {
+      if (providerModelsAbortRef.current === controller) {
+        setProviderModelsState({ status: 'idle' });
+      }
+    };
+    try {
+      const result = await fetchProviderModels(
+        {
+          protocol: apiProtocol,
+          baseUrl: cfg.baseUrl,
+          apiKey: cfg.apiKey,
+          ...(apiProtocol === 'azure' && cfg.apiVersion?.trim()
+            ? { apiVersion: cfg.apiVersion.trim() }
+            : {}),
+        },
+        controller.signal,
+      );
+      if (controller.signal.aborted) return;
+      if (providerModelsRevisionRef.current !== revision) {
+        clearIfStale();
+        return;
+      }
+      if (result.ok && result.models?.length) {
+        setProviderModelsCache((prev) => ({
+          ...prev,
+          [cacheKey]: result.models ?? [],
+        }));
+      }
+      setProviderModelsState({ status: 'done', cacheKey, result });
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      if (providerModelsRevisionRef.current !== revision) {
+        clearIfStale();
+        return;
+      }
+      setProviderModelsState({
+        status: 'done',
+        cacheKey,
+        result: {
+          ok: false,
+          kind: 'unknown',
+          latencyMs: 0,
+          detail: err instanceof Error ? err.message : 'Model list request failed',
+        },
+      });
+    } finally {
+      if (providerModelsAbortRef.current === controller) {
+        providerModelsAbortRef.current = null;
+      }
+    }
+  };
+
   const renderTestMessage = (
     result: ConnectionTestResponse,
     kindForSuccess: 'api' | 'cli',
@@ -896,6 +1064,38 @@ export function SettingsDialog({
         });
       default:
         return t('settings.testUnknown', { detail: result.detail ?? '' });
+    }
+  };
+
+  const renderProviderModelsMessage = (
+    result: ProviderModelsResponse,
+  ): string => {
+    if (result.ok) {
+      return t('settings.fetchModelsSuccess', {
+        count: result.models?.length ?? 0,
+      });
+    }
+    switch (result.kind) {
+      case 'auth_failed':
+        return t('settings.testAuthFailed');
+      case 'forbidden':
+        return t('settings.testForbidden');
+      case 'invalid_base_url':
+        return t('settings.testInvalidBaseUrl');
+      case 'rate_limited':
+        return t('settings.testRateLimited');
+      case 'upstream_unavailable':
+        return t('settings.testUpstream', { status: result.status ?? 0 });
+      case 'timeout':
+        return t('settings.testTimeout', {
+          ms: Math.max(0, Math.round(result.latencyMs)),
+        });
+      case 'no_models':
+        return t('settings.fetchModelsEmpty');
+      case 'unsupported_protocol':
+        return t('settings.fetchModelsUnsupported');
+      default:
+        return t('settings.fetchModelsFailed', { detail: result.detail ?? '' });
     }
   };
 
@@ -1056,18 +1256,39 @@ export function SettingsDialog({
           (p) => p.baseUrl === cfg.apiProviderBaseUrl && p.baseUrl === cfg.baseUrl,
         );
   const selectedProvider = selectedProviderIndex >= 0 ? protocolProviders[selectedProviderIndex] : undefined;
-  const apiModelOptions = useMemo(
+  const providerModelsKey = useMemo(
+    () => providerModelsCacheKey(
+      apiProtocol,
+      cfg.baseUrl,
+      cfg.apiKey,
+      cfg.apiVersion ?? '',
+    ),
+    [apiProtocol, cfg.baseUrl, cfg.apiKey, cfg.apiVersion],
+  );
+  const fetchedApiModelOptions = providerModelsCache[providerModelsKey] ?? [];
+  const suggestedApiModelIds = useMemo(
     () => Array.from(new Set(
       selectedProvider?.models?.length
         ? selectedProvider.models
         : SUGGESTED_MODELS_BY_PROTOCOL[apiProtocol],
     )),
-    [apiProtocol, cfg.baseUrl, selectedProvider],
+    [apiProtocol, selectedProvider],
+  );
+  const apiModelOptions = useMemo(
+    () => mergeProviderModelOptions(
+      fetchedApiModelOptions,
+      suggestedApiModelIds,
+    ),
+    [fetchedApiModelOptions, suggestedApiModelIds],
+  );
+  const apiModelIds = useMemo(
+    () => apiModelOptions.map((m) => m.id),
+    [apiModelOptions],
   );
   const apiModelCustomActive =
     shouldShowCustomModelInput(
       cfg.model,
-      apiModelOptions,
+      apiModelIds,
       apiModelCustomEditing,
     );
   const apiModelSelectValue = apiModelCustomActive
@@ -1768,36 +1989,71 @@ export function SettingsDialog({
                 <div>
                   <h3>{API_PROTOCOL_LABELS[apiProtocol]}</h3>
                 </div>
-                {(() => {
-                  const running = providerTestState.status === 'running';
-                  const hasRequired = canRunProviderConnectionTest(cfg);
-                  const disabled = running || !hasRequired;
-                  return (
-                    <button
-                      type="button"
-                      className={
-                        'ghost icon-btn settings-test-btn' +
-                        (running ? ' loading' : '')
-                      }
-                      onClick={() => void handleTestProvider()}
-                      disabled={disabled}
-                      title={t('settings.testTitle')}
-                    >
-                      {running ? (
-                        <>
-                          <Icon
-                            name="spinner"
-                            size={13}
-                            className="icon-spin"
-                          />
-                          <span>{t('settings.test')}</span>
-                        </>
-                      ) : (
-                        t('settings.test')
-                      )}
-                    </button>
-                  );
-                })()}
+                <div className="section-head-actions">
+                  {(() => {
+                    const running =
+                      providerModelsState.status === 'running' &&
+                      providerModelsState.cacheKey === providerModelsKey;
+                    const disabled =
+                      providerModelsState.status === 'running' ||
+                      !canFetchProviderModels(cfg, apiProtocol);
+                    return (
+                      <button
+                        type="button"
+                        className={
+                          'ghost icon-btn settings-fetch-models-btn' +
+                          (running ? ' loading' : '')
+                        }
+                        onClick={() => void handleFetchProviderModels()}
+                        disabled={disabled}
+                        title={t('settings.fetchModelsTitle')}
+                      >
+                        {running ? (
+                          <>
+                            <Icon
+                              name="spinner"
+                              size={13}
+                              className="icon-spin"
+                            />
+                            <span>{t('settings.fetchModelsRunning')}</span>
+                          </>
+                        ) : (
+                          t('settings.fetchModels')
+                        )}
+                      </button>
+                    );
+                  })()}
+                  {(() => {
+                    const running = providerTestState.status === 'running';
+                    const hasRequired = canRunProviderConnectionTest(cfg);
+                    const disabled = running || !hasRequired;
+                    return (
+                      <button
+                        type="button"
+                        className={
+                          'ghost icon-btn settings-test-btn' +
+                          (running ? ' loading' : '')
+                        }
+                        onClick={() => void handleTestProvider()}
+                        disabled={disabled}
+                        title={t('settings.testTitle')}
+                      >
+                        {running ? (
+                          <>
+                            <Icon
+                              name="spinner"
+                              size={13}
+                              className="icon-spin"
+                            />
+                            <span>{t('settings.test')}</span>
+                          </>
+                        ) : (
+                          t('settings.test')
+                        )}
+                      </button>
+                    );
+                  })()}
+                </div>
               </div>
               {providerTestState.status === 'running' ? (
                 <p
@@ -1816,6 +2072,27 @@ export function SettingsDialog({
                   role={providerTestState.result.ok ? 'status' : 'alert'}
                 >
                   {renderTestMessage(providerTestState.result, 'api')}
+                </p>
+              ) : null}
+              {providerModelsState.status === 'running' &&
+              providerModelsState.cacheKey === providerModelsKey ? (
+                <p
+                  className="settings-test-status running"
+                  role="status"
+                  aria-live="polite"
+                >
+                  {t('settings.fetchModelsRunning')}
+                </p>
+              ) : providerModelsState.status === 'done' &&
+                providerModelsState.cacheKey === providerModelsKey ? (
+                <p
+                  className={
+                    'settings-test-status ' +
+                    providerModelsStatusVariant(providerModelsState.result)
+                  }
+                  role={providerModelsState.result.ok ? 'status' : 'alert'}
+                >
+                  {renderProviderModelsMessage(providerModelsState.result)}
                 </p>
               ) : null}
               <label className="field">
@@ -1891,7 +2168,7 @@ export function SettingsDialog({
                   }}
                 >
                   {apiModelOptions.map((m) => (
-                    <option value={m} key={m}>{m}</option>
+                    <option value={m.id} key={m.id}>{apiModelOptionLabel(m)}</option>
                   ))}
                   <option value={CUSTOM_MODEL_SENTINEL}>{t('settings.modelCustom')}</option>
                 </select>
@@ -1900,7 +2177,10 @@ export function SettingsDialog({
                 <p className="hint">{t('settings.suggestedModelsHint')}</p>
               ) : null}
               {apiProtocol === 'azure' ? (
-                <p className="hint">{t('settings.azureDeploymentModelHint')}</p>
+                <p className="hint">{t('settings.azureModelFetchHint')}</p>
+              ) : null}
+              {apiProtocol === 'ollama' ? (
+                <p className="hint">{t('settings.fetchModelsUnsupported')}</p>
               ) : null}
               {apiModelCustomActive ? (
                 <label className="field">
