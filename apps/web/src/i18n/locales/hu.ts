@@ -463,6 +463,8 @@ export const hu: Dict = {
   'examples.previewModalTitle': 'Teljes előnézet (modális)',
   'examples.shareTitle': 'Példa megosztása',
   'examples.shareLoadFirst': 'Vidd fölé az egeret az előnézet betöltéséhez',
+  'examples.unavailablePlaceholder': 'Nincs mellékelt {kind} előnézet — nyisd meg a részletekért',
+  'examples.shareUnavailable': 'Nincs megosztható {kind} előnézet mellékelve',
   'examples.shareMenu': 'Megosztás ▾',
   'examples.exportPdfAllSlides': 'Exportálás PDF-ként (minden dia)',
   'examples.exportPptxLocked': 'Exportálás PPTX-ként… (előbb sablont nyiss)',
@@ -595,6 +597,8 @@ export const hu: Dict = {
   'preview.errorTitle': 'A példa betöltése nem sikerült.',
   'preview.errorBody': 'A példa HTML-jének letöltése meghiúsult. Győződj meg róla, hogy az Open Design fut, majd próbáld újra.',
   'preview.retry': 'Újra',
+  'preview.unavailableTitle': 'Ehhez a skillhez nincs mellékelt előnézet.',
+  'preview.unavailableBody': 'Ez a skill {kind} kimenetet készít — futtasd a promptot a csevegésben egy létrehozásához.',
   'preview.showSidebar': '{label} megjelenítése',
   'preview.hideSidebar': '{label} elrejtése',
 

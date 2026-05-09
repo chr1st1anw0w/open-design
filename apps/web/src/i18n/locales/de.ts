@@ -351,6 +351,8 @@ export const de: Dict = {
   'examples.previewModalTitle': 'Vollständige Vorschau öffnen (Modal)',
   'examples.shareTitle': 'Dieses Beispiel teilen',
   'examples.shareLoadFirst': 'Zuerst hovern, um die Vorschau zu laden',
+  'examples.unavailablePlaceholder': 'Keine mitgelieferte {kind}-Vorschau — öffnen für mehr Infos',
+  'examples.shareUnavailable': 'Keine mitgelieferte {kind}-Vorschau zum Teilen',
   'examples.shareMenu': 'Teilen ▾',
   'examples.exportPdfAllSlides': 'Als PDF exportieren (alle Slides)',
   'examples.exportPptxLocked': 'Als PPTX exportieren… (zuerst Template öffnen)',
@@ -483,6 +485,8 @@ export const de: Dict = {
   'preview.errorTitle': 'Beispiel konnte nicht geladen werden.',
   'preview.errorBody': 'Das Beispiel-HTML konnte nicht abgerufen werden. Stelle sicher, dass Open Design läuft, und versuche es erneut.',
   'preview.retry': 'Erneut versuchen',
+  'preview.unavailableTitle': 'Für diesen Skill ist keine Vorschau verfügbar.',
+  'preview.unavailableBody': 'Dieser Skill erzeugt {kind}-Output — führe den Prompt im Chat aus, um etwas zu erzeugen.',
   'preview.showSidebar': '{label} einblenden',
   'preview.hideSidebar': '{label} ausblenden',
 
