@@ -56,7 +56,12 @@ export function AssistantMessage({
 }: Props) {
   const t = useT();
   const events = message.events ?? [];
-  const blocks = buildBlocks(events);
+  let blocks = buildBlocks(events);
+
+  // Fallback for historical messages that might have content but no events.
+  if (blocks.length === 0 && message.content && !streaming) {
+    blocks = [{ kind: 'text', text: message.content }];
+  }
   const usage = events.find((e) => e.kind === 'usage') as
     | Extract<AgentEvent, { kind: 'usage' }>
     | undefined;

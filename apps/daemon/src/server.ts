@@ -2769,8 +2769,9 @@ export async function startServer({ port = 7456, host = process.env.OD_BIND_HOST
   app.post('/api/proxy/anthropic/stream', async (req, res) => {
     /** @type {Partial<ProxyStreamRequest>} */
     const proxyBody = req.body || {};
-    const { baseUrl, apiKey, model, systemPrompt, messages, maxTokens } =
-      proxyBody;
+    const { baseUrl, model, systemPrompt, messages, maxTokens } = proxyBody;
+    const apiKey = proxyBody.apiKey || process.env.ANTHROPIC_API_KEY;
+
     if (!baseUrl || !apiKey || !model) {
       return sendApiError(
         res,
@@ -2863,8 +2864,9 @@ export async function startServer({ port = 7456, host = process.env.OD_BIND_HOST
   app.post('/api/proxy/openai/stream', async (req, res) => {
     /** @type {Partial<ProxyStreamRequest>} */
     const proxyBody = req.body || {};
-    const { baseUrl, apiKey, model, systemPrompt, messages, maxTokens } =
-      proxyBody;
+    const { baseUrl, model, systemPrompt, messages, maxTokens } = proxyBody;
+    const apiKey = proxyBody.apiKey || process.env.OPENAI_API_KEY;
+
     if (!baseUrl || !apiKey || !model) {
       return sendApiError(
         res,
@@ -2957,8 +2959,10 @@ export async function startServer({ port = 7456, host = process.env.OD_BIND_HOST
   app.post('/api/proxy/azure/stream', async (req, res) => {
     /** @type {Partial<ProxyStreamRequest>} */
     const proxyBody = req.body || {};
-    const { baseUrl, apiKey, model, systemPrompt, messages, maxTokens, apiVersion } =
+    const { baseUrl, model, systemPrompt, messages, maxTokens, apiVersion } =
       proxyBody;
+    const apiKey = proxyBody.apiKey || process.env.AZURE_OPENAI_API_KEY;
+
     if (!baseUrl || !apiKey || !model) {
       return sendApiError(
         res,
@@ -3056,7 +3060,9 @@ export async function startServer({ port = 7456, host = process.env.OD_BIND_HOST
   app.post('/api/proxy/google/stream', async (req, res) => {
     /** @type {Partial<ProxyStreamRequest>} */
     const proxyBody = req.body || {};
-    const { baseUrl, apiKey, model, systemPrompt, messages, maxTokens } = proxyBody;
+    const { baseUrl, model, systemPrompt, messages, maxTokens } = proxyBody;
+    const apiKey = proxyBody.apiKey || process.env.GOOGLE_API_KEY;
+
     if (!apiKey || !model) {
       return sendApiError(
         res,
