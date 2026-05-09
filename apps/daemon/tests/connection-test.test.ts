@@ -134,8 +134,8 @@ describe('POST /api/provider/models', () => {
       );
       return jsonResponse({
         data: [
-          { id: 'gpt-4o', object: 'model' },
           { id: 'gpt-4o-mini', object: 'model' },
+          { id: 'gpt-4o', object: 'model' },
           { id: 'gpt-4o', object: 'model' },
         ],
       });
@@ -179,6 +179,11 @@ describe('POST /api/provider/models', () => {
             display_name: 'Claude Sonnet 4.5',
             type: 'model',
           },
+          {
+            id: 'claude-haiku-4-5',
+            display_name: 'Claude Haiku 4.5',
+            type: 'model',
+          },
         ],
       });
     });
@@ -197,6 +202,7 @@ describe('POST /api/provider/models', () => {
     await expect(res.json()).resolves.toMatchObject({
       ok: true,
       models: [
+        { id: 'claude-haiku-4-5', label: 'Claude Haiku 4.5' },
         { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' },
       ],
     });
@@ -210,10 +216,9 @@ describe('POST /api/provider/models', () => {
       return jsonResponse({
         models: [
           {
-            name: 'models/gemini-2.0-flash-001',
-            baseModelId: 'gemini-2.0-flash',
-            displayName: 'Gemini 2.0 Flash',
-            supportedGenerationMethods: ['generateContent', 'countTokens'],
+            name: 'models/gemini-custom',
+            displayName: 'Gemini Custom',
+            supportedGenerationMethods: ['generateContent'],
           },
           {
             name: 'models/text-embedding-004',
@@ -221,9 +226,10 @@ describe('POST /api/provider/models', () => {
             supportedGenerationMethods: ['embedContent'],
           },
           {
-            name: 'models/gemini-custom',
-            displayName: 'Gemini Custom',
-            supportedGenerationMethods: ['generateContent'],
+            name: 'models/gemini-2.0-flash-001',
+            baseModelId: 'gemini-2.0-flash',
+            displayName: 'Gemini 2.0 Flash',
+            supportedGenerationMethods: ['generateContent', 'countTokens'],
           },
         ],
       });
