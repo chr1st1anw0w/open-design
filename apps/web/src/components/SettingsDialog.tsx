@@ -236,6 +236,16 @@ const API_PROTOCOL_LABELS: Record<ApiProtocol, string> = {
   ollama: 'Ollama Cloud API',
 };
 
+function sanitizeHttpsUrl(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' ? parsed.toString() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 const API_KEY_PLACEHOLDERS: Record<ApiProtocol, string> = {
   anthropic: 'sk-ant-...',
   openai: 'sk-...',
@@ -1500,53 +1510,107 @@ export function SettingsDialog({
                   {t('settings.noAgentsDetected')}
                 </div>
               ) : (
-                <div className="agent-grid">
-                  {agents.map((a) => {
-                    const active = cfg.agentId === a.id;
-                    return (
-                      <button
-                        type="button"
-                        key={a.id}
-                        className={
-                          'agent-card' +
-                          (active ? ' active' : '') +
-                          (a.available ? '' : ' disabled')
-                        }
-                        onClick={() =>
-                          a.available && setCfg((c) => ({ ...c, agentId: a.id }))
-                        }
-                        disabled={!a.available}
-                        aria-pressed={active}
-                      >
-                        <AgentIcon id={a.id} size={40} />
-                        <div className="agent-card-body">
-                          <div className="agent-card-name">{a.name}</div>
-                          <div className="agent-card-meta">
-                            {a.available ? (
-                              a.version ? (
-                                <span title={a.path ?? ''}>{a.version}</span>
-                              ) : (
-                                <span title={a.path ?? ''}>
-                                  {t('common.installed')}
-                                </span>
-                              )
-                            ) : (
+                <>
+                  <div className="agent-grid">
+                    {agents.map((a) => {
+                      const active = cfg.agentId === a.id;
+                      if (a.available) {
+                        return (
+                          <button
+                            type="button"
+                            key={a.id}
+                            className={
+                              'agent-card' + (active ? ' active' : '')
+                            }
+                            onClick={() =>
+                              setCfg((c) => ({ ...c, agentId: a.id }))
+                            }
+                            aria-pressed={active}
+                          >
+                            <AgentIcon id={a.id} size={40} />
+                            <div className="agent-card-body">
+                              <div className="agent-card-name">{a.name}</div>
+                              <div className="agent-card-meta">
+                                {a.version ? (
+                                  <span title={a.path ?? ''}>{a.version}</span>
+                                ) : (
+                                  <span title={a.path ?? ''}>
+                                    {t('common.installed')}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <span
+                              className={
+                                'status-dot' + (active ? ' active' : '')
+                              }
+                              aria-hidden="true"
+                            />
+                          </button>
+                        );
+                      }
+                      const installUrl = sanitizeHttpsUrl(a.installUrl);
+                      const docsUrl = sanitizeHttpsUrl(a.docsUrl);
+                      const hasLinks = Boolean(installUrl || docsUrl);
+                      const cardLabel = `${a.name} · ${t('common.notInstalled')}`;
+                      return (
+                        <div
+                          key={a.id}
+                          className="agent-card disabled agent-card-unavailable"
+                          role="group"
+                          aria-label={cardLabel}
+                        >
+                          <AgentIcon id={a.id} size={40} />
+                          <div className="agent-card-body">
+                            <div className="agent-card-name">{a.name}</div>
+                            <div className="agent-card-meta">
                               <span className="muted">
                                 {t('common.notInstalled')}
                               </span>
-                            )}
+                            </div>
+                            {hasLinks ? (
+                              <div className="agent-card-actions">
+                                {installUrl ? (
+                                  <a
+                                    href={installUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="agent-card-link"
+                                  >
+                                    {t('settings.agentInstall.install')}
+                                  </a>
+                                ) : null}
+                                {docsUrl ? (
+                                  <a
+                                    href={docsUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="agent-card-link"
+                                  >
+                                    {t('settings.agentInstall.docs')}
+                                  </a>
+                                ) : null}
+                              </div>
+                            ) : null}
                           </div>
                         </div>
-                        {a.available ? (
-                          <span
-                            className={'status-dot' + (active ? ' active' : '')}
-                            aria-hidden="true"
-                          />
-                        ) : null}
-                      </button>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                  {agents.some((x) => !x.available) ? (
+                    <div className="agent-install-guide">
+                      <p className="hint agent-install-path-hint">
+                        {t('settings.agentInstall.pathHint')}
+                      </p>
+                      <ol className="agent-install-steps">
+                        <li>{t('settings.agentInstall.stepOpenLinks')}</li>
+                        <li>{t('settings.agentInstall.stepAuth')}</li>
+                        <li>{t('settings.agentInstall.stepRescan')}</li>
+                        <li>{t('settings.agentInstall.stepSelect')}</li>
+                      </ol>
+                    </div>
+                  ) : null}
+                </>
               )}
               {(() => {
                 const selected = agents.find(
