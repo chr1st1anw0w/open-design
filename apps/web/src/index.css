@@ -4540,6 +4540,9 @@ code {
   overflow-y: auto;
   padding: 4px;
 }
+.ds-picker-list-design-systems {
+  min-height: 120px;
+}
 .ds-picker-empty {
   padding: 16px 12px;
   font-size: 12px;
