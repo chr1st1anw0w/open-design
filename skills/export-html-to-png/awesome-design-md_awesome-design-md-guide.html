@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>awesome-design-md 使用指南</title>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&f[]=cabinet-grotesk@700,800&display=swap" rel="stylesheet">
+<style>
+:root,[data-theme="light"]{
+  --color-bg:#f7f6f2;--color-surface:#f9f8f5;--color-surface-2:#fbfbf9;
+  --color-surface-offset:#f3f0ec;--color-border:#d4d1ca;--color-divider:#dcd9d5;
+  --color-text:#28251d;--color-text-muted:#7a7974;--color-text-faint:#bab9b4;
+  --color-primary:#01696f;--color-primary-hover:#0c4e54;--color-primary-highlight:#cedcd8;
+  --color-accent:#437a22;--color-accent-highlight:#d4dfcc;
+  --color-warn:#da7101;--color-warn-highlight:#e7d7c4;
+  --font-display:'Cabinet Grotesk',sans-serif;--font-body:'Satoshi',sans-serif;
+  --font-mono:'JetBrains Mono','Fira Code',monospace;
+  --shadow-sm:0 1px 2px oklch(0.2 0.01 80/0.06);
+  --shadow-md:0 4px 16px oklch(0.2 0.01 80/0.08);
+  --shadow-lg:0 12px 32px oklch(0.2 0.01 80/0.12);
+  --radius-sm:0.375rem;--radius-md:0.5rem;--radius-lg:0.75rem;--radius-xl:1rem;
+}
+[data-theme="dark"]{
+  --color-bg:#111110;--color-surface:#171614;--color-surface-2:#1c1b19;
+  --color-surface-offset:#201f1d;--color-border:#393836;--color-divider:#262523;
+  --color-text:#cdccca;--color-text-muted:#797876;--color-text-faint:#5a5957;
+  --color-primary:#4f98a3;--color-primary-hover:#227f8b;--color-primary-highlight:#313b3b;
+  --color-accent:#6daa45;--color-accent-highlight:#3a4435;
+  --color-warn:#fdab43;--color-warn-highlight:#564b3e;
+  --shadow-sm:0 1px 2px oklch(0 0 0/0.2);
+  --shadow-md:0 4px 16px oklch(0 0 0/0.35);
+  --shadow-lg:0 12px 32px oklch(0 0 0/0.5);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-padding-top:80px;-webkit-font-smoothing:antialiased}
+body{
+  font-family:var(--font-body);font-size:clamp(0.9375rem,0.9rem+0.2vw,1.0625rem);
+  line-height:1.65;color:var(--color-text);background:var(--color-bg);
+  min-height:100dvh;transition:background 0.25s,color 0.25s;
+}
+a{color:var(--color-primary);text-decoration:none;transition:color 0.18s}
+a:hover{color:var(--color-primary-hover);text-decoration:underline}
+code{
+  font-family:var(--font-mono);font-size:0.82em;
+  background:var(--color-surface-offset);
+  color:var(--color-primary);
+  padding:0.15em 0.45em;border-radius:var(--radius-sm);
+  border:1px solid oklch(from var(--color-text) l c h/0.1);
+}
+pre{
+  background:var(--color-surface-2);
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-lg);
+  padding:1.25rem 1.5rem;overflow-x:auto;
+  font-family:var(--font-mono);font-size:0.83rem;line-height:1.7;
+  box-shadow:var(--shadow-sm);
+}
+pre code{background:none;padding:0;border:none;color:var(--color-text);font-size:inherit}
+.comment{color:var(--color-text-faint)}
+.kw{color:var(--color-primary)}
+.str{color:var(--color-accent)}
+.fn{color:var(--color-warn)}
+
+/* NAV */
+nav{
+  position:sticky;top:0;z-index:100;
+  background:oklch(from var(--color-bg) l c h/0.88);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--color-border);
+  padding:0 clamp(1rem,5vw,3rem);height:60px;
+  display:flex;align-items:center;justify-content:space-between;gap:1rem;
+}
+.nav-brand{
+  display:flex;align-items:center;gap:0.6rem;
+  font-family:var(--font-display);font-weight:800;
+  font-size:1.05rem;color:var(--color-text);white-space:nowrap;
+}
+.nav-brand svg{flex-shrink:0}
+.nav-links{display:flex;align-items:center;gap:0.25rem}
+.nav-links a{
+  font-size:0.83rem;font-weight:500;color:var(--color-text-muted);
+  padding:0.35rem 0.75rem;border-radius:var(--radius-md);
+  transition:all 0.18s;
+}
+.nav-links a:hover{color:var(--color-text);background:var(--color-surface-offset);text-decoration:none}
+.theme-btn{
+  width:36px;height:36px;border-radius:var(--radius-md);
+  border:1px solid var(--color-border);background:var(--color-surface);
+  color:var(--color-text-muted);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:all 0.18s;
+}
+.theme-btn:hover{background:var(--color-surface-offset);color:var(--color-text)}
+
+/* HERO */
+.hero{
+  padding:clamp(3rem,7vw,6rem) clamp(1rem,5vw,3rem) clamp(2rem,5vw,4rem);
+  max-width:1100px;margin:0 auto;
+}
+.hero-eyebrow{
+  display:inline-flex;align-items:center;gap:0.5rem;
+  font-size:0.78rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;
+  color:var(--color-primary);background:var(--color-primary-highlight);
+  padding:0.3rem 0.85rem;border-radius:999px;margin-bottom:1.5rem;
+}
+.hero h1{
+  font-family:var(--font-display);font-weight:800;
+  font-size:clamp(2rem,1rem+3.5vw,3.75rem);
+  line-height:1.1;letter-spacing:-0.02em;color:var(--color-text);
+  margin-bottom:1.25rem;max-width:900px;
+}
+.hero h1 .accent{color:var(--color-primary)}
+.hero-desc{
+  font-size:clamp(1rem,0.95rem+0.3vw,1.2rem);color:var(--color-text-muted);
+  max-width:620px;line-height:1.7;margin-bottom:2rem;
+}
+.hero-badges{display:flex;flex-wrap:wrap;gap:0.6rem;margin-bottom:2.5rem}
+.badge{
+  display:inline-flex;align-items:center;gap:0.4rem;
+  padding:0.3rem 0.8rem;border-radius:999px;border:1px solid var(--color-border);
+  font-size:0.78rem;font-weight:500;color:var(--color-text-muted);
+  background:var(--color-surface);
+}
+.badge.green{border-color:var(--color-accent-highlight);color:var(--color-accent);background:oklch(from var(--color-accent) l c h/0.08)}
+.badge.teal{border-color:var(--color-primary-highlight);color:var(--color-primary);background:oklch(from var(--color-primary) l c h/0.08)}
+
+/* CONTENT */
+.content{max-width:1100px;margin:0 auto;padding:0 clamp(1rem,5vw,3rem) 5rem}
+
+.section-label{
+  display:flex;align-items:center;gap:0.75rem;
+  font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--color-text-faint);margin-bottom:1.25rem;
+}
+.section-label::after{content:'';flex:1;height:1px;background:var(--color-divider)}
+
+h2{
+  font-family:var(--font-display);font-weight:800;
+  font-size:clamp(1.5rem,0.8rem+2vw,2.25rem);
+  line-height:1.2;letter-spacing:-0.015em;
+  color:var(--color-text);margin-bottom:0.85rem;
+}
+h3{
+  font-family:var(--font-display);font-weight:700;
+  font-size:clamp(1.05rem,0.9rem+0.5vw,1.35rem);
+  color:var(--color-text);margin-bottom:0.6rem;
+}
+p{max-width:72ch;color:var(--color-text-muted);margin-bottom:1rem}
+
+.section{margin-bottom:4rem}
+
+/* STEP CARDS */
+.steps{display:flex;flex-direction:column;gap:0}
+.step{
+  display:grid;grid-template-columns:64px 1fr;gap:0 1.5rem;
+  position:relative;
+}
+.step-number-col{display:flex;flex-direction:column;align-items:center;gap:0}
+.step-num{
+  width:40px;height:40px;border-radius:50%;
+  background:var(--color-primary);color:#fff;
+  font-family:var(--font-display);font-weight:800;font-size:0.95rem;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;box-shadow:0 0 0 4px oklch(from var(--color-primary) l c h/0.15);
+  position:relative;z-index:1;
+}
+.step-line{width:2px;background:var(--color-border);flex:1;min-height:24px}
+.step:last-child .step-line{display:none}
+.step-body{
+  background:var(--color-surface);border:1px solid var(--color-border);
+  border-radius:var(--radius-xl);padding:1.5rem 1.75rem;
+  margin-bottom:1rem;box-shadow:var(--shadow-sm);
+  transition:box-shadow 0.2s,border-color 0.2s;
+}
+.step-body:hover{box-shadow:var(--shadow-md);border-color:oklch(from var(--color-primary) l c h/0.35)}
+.step-tag{
+  font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+  color:var(--color-primary);margin-bottom:0.35rem;
+}
+.step-body h3{margin-bottom:0.5rem;font-size:1.1rem}
+.step-body p{font-size:0.9rem;margin-bottom:0.85rem}
+.step-body pre{margin-top:0.75rem}
+.step-body .note{
+  display:flex;gap:0.6rem;align-items:flex-start;
+  background:var(--color-accent-highlight);border:1px solid oklch(from var(--color-accent) l c h/0.2);
+  border-radius:var(--radius-md);padding:0.65rem 0.9rem;
+  font-size:0.83rem;color:var(--color-text-muted);margin-top:0.75rem;
+}
+.step-body .note-warn{
+  background:var(--color-warn-highlight);border-color:oklch(from var(--color-warn) l c h/0.2);
+}
+.step-body .note svg{flex-shrink:0;margin-top:1px;color:var(--color-accent)}
+.step-body .note-warn svg{color:var(--color-warn)}
+
+/* FLOWCHART */
+.flow-wrap{
+  overflow-x:auto;padding:0.5rem 0 1.5rem;
+}
+.flowchart{
+  min-width:700px;background:var(--color-surface);
+  border:1px solid var(--color-border);border-radius:var(--radius-xl);
+  padding:2.5rem 2rem;box-shadow:var(--shadow-md);
+}
+.flow-nodes{
+  display:flex;align-items:flex-start;justify-content:center;gap:0;
+  flex-wrap:nowrap;
+}
+.flow-node{
+  display:flex;flex-direction:column;align-items:center;gap:0;
+  flex:1;min-width:120px;max-width:180px;
+}
+.flow-box{
+  width:100%;min-height:64px;
+  border-radius:var(--radius-lg);border:1.5px solid var(--color-border);
+  background:var(--color-surface-2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:0.75rem 0.5rem;
+  font-size:0.8rem;font-weight:600;color:var(--color-text);
+  box-shadow:var(--shadow-sm);position:relative;
+  transition:all 0.2s;cursor:default;
+}
+.flow-box:hover{box-shadow:var(--shadow-md);border-color:var(--color-primary)}
+.flow-box.start{background:var(--color-primary);color:#fff;border-color:var(--color-primary);border-radius:999px;min-height:52px}
+.flow-box.end{background:var(--color-accent);color:#fff;border-color:var(--color-accent);border-radius:999px;min-height:52px}
+.flow-box.decision{
+  transform:rotate(0);
+  background:var(--color-warn-highlight);border-color:oklch(from var(--color-warn) l c h/0.5);
+  clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);
+  min-height:88px;width:110px;
+}
+.flow-box.decision span{transform:none}
+.flow-icon{font-size:1.25rem;margin-bottom:0.2rem}
+.flow-label{font-size:0.68rem;color:var(--color-text-faint);margin-top:0.15rem;font-weight:500}
+.flow-arrow{
+  display:flex;align-items:center;justify-content:center;
+  color:var(--color-text-faint);padding:0 0.2rem;flex-shrink:0;margin-top:22px;
+}
+.flow-vgroup{display:flex;flex-direction:column;align-items:center;gap:0;flex:1;min-width:120px;max-width:180px}
+.flow-down{height:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--color-text-faint)}
+
+/* CATALOG GRID */
+.catalog-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr));
+  gap:1rem;margin-top:1rem;
+}
+.catalog-card{
+  background:var(--color-surface);border:1px solid var(--color-border);
+  border-radius:var(--radius-xl);padding:1.25rem 1.5rem;
+  box-shadow:var(--shadow-sm);transition:all 0.2s;
+}
+.catalog-card:hover{box-shadow:var(--shadow-md);border-color:oklch(from var(--color-primary) l c h/0.4);transform:translateY(-2px)}
+.catalog-card-header{display:flex;align-items:center;gap:0.75rem;margin-bottom:0.65rem}
+.catalog-icon{
+  width:36px;height:36px;border-radius:var(--radius-md);
+  background:var(--color-surface-offset);border:1px solid var(--color-border);
+  display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;
+}
+.catalog-card h4{font-size:0.95rem;font-weight:700;color:var(--color-text);margin:0}
+.catalog-card p{font-size:0.8rem;color:var(--color-text-faint);margin:0;line-height:1.5}
+.cat-tag{
+  display:inline-block;font-size:0.68rem;font-weight:600;letter-spacing:0.04em;
+  padding:0.15rem 0.55rem;border-radius:999px;margin-top:0.65rem;
+  background:var(--color-primary-highlight);color:var(--color-primary);
+}
+
+/* TIPS BOX */
+.tips-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:1rem;margin-top:1rem}
+.tip-card{
+  background:var(--color-surface);border:1px solid var(--color-border);
+  border-radius:var(--radius-xl);padding:1.25rem 1.5rem;
+  box-shadow:var(--shadow-sm);
+}
+.tip-icon{font-size:1.5rem;margin-bottom:0.5rem}
+.tip-card h4{font-size:0.95rem;font-weight:700;color:var(--color-text);margin-bottom:0.4rem}
+.tip-card p{font-size:0.83rem;color:var(--color-text-muted);margin:0;line-height:1.6}
+
+/* STRUCTURE TABLE */
+.table-wrap{overflow-x:auto;margin-top:0.75rem}
+table{width:100%;border-collapse:collapse;font-size:0.85rem}
+th{
+  background:var(--color-surface-offset);color:var(--color-text-muted);
+  font-weight:600;font-size:0.75rem;letter-spacing:0.04em;text-transform:uppercase;
+  padding:0.7rem 1rem;text-align:left;border-bottom:1px solid var(--color-border);
+}
+td{padding:0.75rem 1rem;border-bottom:1px solid var(--color-divider);color:var(--color-text-muted);vertical-align:top}
+tr:last-child td{border-bottom:none}
+td:first-child{color:var(--color-text);font-weight:600;font-family:var(--font-mono);font-size:0.8rem}
+.table-wrap table{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);overflow:hidden}
+
+/* FOOTER */
+footer{
+  border-top:1px solid var(--color-divider);
+  padding:2rem clamp(1rem,5vw,3rem);
+  text-align:center;color:var(--color-text-faint);font-size:0.78rem;
+  max-width:1100px;margin:0 auto;
+}
+
+@media(max-width:640px){
+  .nav-links{display:none}
+  .step{grid-template-columns:40px 1fr;gap:0 1rem}
+  .flow-nodes{overflow-x:auto}
+  .catalog-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-label="awesome-design-md logo">
+      <rect width="28" height="28" rx="7" fill="var(--color-primary)"/>
+      <path d="M7 10h6l2 8 2-8h4" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M18 14h3M21 14v5" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+    </svg>
+    awesome-design-md 使用指南
+  </div>
+  <div class="nav-links">
+    <a href="#what">什麼是 DESIGN.md</a>
+    <a href="#flowchart">流程圖</a>
+    <a href="#steps">安裝步驟</a>
+    <a href="#catalog">模板總覽</a>
+    <a href="#tips">使用技巧</a>
+  </div>
+  <button class="theme-btn" data-theme-toggle aria-label="切換主題">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  </button>
+</nav>
+
+<div class="hero">
+  <div class="hero-eyebrow">
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><circle cx="6" cy="6" r="6"/></svg>
+    快速上手指南 · 2026
+  </div>
+  <h1>用 <span class="accent">DESIGN.md</span> 打造<br>風格一致的 AI 生成 UI</h1>
+  <p class="hero-desc">awesome-design-md 收錄 58 個真實網站的設計系統文件，只需複製一個 DESIGN.md 到專案根目錄，AI Coding Agent 即可讀取並生成風格吻合的介面。</p>
+  <div class="hero-badges">
+    <span class="badge teal">📄 58 個 DESIGN.md 模板</span>
+    <span class="badge green">✓ 適用 Claude / Cursor / Copilot</span>
+    <span class="badge">🔗 GitHub: VoltAgent/awesome-design-md</span>
+    <span class="badge">MIT License</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- WHAT IS -->
+  <div class="section" id="what">
+    <div class="section-label">概念說明</div>
+    <h2>什麼是 DESIGN.md？</h2>
+    <p>DESIGN.md 是 Google Stitch 提出的概念——一個純文字 Markdown 設計系統文件，專門讓 AI Agent 讀取後生成風格一致的 UI。它不需要 Figma 匯出、JSON Schema 或任何特殊工具，直接放進專案根目錄即可使用。</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>文件</th><th>誰讀取</th><th>定義內容</th><th>舉例</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>AGENTS.md</td><td>Coding Agents</td><td>如何建構專案（技術架構、工具鏈）</td><td>使用 Next.js + Tailwind，禁止 jQuery</td></tr>
+          <tr><td>DESIGN.md</td><td>Design Agents / AI</td><td>UI 如何呈現（顏色、字型、元件樣式）</td><td>主色 #01696f、按鈕圓角 8px、Satoshi 字型</td></tr>
+          <tr><td>README.md</td><td>開發者</td><td>專案說明、如何啟動</td><td>npm install && npm run dev</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p style="margin-top:1.25rem">每個 awesome-design-md 的模板包含三個檔案：<code>DESIGN.md</code>（設計系統主文件）、<code>preview.html</code>（Light Mode 視覺預覽）、<code>preview-dark.html</code>（Dark Mode 視覺預覽），讓你在使用前可以先確認風格是否符合需求。</p>
+  </div>
+
+  <!-- FLOWCHART -->
+  <div class="section" id="flowchart">
+    <div class="section-label">完整流程</div>
+    <h2>新專案使用流程圖</h2>
+    <p>從確認需求到 AI 生成 UI，整個流程只需 5 個步驟。以下流程圖涵蓋選擇模板、本地安裝、到交給 AI Agent 的完整路徑。</p>
+
+    <div class="flow-wrap">
+      <div class="flowchart">
+
+        <!-- Row 1: Start to Browse -->
+        <div style="display:flex;align-items:center;justify-content:center;gap:0;overflow-x:auto">
+
+          <!-- START -->
+          <div style="display:flex;flex-direction:column;align-items:center;min-width:120px">
+            <div class="flow-box start" style="width:120px;font-size:0.85rem">
+              🚀<br>開始新專案
+            </div>
+          </div>
+
+          <!-- Arrow -->
+          <div class="flow-arrow">
+            <svg width="32" height="16" viewBox="0 0 32 16" fill="none"><path d="M0 8h28M22 2l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+
+          <!-- Step 1 -->
+          <div style="display:flex;flex-direction:column;align-items:center;min-width:140px;max-width:160px">
+            <div class="flow-box" style="width:100%">
+              <div class="flow-icon">🌐</div>
+              <div>瀏覽 GitHub 倉庫</div>
+              <div class="flow-label">VoltAgent/awesome-design-md</div>
+            </div>
+          </div>
+
+          <!-- Arrow -->
+          <div class="flow-arrow">
+            <svg width="32" height="16" viewBox="0 0 32 16" fill="none"><path d="M0 8h28M22 2l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+
+          <!-- Step 2 -->
+          <div style="display:flex;flex-direction:column;align-items:center;min-width:140px;max-width:160px">
+            <div class="flow-box" style="width:100%;background:var(--color-primary-highlight);border-color:oklch(from var(--color-primary) l c h/0.4)">
+              <div class="flow-icon">👁️</div>
+              <div>預覽 HTML 確認風格</div>
+              <div class="flow-label">preview.html / preview-dark.html</div>
+            </div>
+          </div>
+
+          <!-- Arrow -->
+          <div class="flow-arrow">
+            <svg width="32" height="16" viewBox="0 0 32 16" fill="none"><path d="M0 8h28M22 2l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+
+          <!-- Step 3 -->
+          <div style="display:flex;flex-direction:column;align-items:center;min-width:140px;max-width:160px">
+            <div class="flow-box" style="width:100%">
+              <div class="flow-icon">✅</div>
+              <div>選定模板</div>
+              <div class="flow-label">例如 Vercel / Linear / Notion</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Divider -->
+        <div style="height:28px;display:flex;justify-content:center;align-items:center">
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <svg width="16" height="28" viewBox="0 0 16 28" fill="none"><path d="M8 0v24M2 18l6 8 6-8" stroke="var(--color-text-faint)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+
+        <!-- Row 2 label -->
+        <div style="text-align:center;margin-bottom:16px">
+          <span style="font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-text-faint);background:var(--color-surface-offset);padding:0.2rem 0.75rem;border-radius:999px;">安裝到本地端</span>
+        </div>
+
+        <!-- Row 2 -->
+        <div style="display:flex;align-items:center;justify-content:center;gap:0;overflow-x:auto">
+
+          <!-- Clone options box -->
+          <div style="display:flex;flex-direction:column;align-items:center;min-width:140px;max-width:170px">
+            <div class="flow-box" style="width:100%;background:var(--color-warn-highlight);border-color:oklch(from var(--color-warn) l c h/0.4)">
+              <div class="flow-icon">🍴</div>
+              <div>選擇取得方式</div>
+              <div class="flow-label">Clone 或 手動下載</div>
+            </div>
+          </div>
+
+          <!-- Arrow & branch label -->
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <div class="flow-arrow">
+              <svg width="36" height="16" viewBox="0 0 36 16" fill="none"><path d="M0 8h32M26 2l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div style="font-size:0.65rem;color:var(--color-primary);font-weight:600;margin-top:2px">git clone</div>
+          </div>
+
+          <!-- Step 4a -->
+          <div style="display:flex;flex-direction:column;align-items:center;min-width:150px;max-width:175px">
+            <div class="flow-box" style="width:100%">
+              <div class="flow-icon">📥</div>
+              <div>Clone 整個 Repo</div>
+              <div class="flow-label">本地快速查找所有模板</div>
+            </div>
+          </div>
+
+          <div style="padding:0 1.5rem;color:var(--color-text-faint);font-weight:700;font-size:0.9rem;flex-shrink:0">OR</div>
+
+          <!-- Step 4b -->
+          <div style="display:flex;flex-direction:column;align-items:center;min-width:150px;max-width:175px">
+            <div class="flow-box" style="width:100%;background:var(--color-accent-highlight);border-color:oklch(from var(--color-accent) l c h/0.4)">
+              <div class="flow-icon">📋</div>
+              <div>Raw 複製 DESIGN.md</div>
+              <div class="flow-label">只需單一檔案最輕量</div>
+            </div>
+          </div>
+
+          <!-- Arrow -->
+          <div class="flow-arrow">
+            <svg width="32" height="16" viewBox="0 0 32 16" fill="none"><path d="M0 8h28M22 2l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+
+          <!-- Step 5 -->
+          <div style="display:flex;flex-direction:column;align-items:center;min-width:150px;max-width:175px">
+            <div class="flow-box" style="width:100%;background:var(--color-primary-highlight);border-color:oklch(from var(--color-primary) l c h/0.5)">
+              <div class="flow-icon">📁</div>
+              <div>放到專案根目錄</div>
+              <div class="flow-label">my-project/DESIGN.md</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Divider -->
+        <div style="height:28px;display:flex;justify-content:center;align-items:center">
+          <svg width="16" height="28" viewBox="0 0 16 28" fill="none"><path d="M8 0v24M2 18l6 8 6-8" stroke="var(--color-text-faint)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+
+        <!-- Row 3 label -->
+        <div style="text-align:center;margin-bottom:16px">
+          <span style="font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-text-faint);background:var(--color-surface-offset);padding:0.2rem 0.75rem;border-radius:999px;">交給 AI Agent 使用</span>
+        </div>
+
+        <!-- Row 3 -->
+        <div style="display:flex;align-items:center;justify-content:center;gap:0;overflow-x:auto">
+
+          <div style="display:flex;flex-direction:column;align-items:center;min-width:140px;max-width:165px">
+            <div class="flow-box" style="width:100%">
+              <div class="flow-icon">✏️</div>
+              <div>修改 DESIGN.md</div>
+              <div class="flow-label">調整品牌色、字型等</div>
+            </div>
+          </div>
+
+          <div class="flow-arrow">
+            <svg width="32" height="16" viewBox="0 0 32 16" fill="none"><path d="M0 8h28M22 2l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;min-width:140px;max-width:165px">
+            <div class="flow-box" style="width:100%;background:var(--color-primary-highlight);border-color:oklch(from var(--color-primary) l c h/0.5)">
+              <div class="flow-icon">🤖</div>
+              <div>告知 AI Agent</div>
+              <div class="flow-label">"use DESIGN.md style"</div>
+            </div>
+          </div>
+
+          <div class="flow-arrow">
+            <svg width="32" height="16" viewBox="0 0 32 16" fill="none"><path d="M0 8h28M22 2l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;min-width:140px;max-width:165px">
+            <div class="flow-box" style="width:100%">
+              <div class="flow-icon">🏗️</div>
+              <div>AI 生成 UI 元件</div>
+              <div class="flow-label">風格一致的程式碼</div>
+            </div>
+          </div>
+
+          <div class="flow-arrow">
+            <svg width="32" height="16" viewBox="0 0 32 16" fill="none"><path d="M0 8h28M22 2l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;min-width:120px">
+            <div class="flow-box end" style="width:120px;font-size:0.85rem">
+              🎉<br>完成設計
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- STEPS -->
+  <div class="section" id="steps">
+    <div class="section-label">詳細步驟</div>
+    <h2>逐步安裝說明</h2>
+    <p>以下五個步驟帶你從零開始，將 awesome-design-md 模板應用到新專案。</p>
+
+    <div class="steps" style="margin-top:2rem">
+
+      <!-- Step 1 -->
+      <div class="step">
+        <div class="step-number-col">
+          <div class="step-num">1</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-body">
+          <div class="step-tag">瀏覽 & 選擇模板</div>
+          <h3>前往 GitHub 瀏覽 58 個設計模板</h3>
+          <p>進入 <a href="https://github.com/VoltAgent/awesome-design-md/tree/main/design-md" target="_blank">design-md/</a> 資料夾，每個子目錄對應一個網站的設計系統。建議先在瀏覽器打開 <code>preview.html</code> 或 <code>preview-dark.html</code> 確認視覺風格，再決定要使用哪個模板。</p>
+          <div class="note">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span><strong>推薦從這幾個開始：</strong> <code>vercel/</code>（極簡黑白）、<code>linear.app/</code>（紫色精準感）、<code>notion/</code>（暖色調極簡）、<code>figma/</code>（鮮豔多色）</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step">
+        <div class="step-number-col">
+          <div class="step-num">2</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-body">
+          <div class="step-tag">取得模板 — 方法 A</div>
+          <h3>Clone 整個 Repository（推薦首次使用者）</h3>
+          <p>將整個倉庫 Clone 到本地，方便離線瀏覽所有 58 個模板並快速比較。</p>
+          <pre><code><span class="comment"># Clone 整個倉庫到本地</span>
+<span class="fn">git</span> clone https://github.com/VoltAgent/awesome-design-md.git
+
+<span class="comment"># 進入目錄</span>
+<span class="fn">cd</span> awesome-design-md
+
+<span class="comment"># 查看所有可用模板</span>
+<span class="fn">ls</span> design-md/</code></pre>
+          <div class="note">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>Clone 後可在瀏覽器直接打開各資料夾的 <code>preview.html</code> 預覽視覺效果，再決定複製哪個 DESIGN.md。</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="step">
+        <div class="step-number-col">
+          <div class="step-num">3</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-body">
+          <div class="step-tag">取得模板 — 方法 B</div>
+          <h3>直接下載單一 DESIGN.md（輕量快速）</h3>
+          <p>若只需要特定一個模板，可以直接用 <code>curl</code> 或 <code>wget</code> 下載原始 Markdown 檔案。</p>
+          <pre><code><span class="comment"># 以 Vercel 風格為例，直接下載到當前專案根目錄</span>
+<span class="fn">curl</span> -o DESIGN.md   https://raw.githubusercontent.com/VoltAgent/awesome-design-md/main/design-md/vercel/DESIGN.md
+
+<span class="comment"># 或使用 wget</span>
+<span class="fn">wget</span> -O DESIGN.md   https://raw.githubusercontent.com/VoltAgent/awesome-design-md/main/design-md/linear.app/DESIGN.md
+
+<span class="comment"># 其他熱門模板 URL 格式</span>
+<span class="comment"># .../design-md/notion/DESIGN.md</span>
+<span class="comment"># .../design-md/figma/DESIGN.md</span>
+<span class="comment"># .../design-md/stripe/DESIGN.md</span></code></pre>
+          <div class="note note-warn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+            <span>也可以在 GitHub 網頁上找到 DESIGN.md 檔案，點擊「Raw」按鈕，然後 <kbd>Cmd+S</kbd> 儲存到專案根目錄。</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="step">
+        <div class="step-number-col">
+          <div class="step-num">4</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-body">
+          <div class="step-tag">整合到新專案</div>
+          <h3>將 DESIGN.md 放入專案根目錄並依需求修改</h3>
+          <p>確保 DESIGN.md 位於你的專案根目錄（與 <code>package.json</code> 同層）。然後用任何文字編輯器打開，修改品牌色彩、字型名稱等關鍵 token。</p>
+          <pre><code><span class="comment"># 你的專案結構應該如下</span>
+my-project/
+├── <span class="str">DESIGN.md</span>          <span class="comment">← 放在根目錄</span>
+├── AGENTS.md          <span class="comment">← (選填) AI 建構指引</span>
+├── package.json
+├── src/
+│   ├── components/
+│   └── pages/
+└── README.md
+
+<span class="comment"># 如果是從 Clone 的倉庫複製過來</span>
+<span class="fn">cp</span> ~/awesome-design-md/design-md/vercel/DESIGN.md ./DESIGN.md</code></pre>
+          <div class="note">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span><strong>常見需要修改的項目：</strong> 品牌主色 hex 值、字型名稱（如換成自己已授權的字型）、公司或專案名稱、特定元件的圓角大小。</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 5 -->
+      <div class="step">
+        <div class="step-number-col">
+          <div class="step-num">5</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-body">
+          <div class="step-tag">告知 AI Agent</div>
+          <h3>在 Prompt 中引用 DESIGN.md 讓 AI 生成對應風格</h3>
+          <p>只要告訴你的 AI Coding Agent（Claude / Cursor / GitHub Copilot）參照 DESIGN.md，它就會自動讀取並生成風格一致的 UI 程式碼。</p>
+          <pre><code><span class="comment">-- Claude Code / Cursor 的 Prompt 範例 --</span>
+
+<span class="str">"Build me a dashboard page following the design system 
+defined in DESIGN.md. Include a sidebar navigation, 
+KPI cards, and a data table."</span>
+
+<span class="comment">-- 或更精確的指令 --</span>
+
+<span class="str">"Create a login form component using the color tokens, 
+typography scale, and button styles from DESIGN.md. 
+Use the primary button style for the submit action."</span>
+
+<span class="comment">-- 搭配 Agent Prompt Guide（DESIGN.md 第 9 節）--</span>
+
+<span class="str">"Use the quick color reference in Section 9 of DESIGN.md 
+to style this card component."</span></code></pre>
+          <div class="note">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>每個 DESIGN.md 的<strong>第 9 節（Agent Prompt Guide）</strong>都包含已整理好的顏色速查表和現成可用的 Prompt 模板，可以直接複製使用。</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- DESIGN.md STRUCTURE -->
+  <div class="section">
+    <div class="section-label">檔案結構</div>
+    <h2>DESIGN.md 內容結構</h2>
+    <p>每個 DESIGN.md 遵循 Google Stitch 格式並有擴充，包含 9 個標準化章節，讓 AI 能精確理解每個設計決策。</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>#</th><th>章節名稱</th><th>包含內容</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>Visual Theme & Atmosphere</td><td>整體氛圍、設計哲學、密度感（例如：極簡、技術感、溫暖）</td></tr>
+          <tr><td>2</td><td>Color Palette & Roles</td><td>Semantic 顏色名稱 + HEX 值 + 功能角色（primary, error, warning…）</td></tr>
+          <tr><td>3</td><td>Typography Rules</td><td>字型家族、完整字型階層表、字重規則</td></tr>
+          <tr><td>4</td><td>Component Stylings</td><td>按鈕、卡片、輸入框、導航列各狀態（hover, active, disabled）</td></tr>
+          <tr><td>5</td><td>Layout Principles</td><td>間距比例尺、格線系統、留白哲學</td></tr>
+          <tr><td>6</td><td>Depth & Elevation</td><td>陰影系統、表面層次（surface hierarchy）</td></tr>
+          <tr><td>7</td><td>Do's and Don'ts</td><td>設計護欄與反模式清單（避免使用的顏色組合、元素等）</td></tr>
+          <tr><td>8</td><td>Responsive Behavior</td><td>斷點設定、觸控目標大小、摺疊策略</td></tr>
+          <tr><td>9</td><td>Agent Prompt Guide</td><td>顏色速查表、即用 Prompt 模板（重要：AI 最常參考此節）</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CATALOG -->
+  <div class="section" id="catalog">
+    <div class="section-label">模板精選</div>
+    <h2>熱門設計模板推薦</h2>
+    <p>根據不同設計風格和產品類型整理，選擇最接近你目標風格的模板作為起點。</p>
+
+    <div class="catalog-grid">
+      <div class="catalog-card">
+        <div class="catalog-card-header">
+          <div class="catalog-icon">▲</div>
+          <div><h4>Vercel</h4></div>
+        </div>
+        <p>黑白精準，Geist 字型，前端部署平台</p>
+        <span class="cat-tag">極簡 / 工具型</span>
+      </div>
+      <div class="catalog-card">
+        <div class="catalog-card-header">
+          <div class="catalog-icon">◆</div>
+          <div><h4>Linear</h4></div>
+        </div>
+        <p>Ultra-minimal、精準紫色 accent、工程師美學</p>
+        <span class="cat-tag">SaaS / 生產力</span>
+      </div>
+      <div class="catalog-card">
+        <div class="catalog-card-header">
+          <div class="catalog-icon">📝</div>
+          <div><h4>Notion</h4></div>
+        </div>
+        <p>暖色極簡、Serif 標題、柔和表面層次</p>
+        <span class="cat-tag">內容 / 工作區</span>
+      </div>
+      <div class="catalog-card">
+        <div class="catalog-card-header">
+          <div class="catalog-icon">🎨</div>
+          <div><h4>Figma</h4></div>
+        </div>
+        <p>鮮豔多色、活潑專業並存</p>
+        <span class="cat-tag">設計工具 / 品牌</span>
+      </div>
+      <div class="catalog-card">
+        <div class="catalog-card-header">
+          <div class="catalog-icon">💳</div>
+          <div><h4>Stripe</h4></div>
+        </div>
+        <p>標誌性紫色漸層、weight-300 優雅感</p>
+        <span class="cat-tag">Fintech / 企業</span>
+      </div>
+      <div class="catalog-card">
+        <div class="catalog-card-header">
+          <div class="catalog-icon">🍎</div>
+          <div><h4>Apple</h4></div>
+        </div>
+        <p>頂級留白、SF Pro 字型、電影感攝影</p>
+        <span class="cat-tag">Premium / 消費品</span>
+      </div>
+      <div class="catalog-card">
+        <div class="catalog-card-header">
+          <div class="catalog-icon">🤖</div>
+          <div><h4>Claude</h4></div>
+        </div>
+        <p>暖赭石 accent、乾淨編輯排版</p>
+        <span class="cat-tag">AI / 對話介面</span>
+      </div>
+      <div class="catalog-card">
+        <div class="catalog-card-header">
+          <div class="catalog-icon">🟢</div>
+          <div><h4>Supabase</h4></div>
+        </div>
+        <p>深色翡翠主題、程式碼優先美學</p>
+        <span class="cat-tag">開發者工具 / Dark</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TIPS -->
+  <div class="section" id="tips">
+    <div class="section-label">使用技巧</div>
+    <h2>進階使用技巧</h2>
+
+    <div class="tips-grid">
+      <div class="tip-card">
+        <div class="tip-icon">🔀</div>
+        <h4>混搭不同模板</h4>
+        <p>可以取 Vercel 的顏色系統、Linear 的元件規範、Notion 的字型規則，手動組合出符合品牌的 DESIGN.md。</p>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">📌</div>
+        <h4>加入 AGENTS.md</h4>
+        <p>同時在根目錄放 AGENTS.md 定義技術架構（框架、禁用函式庫等），讓 AI 同時理解設計與技術限制。</p>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">🎯</div>
+        <h4>引用第 9 節 Prompt Guide</h4>
+        <p>DESIGN.md 的最後一節是專為 AI 整理的速查表，Prompt 中明確指向 "Section 9" 可提升生成精準度。</p>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">👁️</div>
+        <h4>先看 preview.html</h4>
+        <p>Clone 後打開各模板的 preview.html，用瀏覽器直接確認視覺效果，比讀 Markdown 文字更直觀快速。</p>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">✏️</div>
+        <h4>維護版本控制</h4>
+        <p>修改後的 DESIGN.md 納入 Git 版本控制，方便團隊協作時每位成員都參照相同的設計基準。</p>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">🔁</div>
+        <h4>反饋修正循環</h4>
+        <p>AI 生成後若風格不符，在 DESIGN.md 中修正對應 token（如調整主色或陰影），再重新請 AI 生成直到滿意。</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <p>資料來源：<a href="https://github.com/VoltAgent/awesome-design-md" target="_blank">VoltAgent/awesome-design-md</a> · MIT License · 指南製作：Perplexity AI · 2026-04-08</p>
+</footer>
+
+<script>
+(function(){
+  const btn=document.querySelector('[data-theme-toggle]');
+  const root=document.documentElement;
+  let theme=root.getAttribute('data-theme')||'dark';
+  const sunIcon='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>';
+  const moonIcon='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+  function setTheme(t){
+    theme=t;root.setAttribute('data-theme',t);
+    btn.innerHTML=t==='dark'?sunIcon:moonIcon;
+    btn.setAttribute('aria-label','切換到'+(t==='dark'?'亮色':'暗色')+'模式');
+  }
+  setTheme(theme);
+  btn&&btn.addEventListener('click',()=>setTheme(theme==='dark'?'light':'dark'));
+})();
+</script>
+</body>
+</html>
