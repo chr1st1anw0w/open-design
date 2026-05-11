@@ -1,0 +1,2207 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Skills Gallery</title>
+
+  <style>
+    /* =========================
+       Replit-deck (helix) vibe:
+       - near-white bg
+       - ink fg
+       - muted gray
+       - hairline border
+       - electric blue accent
+       - display: Inter-ish, body: system-ui, mono: JetBrains-like
+       ========================= */
+
+    :root {
+      --bg: #fafafa;
+      --fg: #19191c;
+      --muted: #6e6e73;
+      --border: #e4e4e7;
+      --accent: #5889fe;
+
+      --surface: #ffffff;
+      --surface-2: #f5f5f7;
+
+      --shadow: 0 1px 0 rgba(10, 10, 12, 0.04), 0 8px 24px rgba(10, 10, 12, 0.06);
+
+      --radius: 14px;
+      --radius-sm: 12px;
+
+      --maxw: 1200px;
+
+      --font-display: ui-sans-serif, system-ui, -apple-system, "SF Pro Display", "SF Pro Text",
+        "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+      --font-body: ui-sans-serif, system-ui, -apple-system, "SF Pro Text",
+        "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+      --font-mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+      /* thumbnail sizing (overridden by data-thumb) */
+      --thumb-h: 148px; /* medium default: 16:9-ish area inside card */
+      --grid-min: 260px;
+    }
+
+    html[data-theme="dark"] {
+      --bg: #0f1115;
+      --fg: #f2f3f5;
+      --muted: #a0a4ad;
+      --border: #262a33;
+      --accent: #7aa2ff;
+
+      --surface: #141824;
+      --surface-2: #101422;
+
+      --shadow: 0 1px 0 rgba(0,0,0,0.3), 0 18px 50px rgba(0,0,0,0.40);
+    }
+
+    html[data-thumb="sm"] { --thumb-h: 120px; }
+    html[data-thumb="md"] { --thumb-h: 148px; }
+    html[data-thumb="lg"] { --thumb-h: 190px; }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button, input { font: inherit; color: inherit; }
+
+    /* ---------- Header (sticky) ---------- */
+    .topbar-wrap {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(12px);
+      background: color-mix(in oklch, var(--bg) 85%, transparent);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .topbar {
+      max-width: var(--maxw);
+      margin: 0 auto;
+      padding: 14px 18px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 650;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+
+    .brand .meta {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .search {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 8px 12px;
+      min-width: min(420px, 72vw);
+      box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+    }
+
+    html[data-theme="dark"] .search { box-shadow: none; }
+
+    .search .k {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      text-transform: uppercase;
+      user-select: none;
+    }
+
+    .search input {
+      border: none;
+      outline: none;
+      background: transparent;
+      width: 100%;
+      font-size: 14px;
+    }
+
+    .chipbar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .seg {
+      display: inline-flex;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      overflow: hidden;
+      background: var(--surface);
+    }
+    .seg button {
+      border: none;
+      background: transparent;
+      padding: 8px 10px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .seg button[aria-pressed="true"] {
+      color: var(--fg);
+      background: color-mix(in oklch, var(--accent) 12%, var(--surface));
+    }
+
+    .iconbtn {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: 999px;
+      padding: 8px 10px;
+      cursor: pointer;
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+    }
+    html[data-theme="dark"] .iconbtn { box-shadow: none; }
+    .iconbtn .label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* ---------- Main ---------- */
+    .main {
+      max-width: var(--maxw);
+      margin: 0 auto;
+      padding: 18px 18px 48px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(var(--grid-min), 1fr));
+      gap: 14px;
+    }
+
+    /* content-visibility for big lists */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 1px 0 rgba(10,10,12,0.03);
+      transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+      content-visibility: auto;
+      contain-intrinsic-size: 320px 380px;
+    }
+    html[data-theme="dark"] .card { box-shadow: none; }
+
+    .card:hover {
+      transform: translateY(-1px);
+      border-color: color-mix(in oklch, var(--accent) 18%, var(--border));
+      box-shadow: var(--shadow);
+    }
+
+    .thumb {
+      position: relative;
+      width: 100%;
+      height: var(--thumb-h);
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      overflow: hidden;
+    }
+
+    .thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top;
+      display: block;
+      transform: scale(1.0);
+      transition: transform 180ms ease;
+    }
+    .card:hover .thumb img { transform: scale(1.02); }
+
+    .thumb .placeholder {
+      height: 100%;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 18px;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      user-select: none;
+    }
+
+    .body {
+      padding: 12px 12px 12px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .title {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 650;
+      letter-spacing: -0.01em;
+      line-height: 1.25;
+      word-break: break-word;
+    }
+
+    .path {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.02em;
+      color: var(--muted);
+      line-height: 1.35;
+      word-break: break-word;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      padding-top: 4px;
+    }
+
+    .btn {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: 999px;
+      padding: 8px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      color: var(--fg);
+      transition: background 120ms ease, border-color 120ms ease;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .btn.secondary { color: var(--muted); }
+    .btn.primary {
+      border-color: color-mix(in oklch, var(--accent) 40%, var(--border));
+      background: color-mix(in oklch, var(--accent) 10%, var(--surface));
+    }
+
+    .btn:hover {
+      border-color: color-mix(in oklch, var(--accent) 22%, var(--border));
+      background: color-mix(in oklch, var(--accent) 8%, var(--surface));
+    }
+
+    .btn:active { transform: translateY(1px); }
+
+    .btn .mono {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+    }
+
+    /* ---------- Modal ---------- */
+    .modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      z-index: 50;
+    }
+    .modal[aria-hidden="false"] { display: block; }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+    }
+    html[data-theme="dark"] .overlay { background: rgba(0,0,0,0.65); }
+
+    .sheet {
+      position: absolute;
+      inset: 18px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 0;
+    }
+
+    .modalbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 12px;
+      border-bottom: 1px solid var(--border);
+      background: color-mix(in oklch, var(--surface) 90%, transparent);
+      backdrop-filter: blur(10px);
+      min-width: 0;
+    }
+
+    .modalbar .left {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+    .modalbar .name {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 650;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: min(70vw, 720px);
+    }
+    .modalbar .sub {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: min(70vw, 720px);
+    }
+
+    .modalbar .right { display: flex; gap: 8px; align-items: center; }
+
+    .closebtn {
+      width: 38px;
+      height: 38px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .frame {
+      min-height: 0;
+      background: var(--surface-2);
+    }
+    .frame iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+      background: #fff;
+    }
+
+    /* ---------- Toast ---------- */
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 10px 12px;
+      box-shadow: var(--shadow);
+      z-index: 60;
+      display: none;
+      max-width: min(92vw, 780px);
+    }
+    .toast[aria-hidden="false"] { display: block; }
+
+    .toast .t {
+      font-size: 13px;
+      color: var(--fg);
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .toast .t .mono {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* ---------- Small screens ---------- */
+    @media (max-width: 680px) {
+      .topbar { grid-template-columns: 1fr; }
+      .controls { justify-content: flex-start; }
+      .search { min-width: 100%; }
+      .sheet { inset: 10px; }
+      .modalbar .name { max-width: 86vw; }
+      .grid { gap: 12px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="topbar-wrap">
+    <div class="topbar">
+      <div class="brand">
+        <h1>Skills Gallery</h1>
+        <div class="meta" id="countLabel">—</div>
+      </div>
+
+      <div class="controls">
+        <div class="search" role="search">
+          <span class="k">Search</span>
+          <input id="q" type="search" placeholder="輸入技能名稱…" autocomplete="off" />
+        </div>
+
+        <div class="chipbar">
+          <!-- Thumb size -->
+          <div class="seg" aria-label="Thumbnail size">
+            <button class="thumbSeg" data-thumb="sm" aria-pressed="false" title="小縮圖">S</button>
+            <button class="thumbSeg" data-thumb="md" aria-pressed="true"  title="中縮圖">M</button>
+            <button class="thumbSeg" data-thumb="lg" aria-pressed="false" title="大縮圖">L</button>
+          </div>
+
+          <!-- Theme toggle -->
+          <button class="iconbtn" id="themeBtn" title="切換淺色/深色">
+            <span aria-hidden="true">◐</span>
+            <span class="label" id="themeLabel">Light</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <main class="main">
+    <div class="grid" id="grid"></div>
+  </main>
+
+  <!-- Modal -->
+  <div class="modal" id="modal" aria-hidden="true">
+    <div class="overlay" id="overlay"></div>
+    <div class="sheet" role="dialog" aria-modal="true" aria-label="Preview">
+      <div class="modalbar">
+        <div class="left">
+          <div class="name" id="modalName">—</div>
+          <div class="sub" id="modalSub">—</div>
+        </div>
+        <div class="right">
+          <a class="btn primary" id="modalOpen" href="#" target="_blank" rel="noopener">
+            <span aria-hidden="true">↗</span> <span class="mono">New Tab</span>
+          </a>
+          <button class="closebtn" id="closeBtn" aria-label="Close">×</button>
+        </div>
+      </div>
+      <div class="frame">
+        <iframe
+          id="frame"
+          src="about:blank"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+          referrerpolicy="no-referrer"
+        ></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast" aria-hidden="true">
+    <div class="t">
+      <span class="mono">Copied</span>
+      <span id="toastMsg">—</span>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * RECORDS format (from your Python pre-gen):
+     * var RECORDS = [
+     *  {
+     *    "stem": "audio-jingle_example",
+     *    "html_src": "/Users/christianwu/open-design/skills/audio-jingle_example.html",
+     *    "html_export": "audio-jingle_example.html",
+     *    "png_export": "audio-jingle_example.png" // "" if missing
+     *  },
+     *  ...
+     * ];
+     */
+// <<< RECORDS:AUTOGEN:START >>>
+var RECORDS = [
+  {
+    "stem": "audio-jingle_example",
+    "html_src": "./audio-jingle_example.html",
+    "html_export": "./audio-jingle_example.html",
+    "png_export": "./audio-jingle_example.png"
+  },
+  {
+    "stem": "awesome-design-md_awesome-design-md-guide",
+    "html_src": "./awesome-design-md_awesome-design-md-guide.html",
+    "html_export": "./awesome-design-md_awesome-design-md-guide.html",
+    "png_export": ""
+  },
+  {
+    "stem": "blog-post_example",
+    "html_src": "./blog-post_example.html",
+    "html_export": "./blog-post_example.html",
+    "png_export": "./blog-post_example.png"
+  },
+  {
+    "stem": "clinical-case-report_example",
+    "html_src": "./clinical-case-report_example.html",
+    "html_export": "./clinical-case-report_example.html",
+    "png_export": "./clinical-case-report_example.png"
+  },
+  {
+    "stem": "clinical-case-report_examples_example-stemi",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./clinical-case-report_examples_example-stemi.png"
+  },
+  {
+    "stem": "critique_example",
+    "html_src": "./critique_example.html",
+    "html_export": "./critique_example.html",
+    "png_export": "./critique_example.png"
+  },
+  {
+    "stem": "dashboard_example",
+    "html_src": "./dashboard_example.html",
+    "html_export": "./dashboard_example.html",
+    "png_export": "./dashboard_example.png"
+  },
+  {
+    "stem": "dating-web_example",
+    "html_src": "./dating-web_example.html",
+    "html_export": "./dating-web_example.html",
+    "png_export": "./dating-web_example.png"
+  },
+  {
+    "stem": "digital-eguide_example",
+    "html_src": "./digital-eguide_example.html",
+    "html_export": "./digital-eguide_example.html",
+    "png_export": "./digital-eguide_example.png"
+  },
+  {
+    "stem": "docs-page_example",
+    "html_src": "./docs-page_example.html",
+    "html_export": "./docs-page_example.html",
+    "png_export": "./docs-page_example.png"
+  },
+  {
+    "stem": "email-marketing_example",
+    "html_src": "./email-marketing_example.html",
+    "html_export": "./email-marketing_example.html",
+    "png_export": "./email-marketing_example.png"
+  },
+  {
+    "stem": "eng-runbook_example",
+    "html_src": "./eng-runbook_example.html",
+    "html_export": "./eng-runbook_example.html",
+    "png_export": "./eng-runbook_example.png"
+  },
+  {
+    "stem": "finance-report_example",
+    "html_src": "./finance-report_example.html",
+    "html_export": "./finance-report_example.html",
+    "png_export": "./finance-report_example.png"
+  },
+  {
+    "stem": "flowai-live-dashboard-template_assets_template",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./flowai-live-dashboard-template_assets_template.png"
+  },
+  {
+    "stem": "flowai-live-dashboard-template_example",
+    "html_src": "./flowai-live-dashboard-template_example.html",
+    "html_export": "./flowai-live-dashboard-template_example.html",
+    "png_export": "./flowai-live-dashboard-template_example.png"
+  },
+  {
+    "stem": "gamified-app_example",
+    "html_src": "./gamified-app_example.html",
+    "html_export": "./gamified-app_example.html",
+    "png_export": "./gamified-app_example.png"
+  },
+  {
+    "stem": "github-dashboard_example",
+    "html_src": "./github-dashboard_example.html",
+    "html_export": "./github-dashboard_example.html",
+    "png_export": "./github-dashboard_example.png"
+  },
+  {
+    "stem": "github-dashboard_references_template",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./github-dashboard_references_template.png"
+  },
+  {
+    "stem": "guizang-ppt_assets_example-slides",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./guizang-ppt_assets_example-slides.png"
+  },
+  {
+    "stem": "guizang-ppt_assets_template",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./guizang-ppt_assets_template.png"
+  },
+  {
+    "stem": "hr-onboarding_example",
+    "html_src": "./hr-onboarding_example.html",
+    "html_export": "./hr-onboarding_example.html",
+    "png_export": "./hr-onboarding_example.png"
+  },
+  {
+    "stem": "html-ppt-course-module_example",
+    "html_src": "./html-ppt-course-module_example.html",
+    "html_export": "./html-ppt-course-module_example.html",
+    "png_export": "./html-ppt-course-module_example.png"
+  },
+  {
+    "stem": "html-ppt-dir-key-nav-minimal_example",
+    "html_src": "./html-ppt-dir-key-nav-minimal_example.html",
+    "html_export": "./html-ppt-dir-key-nav-minimal_example.html",
+    "png_export": "./html-ppt-dir-key-nav-minimal_example.png"
+  },
+  {
+    "stem": "html-ppt-graphify-dark-graph_example",
+    "html_src": "./html-ppt-graphify-dark-graph_example.html",
+    "html_export": "./html-ppt-graphify-dark-graph_example.html",
+    "png_export": "./html-ppt-graphify-dark-graph_example.png"
+  },
+  {
+    "stem": "html-ppt-hermes-cyber-terminal_example",
+    "html_src": "./html-ppt-hermes-cyber-terminal_example.html",
+    "html_export": "./html-ppt-hermes-cyber-terminal_example.html",
+    "png_export": "./html-ppt-hermes-cyber-terminal_example.png"
+  },
+  {
+    "stem": "html-ppt-knowledge-arch-blueprint_example",
+    "html_src": "./html-ppt-knowledge-arch-blueprint_example.html",
+    "html_export": "./html-ppt-knowledge-arch-blueprint_example.html",
+    "png_export": "./html-ppt-knowledge-arch-blueprint_example.png"
+  },
+  {
+    "stem": "html-ppt-obsidian-claude-gradient_example",
+    "html_src": "./html-ppt-obsidian-claude-gradient_example.html",
+    "html_export": "./html-ppt-obsidian-claude-gradient_example.html",
+    "png_export": "./html-ppt-obsidian-claude-gradient_example.png"
+  },
+  {
+    "stem": "html-ppt-pitch-deck_example",
+    "html_src": "./html-ppt-pitch-deck_example.html",
+    "html_export": "./html-ppt-pitch-deck_example.html",
+    "png_export": "./html-ppt-pitch-deck_example.png"
+  },
+  {
+    "stem": "html-ppt-presenter-mode-reveal_example",
+    "html_src": "./html-ppt-presenter-mode-reveal_example.html",
+    "html_export": "./html-ppt-presenter-mode-reveal_example.html",
+    "png_export": "./html-ppt-presenter-mode-reveal_example.png"
+  },
+  {
+    "stem": "html-ppt-product-launch_example",
+    "html_src": "./html-ppt-product-launch_example.html",
+    "html_export": "./html-ppt-product-launch_example.html",
+    "png_export": "./html-ppt-product-launch_example.png"
+  },
+  {
+    "stem": "html-ppt-taste-brutalist_example",
+    "html_src": "./html-ppt-taste-brutalist_example.html",
+    "html_export": "./html-ppt-taste-brutalist_example.html",
+    "png_export": "./html-ppt-taste-brutalist_example.png"
+  },
+  {
+    "stem": "html-ppt-taste-editorial_example",
+    "html_src": "./html-ppt-taste-editorial_example.html",
+    "html_export": "./html-ppt-taste-editorial_example.html",
+    "png_export": "./html-ppt-taste-editorial_example.png"
+  },
+  {
+    "stem": "html-ppt-tech-sharing_example",
+    "html_src": "./html-ppt-tech-sharing_example.html",
+    "html_export": "./html-ppt-tech-sharing_example.html",
+    "png_export": "./html-ppt-tech-sharing_example.png"
+  },
+  {
+    "stem": "html-ppt-testing-safety-alert_example",
+    "html_src": "./html-ppt-testing-safety-alert_example.html",
+    "html_export": "./html-ppt-testing-safety-alert_example.html",
+    "png_export": "./html-ppt-testing-safety-alert_example.png"
+  },
+  {
+    "stem": "html-ppt-weekly-report_example",
+    "html_src": "./html-ppt-weekly-report_example.html",
+    "html_export": "./html-ppt-weekly-report_example.html",
+    "png_export": "./html-ppt-weekly-report_example.png"
+  },
+  {
+    "stem": "html-ppt-xhs-pastel-card_example",
+    "html_src": "./html-ppt-xhs-pastel-card_example.html",
+    "html_export": "./html-ppt-xhs-pastel-card_example.html",
+    "png_export": "./html-ppt-xhs-pastel-card_example.png"
+  },
+  {
+    "stem": "html-ppt-xhs-post_example",
+    "html_src": "./html-ppt-xhs-post_example.html",
+    "html_export": "./html-ppt-xhs-post_example.html",
+    "png_export": "./html-ppt-xhs-post_example.png"
+  },
+  {
+    "stem": "html-ppt-xhs-white-editorial_example",
+    "html_src": "./html-ppt-xhs-white-editorial_example.html",
+    "html_export": "./html-ppt-xhs-white-editorial_example.html",
+    "png_export": "./html-ppt-xhs-white-editorial_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-8-bit-orbit_example",
+    "html_src": "./html-ppt-zhangzara-8-bit-orbit_example.html",
+    "html_export": "./html-ppt-zhangzara-8-bit-orbit_example.html",
+    "png_export": "./html-ppt-zhangzara-8-bit-orbit_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-biennale-yellow_example",
+    "html_src": "./html-ppt-zhangzara-biennale-yellow_example.html",
+    "html_export": "./html-ppt-zhangzara-biennale-yellow_example.html",
+    "png_export": "./html-ppt-zhangzara-biennale-yellow_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-block-frame_example",
+    "html_src": "./html-ppt-zhangzara-block-frame_example.html",
+    "html_export": "./html-ppt-zhangzara-block-frame_example.html",
+    "png_export": "./html-ppt-zhangzara-block-frame_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-blue-professional_example",
+    "html_src": "./html-ppt-zhangzara-blue-professional_example.html",
+    "html_export": "./html-ppt-zhangzara-blue-professional_example.html",
+    "png_export": "./html-ppt-zhangzara-blue-professional_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-bold-poster_example",
+    "html_src": "./html-ppt-zhangzara-bold-poster_example.html",
+    "html_export": "./html-ppt-zhangzara-bold-poster_example.html",
+    "png_export": "./html-ppt-zhangzara-bold-poster_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-broadside_example",
+    "html_src": "./html-ppt-zhangzara-broadside_example.html",
+    "html_export": "./html-ppt-zhangzara-broadside_example.html",
+    "png_export": "./html-ppt-zhangzara-broadside_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-capsule_example",
+    "html_src": "./html-ppt-zhangzara-capsule_example.html",
+    "html_export": "./html-ppt-zhangzara-capsule_example.html",
+    "png_export": "./html-ppt-zhangzara-capsule_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-cartesian_example",
+    "html_src": "./html-ppt-zhangzara-cartesian_example.html",
+    "html_export": "./html-ppt-zhangzara-cartesian_example.html",
+    "png_export": "./html-ppt-zhangzara-cartesian_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-cobalt-grid_example",
+    "html_src": "./html-ppt-zhangzara-cobalt-grid_example.html",
+    "html_export": "./html-ppt-zhangzara-cobalt-grid_example.html",
+    "png_export": "./html-ppt-zhangzara-cobalt-grid_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-coral_example",
+    "html_src": "./html-ppt-zhangzara-coral_example.html",
+    "html_export": "./html-ppt-zhangzara-coral_example.html",
+    "png_export": "./html-ppt-zhangzara-coral_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-creative-mode_example",
+    "html_src": "./html-ppt-zhangzara-creative-mode_example.html",
+    "html_export": "./html-ppt-zhangzara-creative-mode_example.html",
+    "png_export": "./html-ppt-zhangzara-creative-mode_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-daisy-days_example",
+    "html_src": "./html-ppt-zhangzara-daisy-days_example.html",
+    "html_export": "./html-ppt-zhangzara-daisy-days_example.html",
+    "png_export": "./html-ppt-zhangzara-daisy-days_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-editorial-tri-tone_example",
+    "html_src": "./html-ppt-zhangzara-editorial-tri-tone_example.html",
+    "html_export": "./html-ppt-zhangzara-editorial-tri-tone_example.html",
+    "png_export": "./html-ppt-zhangzara-editorial-tri-tone_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-grove_example",
+    "html_src": "./html-ppt-zhangzara-grove_example.html",
+    "html_export": "./html-ppt-zhangzara-grove_example.html",
+    "png_export": "./html-ppt-zhangzara-grove_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-long-table_example",
+    "html_src": "./html-ppt-zhangzara-long-table_example.html",
+    "html_export": "./html-ppt-zhangzara-long-table_example.html",
+    "png_export": "./html-ppt-zhangzara-long-table_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-mat_example",
+    "html_src": "./html-ppt-zhangzara-mat_example.html",
+    "html_export": "./html-ppt-zhangzara-mat_example.html",
+    "png_export": "./html-ppt-zhangzara-mat_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-monochrome_example",
+    "html_src": "./html-ppt-zhangzara-monochrome_example.html",
+    "html_export": "./html-ppt-zhangzara-monochrome_example.html",
+    "png_export": "./html-ppt-zhangzara-monochrome_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-neo-grid-bold_example",
+    "html_src": "./html-ppt-zhangzara-neo-grid-bold_example.html",
+    "html_export": "./html-ppt-zhangzara-neo-grid-bold_example.html",
+    "png_export": "./html-ppt-zhangzara-neo-grid-bold_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-peoples-platform_example",
+    "html_src": "./html-ppt-zhangzara-peoples-platform_example.html",
+    "html_export": "./html-ppt-zhangzara-peoples-platform_example.html",
+    "png_export": "./html-ppt-zhangzara-peoples-platform_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-pin-and-paper_example",
+    "html_src": "./html-ppt-zhangzara-pin-and-paper_example.html",
+    "html_export": "./html-ppt-zhangzara-pin-and-paper_example.html",
+    "png_export": "./html-ppt-zhangzara-pin-and-paper_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-pink-script_example",
+    "html_src": "./html-ppt-zhangzara-pink-script_example.html",
+    "html_export": "./html-ppt-zhangzara-pink-script_example.html",
+    "png_export": "./html-ppt-zhangzara-pink-script_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-playful_example",
+    "html_src": "./html-ppt-zhangzara-playful_example.html",
+    "html_export": "./html-ppt-zhangzara-playful_example.html",
+    "png_export": "./html-ppt-zhangzara-playful_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-raw-grid_example",
+    "html_src": "./html-ppt-zhangzara-raw-grid_example.html",
+    "html_export": "./html-ppt-zhangzara-raw-grid_example.html",
+    "png_export": "./html-ppt-zhangzara-raw-grid_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-retro-windows_example",
+    "html_src": "./html-ppt-zhangzara-retro-windows_example.html",
+    "html_export": "./html-ppt-zhangzara-retro-windows_example.html",
+    "png_export": "./html-ppt-zhangzara-retro-windows_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-retro-zine_example",
+    "html_src": "./html-ppt-zhangzara-retro-zine_example.html",
+    "html_export": "./html-ppt-zhangzara-retro-zine_example.html",
+    "png_export": "./html-ppt-zhangzara-retro-zine_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-sakura-chroma_example",
+    "html_src": "./html-ppt-zhangzara-sakura-chroma_example.html",
+    "html_export": "./html-ppt-zhangzara-sakura-chroma_example.html",
+    "png_export": "./html-ppt-zhangzara-sakura-chroma_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-scatterbrain_example",
+    "html_src": "./html-ppt-zhangzara-scatterbrain_example.html",
+    "html_export": "./html-ppt-zhangzara-scatterbrain_example.html",
+    "png_export": "./html-ppt-zhangzara-scatterbrain_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-signal_example",
+    "html_src": "./html-ppt-zhangzara-signal_example.html",
+    "html_export": "./html-ppt-zhangzara-signal_example.html",
+    "png_export": "./html-ppt-zhangzara-signal_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-soft-editorial_example",
+    "html_src": "./html-ppt-zhangzara-soft-editorial_example.html",
+    "html_export": "./html-ppt-zhangzara-soft-editorial_example.html",
+    "png_export": "./html-ppt-zhangzara-soft-editorial_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-stencil-tablet_example",
+    "html_src": "./html-ppt-zhangzara-stencil-tablet_example.html",
+    "html_export": "./html-ppt-zhangzara-stencil-tablet_example.html",
+    "png_export": "./html-ppt-zhangzara-stencil-tablet_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-studio_example",
+    "html_src": "./html-ppt-zhangzara-studio_example.html",
+    "html_export": "./html-ppt-zhangzara-studio_example.html",
+    "png_export": "./html-ppt-zhangzara-studio_example.png"
+  },
+  {
+    "stem": "html-ppt-zhangzara-vellum_example",
+    "html_src": "./html-ppt-zhangzara-vellum_example.html",
+    "html_export": "./html-ppt-zhangzara-vellum_example.html",
+    "png_export": "./html-ppt-zhangzara-vellum_example.png"
+  },
+  {
+    "stem": "html-ppt_docs_readme__theme-cell",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_docs_readme__theme-cell.png"
+  },
+  {
+    "stem": "html-ppt_docs_readme_montage-animations",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_docs_readme_montage-animations.png"
+  },
+  {
+    "stem": "html-ppt_docs_readme_montage-layouts",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_docs_readme_montage-layouts.png"
+  },
+  {
+    "stem": "html-ppt_docs_readme_montage-templates",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_docs_readme_montage-templates.png"
+  },
+  {
+    "stem": "html-ppt_docs_readme_montage-themes",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_docs_readme_montage-themes.png"
+  },
+  {
+    "stem": "html-ppt_examples_demo-deck_index",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_examples_demo-deck_index.png"
+  },
+  {
+    "stem": "html-ppt_templates_animation-showcase",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_animation-showcase.png"
+  },
+  {
+    "stem": "html-ppt_templates_deck",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_deck.png"
+  },
+  {
+    "stem": "html-ppt_templates_full-decks-index",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_full-decks-index.png"
+  },
+  {
+    "stem": "html-ppt_templates_full-decks_course-module_index",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_full-decks_course-module_index.png"
+  },
+  {
+    "stem": "html-ppt_templates_full-decks_dir-key-nav-minimal_index",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_full-decks_dir-key-nav-minimal_index.png"
+  },
+  {
+    "stem": "html-ppt_templates_full-decks_graphify-dark-graph_index",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_full-decks_graphify-dark-graph_index.png"
+  },
+  {
+    "stem": "html-ppt_templates_full-decks_hermes-cyber-terminal_index",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_full-decks_hermes-cyber-terminal_index.png"
+  },
+  {
+    "stem": "html-ppt_templates_full-decks_knowledge-arch-blueprint_index",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_full-decks_knowledge-arch-blueprint_index.png"
+  },
+  {
+    "stem": "html-ppt_templates_full-decks_obsidian-claude-gradient_index",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_full-decks_obsidian-claude-gradient_index.png"
+  },
+  {
+    "stem": "html-ppt_templates_full-decks_pitch-deck_index",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_full-decks_pitch-deck_index.png"
+  },
+  {
+    "stem": "html-ppt_templates_full-decks_presenter-mode-reveal_index",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_full-decks_presenter-mode-reveal_index.png"
+  },
+  {
+    "stem": "html-ppt_templates_full-decks_product-launch_index",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_full-decks_product-launch_index.png"
+  },
+  {
+    "stem": "html-ppt_templates_full-decks_tech-sharing_index",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_full-decks_tech-sharing_index.png"
+  },
+  {
+    "stem": "html-ppt_templates_full-decks_testing-safety-alert_index",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_full-decks_testing-safety-alert_index.png"
+  },
+  {
+    "stem": "html-ppt_templates_full-decks_weekly-report_index",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_full-decks_weekly-report_index.png"
+  },
+  {
+    "stem": "html-ppt_templates_full-decks_xhs-pastel-card_index",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_full-decks_xhs-pastel-card_index.png"
+  },
+  {
+    "stem": "html-ppt_templates_full-decks_xhs-post_index",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_full-decks_xhs-post_index.png"
+  },
+  {
+    "stem": "html-ppt_templates_full-decks_xhs-white-editorial_index",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_full-decks_xhs-white-editorial_index.png"
+  },
+  {
+    "stem": "html-ppt_templates_layout-showcase",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_layout-showcase.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_arch-diagram",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_arch-diagram.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_big-quote",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_big-quote.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_bullets",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_bullets.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_chart-bar",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_chart-bar.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_chart-line",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_chart-line.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_chart-pie",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_chart-pie.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_chart-radar",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_chart-radar.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_code",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_code.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_comparison",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_comparison.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_cover",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_cover.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_cta",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_cta.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_diff",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_diff.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_flow-diagram",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_flow-diagram.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_gantt",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_gantt.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_image-grid",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_image-grid.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_image-hero",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_image-hero.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_kpi-grid",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_kpi-grid.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_mindmap",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_mindmap.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_process-steps",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_process-steps.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_pros-cons",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_pros-cons.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_roadmap",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_roadmap.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_section-divider",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_section-divider.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_stat-highlight",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_stat-highlight.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_table",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_table.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_terminal",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_terminal.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_thanks",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_thanks.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_three-column",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_three-column.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_timeline",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_timeline.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_toc",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_toc.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_todo-checklist",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_todo-checklist.png"
+  },
+  {
+    "stem": "html-ppt_templates_single-page_two-column",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_single-page_two-column.png"
+  },
+  {
+    "stem": "html-ppt_templates_theme-showcase",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./html-ppt_templates_theme-showcase.png"
+  },
+  {
+    "stem": "ib-pitch-book_assets_template",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./ib-pitch-book_assets_template.png"
+  },
+  {
+    "stem": "ib-pitch-book_example",
+    "html_src": "./ib-pitch-book_example.html",
+    "html_export": "./ib-pitch-book_example.html",
+    "png_export": "./ib-pitch-book_example.png"
+  },
+  {
+    "stem": "iiot-dashboard-ui_example",
+    "html_src": "./iiot-dashboard-ui_example.html",
+    "html_export": "./iiot-dashboard-ui_example.html",
+    "png_export": "./iiot-dashboard-ui_example.png"
+  },
+  {
+    "stem": "image-poster_example",
+    "html_src": "./image-poster_example.html",
+    "html_export": "./image-poster_example.html",
+    "png_export": "./image-poster_example.png"
+  },
+  {
+    "stem": "invoice_example",
+    "html_src": "./invoice_example.html",
+    "html_export": "./invoice_example.html",
+    "png_export": "./invoice_example.png"
+  },
+  {
+    "stem": "kami-deck_example",
+    "html_src": "./kami-deck_example.html",
+    "html_export": "./kami-deck_example.html",
+    "png_export": "./kami-deck_example.png"
+  },
+  {
+    "stem": "kami-landing_example",
+    "html_src": "./kami-landing_example.html",
+    "html_export": "./kami-landing_example.html",
+    "png_export": "./kami-landing_example.png"
+  },
+  {
+    "stem": "kanban-board_example",
+    "html_src": "./kanban-board_example.html",
+    "html_export": "./kanban-board_example.html",
+    "png_export": "./kanban-board_example.png"
+  },
+  {
+    "stem": "live-artifact_assets_templates_clinic-console_template",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./live-artifact_assets_templates_clinic-console_template.png"
+  },
+  {
+    "stem": "live-artifact_examples_baby-health-live",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./live-artifact_examples_baby-health-live.png"
+  },
+  {
+    "stem": "live-artifact_examples_competitor-radar-live",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./live-artifact_examples_competitor-radar-live.png"
+  },
+  {
+    "stem": "live-artifact_examples_crm-table-live",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./live-artifact_examples_crm-table-live.png"
+  },
+  {
+    "stem": "live-artifact_examples_crypto-dashboard",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./live-artifact_examples_crypto-dashboard.png"
+  },
+  {
+    "stem": "live-artifact_examples_monday-operator-live",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./live-artifact_examples_monday-operator-live.png"
+  },
+  {
+    "stem": "live-artifact_examples_stock-dashboard",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./live-artifact_examples_stock-dashboard.png"
+  },
+  {
+    "stem": "live-artifact_examples_stock-portfolio-live_template",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./live-artifact_examples_stock-portfolio-live_template.png"
+  },
+  {
+    "stem": "live-dashboard_assets_template",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./live-dashboard_assets_template.png"
+  },
+  {
+    "stem": "live-dashboard_example",
+    "html_src": "./live-dashboard_example.html",
+    "html_export": "./live-dashboard_example.html",
+    "png_export": "./live-dashboard_example.png"
+  },
+  {
+    "stem": "magazine-poster_example",
+    "html_src": "./magazine-poster_example.html",
+    "html_export": "./magazine-poster_example.html",
+    "png_export": "./magazine-poster_example.png"
+  },
+  {
+    "stem": "meeting-notes_example",
+    "html_src": "./meeting-notes_example.html",
+    "html_export": "./meeting-notes_example.html",
+    "png_export": "./meeting-notes_example.png"
+  },
+  {
+    "stem": "mobile-app_assets_template",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./mobile-app_assets_template.png"
+  },
+  {
+    "stem": "mobile-app_example",
+    "html_src": "./mobile-app_example.html",
+    "html_export": "./mobile-app_example.html",
+    "png_export": "./mobile-app_example.png"
+  },
+  {
+    "stem": "mobile-onboarding_example",
+    "html_src": "./mobile-onboarding_example.html",
+    "html_export": "./mobile-onboarding_example.html",
+    "png_export": "./mobile-onboarding_example.png"
+  },
+  {
+    "stem": "motion-frames_example",
+    "html_src": "./motion-frames_example.html",
+    "html_export": "./motion-frames_example.html",
+    "png_export": "./motion-frames_example.png"
+  },
+  {
+    "stem": "open-design-landing-deck_example",
+    "html_src": "./open-design-landing-deck_example.html",
+    "html_export": "./open-design-landing-deck_example.html",
+    "png_export": "./open-design-landing-deck_example.png"
+  },
+  {
+    "stem": "open-design-landing_example",
+    "html_src": "./open-design-landing_example.html",
+    "html_export": "./open-design-landing_example.html",
+    "png_export": "./open-design-landing_example.png"
+  },
+  {
+    "stem": "orbit-general_example",
+    "html_src": "./orbit-general_example.html",
+    "html_export": "./orbit-general_example.html",
+    "png_export": "./orbit-general_example.png"
+  },
+  {
+    "stem": "orbit-github_example",
+    "html_src": "./orbit-github_example.html",
+    "html_export": "./orbit-github_example.html",
+    "png_export": "./orbit-github_example.png"
+  },
+  {
+    "stem": "orbit-gmail_example",
+    "html_src": "./orbit-gmail_example.html",
+    "html_export": "./orbit-gmail_example.html",
+    "png_export": "./orbit-gmail_example.png"
+  },
+  {
+    "stem": "orbit-linear_example",
+    "html_src": "./orbit-linear_example.html",
+    "html_export": "./orbit-linear_example.html",
+    "png_export": "./orbit-linear_example.png"
+  },
+  {
+    "stem": "orbit-notion_example",
+    "html_src": "./orbit-notion_example.html",
+    "html_export": "./orbit-notion_example.html",
+    "png_export": "./orbit-notion_example.png"
+  },
+  {
+    "stem": "pm-spec_example",
+    "html_src": "./pm-spec_example.html",
+    "html_export": "./pm-spec_example.html",
+    "png_export": "./pm-spec_example.png"
+  },
+  {
+    "stem": "pricing-page_example",
+    "html_src": "./pricing-page_example.html",
+    "html_export": "./pricing-page_example.html",
+    "png_export": "./pricing-page_example.png"
+  },
+  {
+    "stem": "proposal-deck_example",
+    "html_src": "./proposal-deck_example.html",
+    "html_export": "./proposal-deck_example.html",
+    "png_export": "./proposal-deck_example.png"
+  },
+  {
+    "stem": "replit-deck_assets_template",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./replit-deck_assets_template.png"
+  },
+  {
+    "stem": "replit-deck_examples_example-atlas",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./replit-deck_examples_example-atlas.png"
+  },
+  {
+    "stem": "replit-deck_examples_example-bluehouse",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./replit-deck_examples_example-bluehouse.png"
+  },
+  {
+    "stem": "replit-deck_examples_example-helix",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./replit-deck_examples_example-helix.png"
+  },
+  {
+    "stem": "replit-deck_examples_example-holm",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./replit-deck_examples_example-holm.png"
+  },
+  {
+    "stem": "saas-landing_example",
+    "html_src": "./saas-landing_example.html",
+    "html_export": "./saas-landing_example.html",
+    "png_export": "./saas-landing_example.png"
+  },
+  {
+    "stem": "simple-deck_assets_template",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./simple-deck_assets_template.png"
+  },
+  {
+    "stem": "simple-deck_example",
+    "html_src": "./simple-deck_example.html",
+    "html_export": "./simple-deck_example.html",
+    "png_export": "./simple-deck_example.png"
+  },
+  {
+    "stem": "social-carousel_example",
+    "html_src": "./social-carousel_example.html",
+    "html_export": "./social-carousel_example.html",
+    "png_export": "./social-carousel_example.png"
+  },
+  {
+    "stem": "social-media-dashboard_example",
+    "html_src": "./social-media-dashboard_example.html",
+    "html_export": "./social-media-dashboard_example.html",
+    "png_export": "./social-media-dashboard_example.png"
+  },
+  {
+    "stem": "social-media-matrix-tracker-template_assets_template",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./social-media-matrix-tracker-template_assets_template.png"
+  },
+  {
+    "stem": "social-media-matrix-tracker-template_example",
+    "html_src": "./social-media-matrix-tracker-template_example.html",
+    "html_export": "./social-media-matrix-tracker-template_example.html",
+    "png_export": "./social-media-matrix-tracker-template_example.png"
+  },
+  {
+    "stem": "sprite-animation_example",
+    "html_src": "./sprite-animation_example.html",
+    "html_export": "./sprite-animation_example.html",
+    "png_export": "./sprite-animation_example.png"
+  },
+  {
+    "stem": "team-okrs_example",
+    "html_src": "./team-okrs_example.html",
+    "html_export": "./team-okrs_example.html",
+    "png_export": "./team-okrs_example.png"
+  },
+  {
+    "stem": "trading-analysis-dashboard-template_assets_template",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./trading-analysis-dashboard-template_assets_template.png"
+  },
+  {
+    "stem": "trading-analysis-dashboard-template_example",
+    "html_src": "./trading-analysis-dashboard-template_example.html",
+    "html_export": "./trading-analysis-dashboard-template_example.html",
+    "png_export": "./trading-analysis-dashboard-template_example.png"
+  },
+  {
+    "stem": "tweaks_assets_wrap",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./tweaks_assets_wrap.png"
+  },
+  {
+    "stem": "tweaks_example",
+    "html_src": "./tweaks_example.html",
+    "html_export": "./tweaks_example.html",
+    "png_export": "./tweaks_example.png"
+  },
+  {
+    "stem": "video-shortform_example",
+    "html_src": "./video-shortform_example.html",
+    "html_export": "./video-shortform_example.html",
+    "png_export": "./video-shortform_example.png"
+  },
+  {
+    "stem": "waitlist-page_assets_template",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./waitlist-page_assets_template.png"
+  },
+  {
+    "stem": "waitlist-page_example",
+    "html_src": "./waitlist-page_example.html",
+    "html_export": "./waitlist-page_example.html",
+    "png_export": "./waitlist-page_example.png"
+  },
+  {
+    "stem": "web design-hue_examples_atlas_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web design-hue_examples_atlas_landing-page.png"
+  },
+  {
+    "stem": "web design-hue_examples_auris_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web design-hue_examples_auris_landing-page.png"
+  },
+  {
+    "stem": "web design-hue_examples_drift_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web design-hue_examples_drift_landing-page.png"
+  },
+  {
+    "stem": "web design-hue_examples_fizz_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web design-hue_examples_fizz_landing-page.png"
+  },
+  {
+    "stem": "web design-hue_examples_halcyon_component-library",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web design-hue_examples_halcyon_component-library.png"
+  },
+  {
+    "stem": "web design-hue_examples_halcyon_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web design-hue_examples_halcyon_landing-page.png"
+  },
+  {
+    "stem": "web design-hue_examples_index",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web design-hue_examples_index.png"
+  },
+  {
+    "stem": "web design-hue_examples_kiln_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web design-hue_examples_kiln_landing-page.png"
+  },
+  {
+    "stem": "web design-hue_examples_ledger_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web design-hue_examples_ledger_landing-page.png"
+  },
+  {
+    "stem": "web design-hue_examples_meadow_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web design-hue_examples_meadow_landing-page.png"
+  },
+  {
+    "stem": "web design-hue_examples_orivion_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web design-hue_examples_orivion_landing-page.png"
+  },
+  {
+    "stem": "web design-hue_examples_oxide_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web design-hue_examples_oxide_landing-page.png"
+  },
+  {
+    "stem": "web design-hue_examples_prism_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web design-hue_examples_prism_landing-page.png"
+  },
+  {
+    "stem": "web design-hue_examples_relay_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web design-hue_examples_relay_landing-page.png"
+  },
+  {
+    "stem": "web design-hue_examples_ridge_app-screen",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web design-hue_examples_ridge_app-screen.png"
+  },
+  {
+    "stem": "web design-hue_examples_ridge_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web design-hue_examples_ridge_landing-page.png"
+  },
+  {
+    "stem": "web design-hue_examples_solvent_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web design-hue_examples_solvent_landing-page.png"
+  },
+  {
+    "stem": "web design-hue_examples_stint_app-screen",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web design-hue_examples_stint_app-screen.png"
+  },
+  {
+    "stem": "web design-hue_examples_stint_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web design-hue_examples_stint_landing-page.png"
+  },
+  {
+    "stem": "web design-hue_examples_thrive_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web design-hue_examples_thrive_landing-page.png"
+  },
+  {
+    "stem": "web design-hue_examples_velvet_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web design-hue_examples_velvet_landing-page.png"
+  },
+  {
+    "stem": "web-design-hue_examples_atlas_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web-design-hue_examples_atlas_landing-page.png"
+  },
+  {
+    "stem": "web-design-hue_examples_auris_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web-design-hue_examples_auris_landing-page.png"
+  },
+  {
+    "stem": "web-design-hue_examples_drift_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web-design-hue_examples_drift_landing-page.png"
+  },
+  {
+    "stem": "web-design-hue_examples_fizz_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web-design-hue_examples_fizz_landing-page.png"
+  },
+  {
+    "stem": "web-design-hue_examples_halcyon_component-library",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web-design-hue_examples_halcyon_component-library.png"
+  },
+  {
+    "stem": "web-design-hue_examples_halcyon_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web-design-hue_examples_halcyon_landing-page.png"
+  },
+  {
+    "stem": "web-design-hue_examples_index",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web-design-hue_examples_index.png"
+  },
+  {
+    "stem": "web-design-hue_examples_kiln_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web-design-hue_examples_kiln_landing-page.png"
+  },
+  {
+    "stem": "web-design-hue_examples_ledger_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web-design-hue_examples_ledger_landing-page.png"
+  },
+  {
+    "stem": "web-design-hue_examples_meadow_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web-design-hue_examples_meadow_landing-page.png"
+  },
+  {
+    "stem": "web-design-hue_examples_orivion_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web-design-hue_examples_orivion_landing-page.png"
+  },
+  {
+    "stem": "web-design-hue_examples_oxide_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web-design-hue_examples_oxide_landing-page.png"
+  },
+  {
+    "stem": "web-design-hue_examples_prism_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web-design-hue_examples_prism_landing-page.png"
+  },
+  {
+    "stem": "web-design-hue_examples_relay_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web-design-hue_examples_relay_landing-page.png"
+  },
+  {
+    "stem": "web-design-hue_examples_ridge_app-screen",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web-design-hue_examples_ridge_app-screen.png"
+  },
+  {
+    "stem": "web-design-hue_examples_ridge_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web-design-hue_examples_ridge_landing-page.png"
+  },
+  {
+    "stem": "web-design-hue_examples_solvent_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web-design-hue_examples_solvent_landing-page.png"
+  },
+  {
+    "stem": "web-design-hue_examples_stint_app-screen",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web-design-hue_examples_stint_app-screen.png"
+  },
+  {
+    "stem": "web-design-hue_examples_stint_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web-design-hue_examples_stint_landing-page.png"
+  },
+  {
+    "stem": "web-design-hue_examples_thrive_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web-design-hue_examples_thrive_landing-page.png"
+  },
+  {
+    "stem": "web-design-hue_examples_velvet_landing-page",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web-design-hue_examples_velvet_landing-page.png"
+  },
+  {
+    "stem": "web-prototype-taste-brutalist_example",
+    "html_src": "./web-prototype-taste-brutalist_example.html",
+    "html_export": "./web-prototype-taste-brutalist_example.html",
+    "png_export": "./web-prototype-taste-brutalist_example.png"
+  },
+  {
+    "stem": "web-prototype-taste-editorial_example",
+    "html_src": "./web-prototype-taste-editorial_example.html",
+    "html_export": "./web-prototype-taste-editorial_example.html",
+    "png_export": "./web-prototype-taste-editorial_example.png"
+  },
+  {
+    "stem": "web-prototype-taste-soft_example",
+    "html_src": "./web-prototype-taste-soft_example.html",
+    "html_export": "./web-prototype-taste-soft_example.html",
+    "png_export": "./web-prototype-taste-soft_example.png"
+  },
+  {
+    "stem": "web-prototype_assets_template",
+    "html_src": "",
+    "html_export": "",
+    "png_export": "./web-prototype_assets_template.png"
+  },
+  {
+    "stem": "web-prototype_example",
+    "html_src": "./web-prototype_example.html",
+    "html_export": "./web-prototype_example.html",
+    "png_export": "./web-prototype_example.png"
+  },
+  {
+    "stem": "weekly-update_example",
+    "html_src": "./weekly-update_example.html",
+    "html_export": "./weekly-update_example.html",
+    "png_export": "./weekly-update_example.png"
+  },
+  {
+    "stem": "wireframe-sketch_example",
+    "html_src": "./wireframe-sketch_example.html",
+    "html_export": "./wireframe-sketch_example.html",
+    "png_export": "./wireframe-sketch_example.png"
+  },
+  {
+    "stem": "zh-tw-design-brief_example",
+    "html_src": "./zh-tw-design-brief_example.html",
+    "html_export": "./zh-tw-design-brief_example.html",
+    "png_export": "./zh-tw-design-brief_example.png"
+  }
+];
+// <<< RECORDS:AUTOGEN:END >>>
+  </script>
+
+  <script>
+    // ---------- Utils ----------
+    const $ = (sel, el = document) => el.querySelector(sel);
+    const $$ = (sel, el = document) => Array.from(el.querySelectorAll(sel));
+
+    function titleFromStem(stem) {
+      // remove extension already absent; convert underscores to spaces
+      return String(stem || "").replace(/_/g, " ");
+    }
+
+    function titleFromStem(stem) {
+      // remove extension already absent; convert underscores to spaces
+      // 第一個底線之前是目錄名，之後是檔名，這裡我們統一把底線換成空格方便閱讀
+      return String(stem || "").replace(/_/g, " ");
+    }
+
+    function normalize(s) {
+      return (s || "").toString().toLowerCase();
+    }
+
+    function escapeHtml(s) {
+      return (s || "").toString()
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    // ---------- Theme + thumb size persistence ----------
+    const THEME_KEY = "skillsGallery.theme";
+    const THUMB_KEY = "skillsGallery.thumb";
+
+    function setTheme(theme) {
+      document.documentElement.dataset.theme = theme;
+      localStorage.setItem(THEME_KEY, theme);
+      $("#themeLabel").textContent = theme === "dark" ? "Dark" : "Light";
+    }
+
+    function initTheme() {
+      const saved = localStorage.getItem(THEME_KEY);
+      if (saved === "light" || saved === "dark") return setTheme(saved);
+      // default: follow system
+      const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+      setTheme(prefersDark ? "dark" : "light");
+    }
+
+    function setThumb(size) {
+      document.documentElement.dataset.thumb = size; // sm/md/lg
+      localStorage.setItem(THUMB_KEY, size);
+      $$(".thumbSeg").forEach(b => b.setAttribute("aria-pressed", b.dataset.thumb === size ? "true" : "false"));
+    }
+
+    function initThumb() {
+      const saved = localStorage.getItem(THUMB_KEY);
+      if (saved === "sm" || saved === "md" || saved === "lg") return setThumb(saved);
+      setThumb("md");
+    }
+
+    // ---------- Toast ----------
+    let toastTimer = null;
+    function showToast(msg, ms = 2400) {
+      $("#toastMsg").textContent = msg;
+      $("#toast").setAttribute("aria-hidden", "false");
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        $("#toast").setAttribute("aria-hidden", "true");
+      }, ms);
+    }
+
+    // ---------- Clipboard ----------
+    async function copyText(text) {
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
+      } catch (e) {
+        // fallthrough to prompt
+      }
+      // Fallback
+      window.prompt("Clipboard API 不支援，請手動複製：", text);
+      return false;
+    }
+
+    // ---------- Modal ----------
+    const modal = $("#modal");
+    const overlay = $("#overlay");
+    const closeBtn = $("#closeBtn");
+    const frame = $("#frame");
+    const modalName = $("#modalName");
+    const modalSub = $("#modalSub");
+    const modalOpen = $("#modalOpen");
+
+    let modalOpenRecord = null;
+
+    function openModal(rec) {
+      modalOpenRecord = rec;
+      const name = titleFromStem(rec.stem);
+      modalName.textContent = name || "(untitled)";
+      modalSub.textContent = rec.html_src || "";
+      modalOpen.href = rec.html_export || "#";
+
+      // load iframe
+      frame.src = rec.html_export || "about:blank";
+
+      modal.setAttribute("aria-hidden", "false");
+      // focus close for accessibility
+      closeBtn.focus();
+    }
+
+    function closeModal() {
+      modal.setAttribute("aria-hidden", "true");
+      frame.src = "about:blank";
+      modalOpenRecord = null;
+    }
+
+    overlay.addEventListener("click", closeModal);
+    closeBtn.addEventListener("click", closeModal);
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && modal.getAttribute("aria-hidden") === "false") {
+        e.preventDefault();
+        closeModal();
+      }
+    });
+
+    // ---------- Render ----------
+    const grid = $("#grid");
+    const q = $("#q");
+    const countLabel = $("#countLabel");
+
+    function buildCard(rec) {
+      const name = titleFromStem(rec.stem);
+      const hasPng = rec.png_export && rec.png_export.trim().length > 0;
+
+      const card = document.createElement("article");
+      card.className = "card";
+
+      const thumb = document.createElement("div");
+      thumb.className = "thumb";
+      thumb.title = "點擊預覽";
+
+      if (hasPng) {
+        const img = document.createElement("img");
+        img.loading = "lazy";
+        img.src = rec.png_export;
+        img.alt = name;
+        thumb.appendChild(img);
+      } else {
+        const ph = document.createElement("div");
+        ph.className = "placeholder";
+        ph.textContent = "截圖未產生";
+        thumb.appendChild(ph);
+      }
+
+      thumb.addEventListener("click", () => openModal(rec));
+
+      const body = document.createElement("div");
+      body.className = "body";
+      body.innerHTML = `
+        <div class="title">${escapeHtml(name)}</div>
+      `;
+
+      const actions = document.createElement("div");
+      actions.className = "actions";
+
+      const openBtn = document.createElement("a");
+      openBtn.className = "btn primary";
+      openBtn.href = rec.html_export || "#";
+      openBtn.target = "_blank";
+      openBtn.rel = "noopener";
+      openBtn.innerHTML = `<span aria-hidden="true">↗</span><span class="mono">Open HTML</span>`;
+      openBtn.addEventListener("click", (e) => e.stopPropagation());
+
+      actions.appendChild(openBtn);
+
+      body.appendChild(actions);
+
+      card.appendChild(thumb);
+      card.appendChild(body);
+
+      // for filtering
+      card.dataset.search = normalize(`${rec.stem} ${name} ${rec.html_export}`);
+
+      return card;
+    }
+
+    let cardNodes = [];
+
+    function renderAll() {
+      grid.innerHTML = "";
+      cardNodes = RECORDS.map(rec => buildCard(rec));
+      const frag = document.createDocumentFragment();
+      cardNodes.forEach(n => frag.appendChild(n));
+      grid.appendChild(frag);
+      applyFilter();
+    }
+
+    function applyFilter() {
+      const needle = normalize(q.value.trim());
+      let shown = 0;
+
+      for (const node of cardNodes) {
+        const ok = !needle || node.dataset.search.includes(needle);
+        node.style.display = ok ? "" : "none";
+        if (ok) shown++;
+      }
+
+      countLabel.textContent = `${shown} / ${cardNodes.length}`;
+    }
+
+    q.addEventListener("input", applyFilter);
+
+    // ---------- Controls ----------
+    $("#themeBtn").addEventListener("click", () => {
+      const cur = document.documentElement.dataset.theme || "light";
+      setTheme(cur === "dark" ? "light" : "dark");
+    });
+
+    $$(".thumbSeg").forEach(btn => {
+      btn.addEventListener("click", () => setThumb(btn.dataset.thumb));
+    });
+
+    // ---------- Boot ----------
+    initTheme();
+    initThumb();
+    renderAll();
+
+    // Optional: quick "/" to focus search
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "/" && document.activeElement !== q) {
+        e.preventDefault();
+        q.focus();
+      }
+    });
+  </script>
+</body>
+</html>
