@@ -138,6 +138,7 @@ export function buildManualEditBridge(enabled: boolean): string {
       tagName: el.tagName ? el.tagName.toLowerCase() : 'element',
       className: typeof el.className === 'string' ? el.className : '',
       text: (el.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 180),
+      sourceBacked: el.hasAttribute(sourcePathAttr),
       rect: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) },
       fields: fields,
       attributes: attrsFor(el),

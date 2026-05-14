@@ -1,9 +1,23 @@
-import { emptyManualEditStyles, type ManualEditFields, type ManualEditPatch, type ManualEditStyles } from './types';
+import {
+  emptyManualEditStyles,
+  type DiffLine,
+  type DiffLineKind,
+  type LockedLine,
+  type ManualEditFields,
+  type ManualEditPatch,
+  type ManualEditStyles,
+  type SourcePatch,
+} from './types';
 
 export interface ManualEditPatchResult {
   ok: boolean;
   source: string;
   error?: string;
+}
+
+interface DiffOp {
+  kind: 'equal' | 'remove' | 'add';
+  line: string;
 }
 
 export function applyManualEditPatch(source: string, patch: ManualEditPatch): ManualEditPatchResult {
@@ -109,6 +123,104 @@ export function readManualEditOuterHtml(source: string, id: string): string {
   return (doc ? findEditableElement(doc, id)?.outerHTML : '') ?? '';
 }
 
+export function buildSourcePatch(input: {
+  id: string;
+  label: string;
+  patch: ManualEditPatch;
+  baseSource: string;
+  aiSource: string;
+  manualSource: string;
+  targetId?: string;
+  sourceBacked?: boolean;
+}): SourcePatch {
+  const diffLines = buildManualEditDiff(input.baseSource, input.manualSource);
+  return {
+    id: input.id,
+    label: input.label,
+    patch: input.patch,
+    targetId: input.targetId,
+    sourceBacked: Boolean(input.sourceBacked),
+    baseSource: input.baseSource,
+    aiSource: input.aiSource,
+    manualSource: input.manualSource,
+    diffLines,
+    lockedLines: collectLockedLines(diffLines),
+    conflict: input.aiSource !== input.manualSource,
+  };
+}
+
+export function buildManualEditDiff(beforeSource: string, afterSource: string): DiffLine[] {
+  const beforeLines = normalizeDiffLines(beforeSource);
+  const afterLines = normalizeDiffLines(afterSource);
+  const ops = buildDiffOps(beforeLines, afterLines);
+  const diffLines: DiffLine[] = [];
+  let beforeNumber = 1;
+  let afterNumber = 1;
+  for (let index = 0; index < ops.length; index += 1) {
+    const current = ops[index]!;
+    const next = ops[index + 1];
+    if (current.kind === 'remove' && next?.kind === 'add') {
+      diffLines.push({
+        key: `m-${index}`,
+        kind: 'modify',
+        beforeNumber,
+        afterNumber,
+        beforeText: current.line,
+        afterText: next.line,
+      });
+      beforeNumber += 1;
+      afterNumber += 1;
+      index += 1;
+      continue;
+    }
+    if (current.kind === 'equal') {
+      diffLines.push({
+        key: `c-${index}`,
+        kind: 'context',
+        beforeNumber,
+        afterNumber,
+        beforeText: current.line,
+        afterText: current.line,
+      });
+      beforeNumber += 1;
+      afterNumber += 1;
+      continue;
+    }
+    if (current.kind === 'remove') {
+      diffLines.push({
+        key: `r-${index}`,
+        kind: 'remove',
+        beforeNumber,
+        afterNumber: null,
+        beforeText: current.line,
+        afterText: '',
+      });
+      beforeNumber += 1;
+      continue;
+    }
+    diffLines.push({
+      key: `a-${index}`,
+      kind: 'add',
+      beforeNumber: null,
+      afterNumber,
+      beforeText: '',
+      afterText: current.line,
+    });
+    afterNumber += 1;
+  }
+  return diffLines;
+}
+
+export function collectLockedLines(diffLines: DiffLine[]): LockedLine[] {
+  return diffLines
+    .filter((line) => line.kind === 'add' || line.kind === 'modify')
+    .map((line) => ({
+      beforeNumber: line.beforeNumber,
+      afterNumber: line.afterNumber,
+      lockedBy: 'user' as const,
+    }));
+}
+
 function parseSource(source: string): Document | null {
   if (typeof DOMParser !== 'undefined') {
     return new DOMParser().parseFromString(source, 'text/html');
@@ -119,6 +231,53 @@ function parseSource(source: string): Document | null {
     return doc;
   }
   return null;
+}
+
+function normalizeDiffLines(source: string): string[] {
+  return source.replace(/\r\n/g, '\n').split('\n');
+}
+
+function buildDiffOps(beforeLines: string[], afterLines: string[]): DiffOp[] {
+  const matrix = Array.from({ length: beforeLines.length + 1 }, () => Array<number>(afterLines.length + 1).fill(0));
+  for (let beforeIndex = beforeLines.length - 1; beforeIndex >= 0; beforeIndex -= 1) {
+    for (let afterIndex = afterLines.length - 1; afterIndex >= 0; afterIndex -= 1) {
+      if (beforeLines[beforeIndex] === afterLines[afterIndex]) {
+        matrix[beforeIndex]![afterIndex] = matrix[beforeIndex + 1]![afterIndex + 1]! + 1;
+      } else {
+        matrix[beforeIndex]![afterIndex] = Math.max(
+          matrix[beforeIndex + 1]![afterIndex]!,
+          matrix[beforeIndex]![afterIndex + 1]!,
+        );
+      }
+    }
+  }
+  const ops: DiffOp[] = [];
+  let beforeIndex = 0;
+  let afterIndex = 0;
+  while (beforeIndex < beforeLines.length && afterIndex < afterLines.length) {
+    if (beforeLines[beforeIndex] === afterLines[afterIndex]) {
+      ops.push({ kind: 'equal', line: beforeLines[beforeIndex]! });
+      beforeIndex += 1;
+      afterIndex += 1;
+      continue;
+    }
+    if (matrix[beforeIndex + 1]![afterIndex]! >= matrix[beforeIndex]![afterIndex + 1]!) {
+      ops.push({ kind: 'remove', line: beforeLines[beforeIndex]! });
+      beforeIndex += 1;
+    } else {
+      ops.push({ kind: 'add', line: afterLines[afterIndex]! });
+      afterIndex += 1;
+    }
+  }
+  while (beforeIndex < beforeLines.length) {
+    ops.push({ kind: 'remove', line: beforeLines[beforeIndex]! });
+    beforeIndex += 1;
+  }
+  while (afterIndex < afterLines.length) {
+    ops.push({ kind: 'add', line: afterLines[afterIndex]! });
+    afterIndex += 1;
+  }
+  return ops;
 }
 
 function serializeSource(doc: Document, originalSource: string): string {

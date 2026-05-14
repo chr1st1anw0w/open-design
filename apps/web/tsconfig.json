@@ -45,6 +45,8 @@
   ],
   "exclude": [
     "node_modules",
+    "src/bk",
+    "src/new",
     "out",
     ".next"
   ]

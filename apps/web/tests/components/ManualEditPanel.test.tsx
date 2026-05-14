@@ -12,6 +12,7 @@ const target: ManualEditTarget = {
   tagName: 'h1',
   className: 'hero',
   text: 'Original',
+  sourceBacked: true,
   rect: { x: 0, y: 0, width: 120, height: 40 },
   fields: { text: 'Original' },
   attributes: { 'data-od-id': 'hero-title' },
@@ -124,6 +125,7 @@ describe('ManualEditPanel', () => {
           selectedTarget={target}
           draft={draft}
           history={[]}
+          conflicts={[]}
           error={null}
           canUndo={false}
           canRedo={false}
@@ -134,6 +136,7 @@ describe('ManualEditPanel', () => {
           onCancelDraft={vi.fn()}
           onUndo={vi.fn()}
           onRedo={vi.fn()}
+          onResolveConflict={vi.fn()}
         />,
       );
     });

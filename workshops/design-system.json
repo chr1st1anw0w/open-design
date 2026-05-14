@@ -1,0 +1,645 @@
+{
+  "$schema": "https://open-design.local/schemas/design-system.schema.json",
+  "id": "ai-workflow-workshop-cobalt-cartesian",
+  "name": "AI Workflow Workshop Cobalt Cartesian Design System",
+  "version": "0.1.0",
+  "status": "draft",
+  "updatedAt": "2026-05-14",
+  "purpose": "Design system for a Traditional Chinese enterprise AI Workflow Workshop deck built in Open Design. The system combines Cobalt Grid's research-bulletin grid language with Cartesian's quiet consulting tone, while preserving sans-first Chinese readability.",
+  "sourceReferences": {
+    "workspace": "/Users/christianwu/open-design/workshops",
+    "handoff": "workshops/HANDOFF.md",
+    "masterContent": "workshops/master-content.md",
+    "sourceMaster": "workshops/source/notion-master.md",
+    "sourceSpec": "workshops/source/notion-spec.md",
+    "styleReferences": [
+      "skills/html-ppt-zhangzara-cobalt-grid",
+      "skills/html-ppt-zhangzara-cartesian",
+      "skills/html-effectiveness"
+    ]
+  },
+  "audience": {
+    "name": "瑄燁團隊",
+    "size": 10,
+    "roles": {
+      "technical": 3,
+      "decisionMakers": 2,
+      "business": 5
+    },
+    "needs": [
+      "理解 AI Workflow 不只是聊天工具",
+      "理解文件格式、協作流程與知識庫如何影響 AI 導入",
+      "看見可落地的 Notion、Obsidian、LLM-WIKI、RAG、Harness、ERP/AI SOP 路線"
+    ]
+  },
+  "format": {
+    "type": "html-deck",
+    "framework": "reveal.js",
+    "frameworkVersion": "5.x",
+    "ratio": "16:9",
+    "canvas": {
+      "width": 1920,
+      "height": 1080
+    },
+    "slideCountPolicy": "content-complete-first",
+    "targetSlideCount": {
+      "min": 32,
+      "ideal": 35,
+      "maxBeforeAppendix": 42
+    },
+    "speakerNotes": true,
+    "keyboardNavigation": [
+      "ArrowLeft",
+      "ArrowRight",
+      "ArrowUp",
+      "ArrowDown",
+      "Escape overview"
+    ],
+    "slideNumber": {
+      "enabled": true,
+      "position": "bottom-right",
+      "format": "current / total"
+    },
+    "progress": {
+      "enabled": true,
+      "position": "bottom",
+      "height": "1px",
+      "color": "{color.accent.orange}"
+    }
+  },
+  "designDirection": {
+    "name": "Cobalt Cartesian",
+    "keywords": [
+      "editorial research",
+      "enterprise consulting",
+      "warm paper",
+      "cobalt grid",
+      "quiet but rigorous",
+      "data-friendly",
+      "presentation-first"
+    ],
+    "do": [
+      "Use warm paper backgrounds and cobalt hairlines for structure.",
+      "Use dense but readable editorial tables for matrices.",
+      "Use clean sans typography for Chinese body content.",
+      "Use serif italic only as small English decorative emphasis.",
+      "Reserve orange for progress, warnings, and final call-to-action details.",
+      "Keep visual hierarchy crisp enough for projection."
+    ],
+    "dont": [
+      "Do not return to the old replit-deck Helix visual direction.",
+      "Do not use large serif Chinese headlines.",
+      "Do not cover text with translucent annotation blocks.",
+      "Do not use purple gradients, dark-blue SaaS styling, or emoji decoration.",
+      "Do not invent metrics, customer examples, or implementation claims not present in source materials."
+    ]
+  },
+  "tokens": {
+    "color": {
+      "paper": {
+        "base": "#F0EBDE",
+        "warm": "#EDE8E0",
+        "secondary": "#E2DBD1",
+        "elevated": "#FAF8F1",
+        "description": "Warm off-white paper foundation inherited from Cobalt Grid and Cartesian."
+      },
+      "ink": {
+        "primary": "#1A1A1A",
+        "secondary": "#4E4C48",
+        "muted": "#6F6A62",
+        "faint": "#9A9287",
+        "inverse": "#FAF8F1"
+      },
+      "cobalt": {
+        "base": "#1F2BE0",
+        "soft": "#5560E5",
+        "line": "#2833D8",
+        "grid": "rgba(31, 43, 224, 0.10)",
+        "gridStrong": "rgba(31, 43, 224, 0.18)",
+        "wash": "rgba(31, 43, 224, 0.055)"
+      },
+      "stone": {
+        "line": "#B8B0A4",
+        "rule": "#C9C0B3",
+        "muted": "#8A8178",
+        "panel": "#E6E0CE"
+      },
+      "accent": {
+        "orange": "#D97757",
+        "orangeSoft": "rgba(217, 119, 87, 0.14)",
+        "red": "#B6453A",
+        "green": "#5E7A5A",
+        "yellow": "#C9A646"
+      },
+      "chart": {
+        "series1": "#1F2BE0",
+        "series2": "#D97757",
+        "series3": "#5E7A5A",
+        "series4": "#8A8178",
+        "series5": "#C9A646",
+        "series6": "#4E4C48",
+        "grid": "rgba(31, 43, 224, 0.12)",
+        "axis": "#8A8178"
+      },
+      "feedback": {
+        "positive": "#5E7A5A",
+        "warning": "#C9A646",
+        "negative": "#B6453A",
+        "info": "#1F2BE0"
+      },
+      "commentOverlay": {
+        "border": "#1677FF",
+        "background": "transparent",
+        "ring": "rgba(22, 119, 255, 0.16)",
+        "savedBorder": "rgba(22, 119, 255, 0.72)",
+        "savedBackground": "transparent",
+        "note": "Comment target overlays must never use a filled rectangle over content. Use outline-only treatment so chat and deck content remain readable."
+      }
+    },
+    "typography": {
+      "families": {
+        "zhSans": {
+          "css": "\"Noto Sans TC\", \"PingFang TC\", \"Microsoft JhengHei\", system-ui, sans-serif",
+          "usage": "Chinese headings, body, speaker-facing content, tables, notes"
+        },
+        "latinSans": {
+          "css": "\"Hanken Grotesk\", \"Inter\", system-ui, sans-serif",
+          "usage": "English labels and supporting UI text"
+        },
+        "decorativeSerif": {
+          "css": "\"Newsreader\", \"Playfair Display\", Georgia, serif",
+          "usage": "English-only ornament, section numerals, small quote emphasis"
+        },
+        "mono": {
+          "css": "\"JetBrains Mono\", \"DM Mono\", ui-monospace, SFMono-Regular, Menlo, monospace",
+          "usage": "Code blocks, metadata labels, page numbers, timestamps"
+        }
+      },
+      "policy": {
+        "chinesePrimary": "sans-only",
+        "serifAllowedFor": [
+          "English decorative word",
+          "section numeral",
+          "short English quote",
+          "non-body ornament"
+        ],
+        "serifDisallowedFor": [
+          "Chinese H1",
+          "Chinese body copy",
+          "tables",
+          "speaker notes",
+          "dense educational content"
+        ]
+      },
+      "scale": {
+        "coverTitle": {
+          "fontFamily": "{typography.families.zhSans}",
+          "fontSize": 78,
+          "lineHeight": 1.02,
+          "fontWeight": 800,
+          "letterSpacing": "0"
+        },
+        "sectionTitle": {
+          "fontFamily": "{typography.families.zhSans}",
+          "fontSize": 58,
+          "lineHeight": 1.08,
+          "fontWeight": 760,
+          "letterSpacing": "0"
+        },
+        "slideTitle": {
+          "fontFamily": "{typography.families.zhSans}",
+          "fontSize": 44,
+          "lineHeight": 1.16,
+          "fontWeight": 720,
+          "letterSpacing": "0"
+        },
+        "subtitle": {
+          "fontFamily": "{typography.families.zhSans}",
+          "fontSize": 25,
+          "lineHeight": 1.45,
+          "fontWeight": 500,
+          "letterSpacing": "0"
+        },
+        "body": {
+          "fontFamily": "{typography.families.zhSans}",
+          "fontSize": 22,
+          "lineHeight": 1.55,
+          "fontWeight": 400,
+          "letterSpacing": "0"
+        },
+        "small": {
+          "fontFamily": "{typography.families.zhSans}",
+          "fontSize": 17,
+          "lineHeight": 1.45,
+          "fontWeight": 400,
+          "letterSpacing": "0"
+        },
+        "micro": {
+          "fontFamily": "{typography.families.mono}",
+          "fontSize": 12,
+          "lineHeight": 1.2,
+          "fontWeight": 500,
+          "letterSpacing": "0.12em",
+          "textTransform": "uppercase"
+        },
+        "decorativeEnglish": {
+          "fontFamily": "{typography.families.decorativeSerif}",
+          "fontSize": 34,
+          "lineHeight": 1.05,
+          "fontWeight": 400,
+          "fontStyle": "italic",
+          "letterSpacing": "0"
+        },
+        "code": {
+          "fontFamily": "{typography.families.mono}",
+          "fontSize": 16,
+          "lineHeight": 1.55,
+          "fontWeight": 400,
+          "letterSpacing": "0"
+        }
+      }
+    },
+    "spacing": {
+      "base": 8,
+      "slidePadding": {
+        "x": 112,
+        "y": 76
+      },
+      "safeArea": {
+        "top": 72,
+        "right": 88,
+        "bottom": 72,
+        "left": 88
+      },
+      "gap": {
+        "xs": 8,
+        "sm": 16,
+        "md": 24,
+        "lg": 40,
+        "xl": 64,
+        "xxl": 96
+      },
+      "maxTextWidth": {
+        "body": "60ch",
+        "lead": "48ch",
+        "headline": "17ch"
+      }
+    },
+    "radii": {
+      "none": 0,
+      "xs": 2,
+      "sm": 4,
+      "md": 8,
+      "lg": 12
+    },
+    "border": {
+      "hairline": "1px solid {color.cobalt.line}",
+      "stoneHairline": "1px solid {color.stone.line}",
+      "dashedCobalt": "1px dashed {color.cobalt.soft}",
+      "tableRule": "1px solid rgba(31, 43, 224, 0.22)"
+    },
+    "shadow": {
+      "none": "none",
+      "paperLift": "0 12px 28px rgba(26, 26, 26, 0.08)",
+      "focus": "0 0 0 3px rgba(31, 43, 224, 0.16)"
+    },
+    "motion": {
+      "duration": {
+        "fast": "160ms",
+        "base": "260ms",
+        "slow": "520ms"
+      },
+      "easing": {
+        "standard": "cubic-bezier(0.22, 1, 0.36, 1)",
+        "linear": "linear"
+      },
+      "patterns": {
+        "fragmentRise": {
+          "opacityFrom": 0,
+          "translateY": 18,
+          "duration": "{motion.duration.base}",
+          "easing": "{motion.easing.standard}"
+        },
+        "chartFill": {
+          "property": "width or transform scaleX",
+          "duration": "720ms",
+          "easing": "{motion.easing.standard}"
+        },
+        "roadmapProgression": {
+          "property": "stroke-dashoffset or transform",
+          "duration": "900ms",
+          "easing": "{motion.easing.standard}"
+        }
+      },
+      "reducedMotion": {
+        "required": true,
+        "rule": "All reveal, chart, and progression animation must resolve instantly when prefers-reduced-motion is reduce."
+      }
+    }
+  },
+  "layoutVocabulary": {
+    "slideShell": {
+      "background": "{color.paper.base}",
+      "gridOverlay": {
+        "enabled": true,
+        "color": "{color.cobalt.grid}",
+        "cellSize": 36,
+        "opacity": 1
+      },
+      "hairlines": {
+        "top": true,
+        "bottom": true,
+        "color": "{color.cobalt.line}",
+        "width": 1
+      }
+    },
+    "full": {
+      "selector": "section.full",
+      "usage": "Hero, table-heavy slide, full flow diagram, roadmap, closing.",
+      "structure": [
+        "meta",
+        "headline",
+        "content area",
+        "page chrome"
+      ]
+    },
+    "split": {
+      "selector": "section.split > .left + .right",
+      "usage": "Contrast, before/after, concept plus screenshot, prompt vs context.",
+      "columns": "45% / 55% or 50% / 50%",
+      "minimumGap": 48
+    },
+    "grid": {
+      "selector": "section.grid > .cell",
+      "usage": "Four-part concepts, task cards, concept cards.",
+      "variants": [
+        "2x2",
+        "3-up",
+        "6-card"
+      ]
+    },
+    "overlay": {
+      "selector": "section.overlay",
+      "usage": "Photo or screencap with a concise callout.",
+      "rule": "Overlay panel must cover less than 28% of slide area and never obscure important image information."
+    },
+    "compare": {
+      "selector": ".compare",
+      "usage": "Bad vs good, old vs new, individual use vs enterprise workflow.",
+      "style": "two columns with red/green or muted/cobalt labeling, not full background color blocks"
+    },
+    "editorialTable": {
+      "selector": "table.editorial",
+      "usage": "Format matrix, Notion property tables, model selection matrices.",
+      "rules": [
+        "Use thin cobalt or stone horizontal rules.",
+        "Header row may use cobalt text, not saturated fill.",
+        "Zebra rows use paper tone changes under 6% contrast.",
+        "Keep font size at least 16px in 1920x1080 slides."
+      ]
+    },
+    "codeFrame": {
+      "selector": ".code-frame",
+      "usage": "Folder trees, YAML frontmatter, Markdown snippets, pipeline examples.",
+      "style": "paper-elevated panel, cobalt left rule, mono text"
+    },
+    "mediaSlot": {
+      "selector": ".media-slot",
+      "usage": "Image, screenshot, QR, or video placeholder.",
+      "requiredMetadata": [
+        "assetId",
+        "page",
+        "placement",
+        "status"
+      ]
+    }
+  },
+  "components": {
+    "metaBar": {
+      "position": "top",
+      "font": "{typography.scale.micro}",
+      "content": [
+        "OPEN DESIGN · WORKSHOP",
+        "section label",
+        "slide number"
+      ]
+    },
+    "pageNumber": {
+      "position": "bottom-right",
+      "font": "{typography.scale.micro}",
+      "format": "current / total"
+    },
+    "progressBar": {
+      "position": "bottom",
+      "height": 1,
+      "color": "{color.accent.orange}"
+    },
+    "callout": {
+      "background": "{color.paper.elevated}",
+      "border": "{border.stoneHairline}",
+      "radius": "{radii.md}",
+      "padding": "{spacing.gap.lg}",
+      "maxWidth": "44ch"
+    },
+    "quote": {
+      "bodyFont": "{typography.families.zhSans}",
+      "decorativeFont": "{typography.families.decorativeSerif}",
+      "accent": "{color.cobalt.base}",
+      "rule": "{border.hairline}"
+    },
+    "taskCard": {
+      "background": "{color.paper.elevated}",
+      "border": "{border.tableRule}",
+      "radius": "{radii.md}",
+      "numberStyle": "{typography.scale.decorativeEnglish}"
+    },
+    "diagramStage": {
+      "background": "rgba(250, 248, 241, 0.82)",
+      "border": "{border.hairline}",
+      "grid": true,
+      "annotationStyle": "mono labels and cobalt connectors"
+    },
+    "commentOverlay": {
+      "targetOutline": {
+        "border": "1px solid {color.commentOverlay.border}",
+        "background": "{color.commentOverlay.background}",
+        "boxShadow": "0 0 0 1px {color.commentOverlay.ring}"
+      },
+      "selectedOutline": {
+        "borderWidth": 2,
+        "background": "transparent"
+      },
+      "savedOutline": {
+        "border": "1px dashed {color.commentOverlay.savedBorder}",
+        "background": "{color.commentOverlay.savedBackground}"
+      },
+      "accessibilityNote": "The target element must remain readable. Never cover chat logs, code, or slide content with a translucent fill."
+    }
+  },
+  "slideSystem": {
+    "sections": [
+      {
+        "range": "P1-P4",
+        "theme": "Opening and consensus",
+        "dominantLayouts": [
+          "full",
+          "split",
+          "compare"
+        ],
+        "visualGoal": "Establish urgency without looking like a SaaS pitch."
+      },
+      {
+        "range": "P5-P12",
+        "theme": "Document engineering and format strategy",
+        "dominantLayouts": [
+          "editorialTable",
+          "codeFrame",
+          "diagramStage"
+        ],
+        "visualGoal": "Make document transformation concrete and teachable."
+      },
+      {
+        "range": "P13-P18",
+        "theme": "Model selection and token cost control",
+        "dominantLayouts": [
+          "matrix",
+          "compare",
+          "chart"
+        ],
+        "visualGoal": "Turn cost control into operational decisions."
+      },
+      {
+        "range": "P19-P24",
+        "theme": "Notion collaboration and Xuan workflow hub",
+        "dominantLayouts": [
+          "screenshot split",
+          "database diagram",
+          "editorialTable"
+        ],
+        "visualGoal": "Show Notion as a working operating layer, not a pretty notes app."
+      },
+      {
+        "range": "P25-P29",
+        "theme": "Obsidian, LLM-WIKI, and Context Engineering",
+        "dominantLayouts": [
+          "split",
+          "repo tree",
+          "context pipeline"
+        ],
+        "visualGoal": "Shift from collaboration to long-term knowledge structure."
+      },
+      {
+        "range": "P30-P33",
+        "theme": "RAG, Harness, Agentic, and ERP roadmap",
+        "dominantLayouts": [
+          "pyramid",
+          "pipeline",
+          "roadmap",
+          "data model"
+        ],
+        "visualGoal": "Clarify adoption order and future system architecture."
+      },
+      {
+        "range": "P34-P35",
+        "theme": "Exercise and closing",
+        "dominantLayouts": [
+          "task cards",
+          "takeaway cards",
+          "QR area"
+        ],
+        "visualGoal": "End with concrete action, not generic thanks."
+      }
+    ]
+  },
+  "assetSystem": {
+    "assetIdPattern": "IMG-##, SS-##, SR-##, QR-##, DIA-##",
+    "sourceOfTruth": "workshops/master-content.md",
+    "imageGeneration": {
+      "providerHint": "ChatGPT Image 2",
+      "promptLanguages": [
+        "zh-TW",
+        "en"
+      ],
+      "requiredFields": [
+        "assetId",
+        "page",
+        "content",
+        "placement",
+        "zhPrompt",
+        "enPrompt",
+        "status"
+      ],
+      "visualConstraints": [
+        "Warm off-white paper background",
+        "Cobalt linework",
+        "Enterprise training context",
+        "No sci-fi neon",
+        "No emoji",
+        "No fake brand logos",
+        "No unreadable small text inside generated images"
+      ]
+    },
+    "video": {
+      "types": [
+        "screen recording",
+        "short workflow demo",
+        "dashboard walkthrough"
+      ],
+      "placeholderRule": "Use visible asset IDs in authoring files; hide prompt details from final slide body."
+    },
+    "diagrams": {
+      "firstPass": "Mermaid source embedded in deck.",
+      "secondPass": "Replace important Mermaid diagrams with custom HTML/SVG interaction when diagram-design capability is available.",
+      "priorityIds": [
+        "DIA-01",
+        "DIA-02",
+        "DIA-03",
+        "DIA-04",
+        "DIA-05"
+      ]
+    }
+  },
+  "implementationGuidelines": {
+    "html": {
+      "singleFile": true,
+      "css": "inline",
+      "js": "CDN allowed for reveal.js, RevealNotes, mermaid",
+      "doNotExposePromptsInSlideBody": true
+    },
+    "reveal": {
+      "plugins": [
+        "RevealNotes"
+      ],
+      "dependencies": [
+        "reveal.js 5.x",
+        "mermaid"
+      ],
+      "features": {
+        "overview": true,
+        "speakerNotes": true,
+        "keyboard": true,
+        "hash": false,
+        "slideNumber": true
+      }
+    },
+    "accessibility": {
+      "minimumBodyFontPx": 22,
+      "minimumTableFontPx": 16,
+      "contrastTarget": "WCAG AA where possible on paper backgrounds",
+      "reducedMotion": true,
+      "noOverlayObstruction": true
+    },
+    "qualityBars": [
+      "Every slide has one clear job.",
+      "Every table must be readable at 1920x1080.",
+      "Every diagram must have a plain-language takeaway.",
+      "Every generated visual must have a known asset ID and placement.",
+      "Every speaker note must include timing."
+    ]
+  },
+  "handoffPrompts": {
+    "stage2Plan": "請根據 `workshops/master-content.md`、`workshops/HANDOFF.md` 與 `workshops/design-system.json` 建立或更新 `workshops/Plan.md`。`Plan.md` 要是下一階段實作 reveal.js deck 的唯一規格入口，需包含 source precedence、35 頁 deck contract、reveal.js 技術規格、layout component、speaker notes、Mermaid handoff、圖片/截圖/錄影素材策略與測試清單。不要生成 `index.html`。",
+    "stage3Design": "請根據 `workshops/design-system.json` 更新 `workshops/DESIGN.md`。中文主體保持 sans，serif/italic 僅限英文裝飾詞與局部 emphasis。設計標準需包含 color tokens、typography、spacing、layout vocabulary、table/matrix/compare/roadmap/pyramid/code-frame 規格、motion、anti-patterns。不要修改 `index.html`。",
+    "stage5Html": "請實作 `workshops/index.html` 為 reveal.js 5.x 單檔 HTML deck。CSS inline；JS 可用 CDN：reveal.js、RevealNotes、mermaid。頁面依 `workshops/DECK.md`，內容依 `workshops/master-content.md`，視覺依 `workshops/design-system.json`。需支援方向鍵、Esc overview、speaker notes、右下角 X / total、底部 1px orange progress bar、Mermaid render、prefers-reduced-motion。"
+  }
+}

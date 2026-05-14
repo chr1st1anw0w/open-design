@@ -74,12 +74,14 @@ import type {
 import { ManualEditPanel, emptyManualEditDraft, type ManualEditDraft } from './ManualEditPanel';
 import {
   applyManualEditPatch,
+  buildSourcePatch,
   readManualEditAttributes,
   readManualEditFields,
   readManualEditOuterHtml,
   readManualEditStyles,
 } from '../edit-mode/source-patches';
-import type { ManualEditBridgeMessage, ManualEditHistoryEntry, ManualEditPatch, ManualEditTarget } from '../edit-mode/types';
+import { resolveConflict } from '../edit-mode/conflict-resolver';
+import type { ManualEditBridgeMessage, ManualEditHistoryEntry, ManualEditPatch, ManualEditTarget, SourcePatch } from '../edit-mode/types';
 
 type TranslateFn = (key: keyof Dict, vars?: Record<string, string | number>) => string;
 type SlideState = { active: number; count: number };
@@ -2338,7 +2340,6 @@ function CommentTargetOverlay({
           const width = Math.round(member.position.width);
           const height = Math.round(member.position.height);
           const overlayWeight = overlayWeights[index] ?? {
-            backgroundOpacity: 0.24,
             outlineOpacity: 0.72,
             ringOpacity: 0.18,
           };
@@ -2347,7 +2348,6 @@ function CommentTargetOverlay({
             top: bounds.top,
             width: bounds.width,
             height: bounds.height,
-            '--comment-overlay-bg': `rgba(22, 119, 255, ${overlayWeight.backgroundOpacity})`,
             '--comment-overlay-ring': `rgba(22, 119, 255, ${overlayWeight.ringOpacity})`,
             '--comment-overlay-border': `rgba(22, 119, 255, ${overlayWeight.outlineOpacity})`,
           };
@@ -2400,7 +2400,7 @@ function podDisplayMembers(snapshot: PreviewCommentSnapshot): PreviewCommentSnap
 
 function podOverlayWeights(
   members: PreviewCommentSnapshot[],
-): Array<{ backgroundOpacity: number; outlineOpacity: number; ringOpacity: number }> {
+): Array<{ outlineOpacity: number; ringOpacity: number }> {
   const areas = members.map((member) =>
     Math.max(1, member.position.width * member.position.height),
   );
@@ -2411,7 +2411,6 @@ function podOverlayWeights(
       maxArea === minArea ? 1 : 1 - (area - minArea) / (maxArea - minArea);
     const emphasis = Math.pow(normalized, 0.9);
     return {
-      backgroundOpacity: roundOverlayOpacity(0.1 + emphasis * 0.6),
       outlineOpacity: roundOverlayOpacity(0.34 + emphasis * 0.36),
       ringOpacity: roundOverlayOpacity(0.08 + emphasis * 0.18),
     };
@@ -2998,6 +2997,7 @@ function HtmlViewer({
   const [manualEditDraft, setManualEditDraft] = useState<ManualEditDraft>(() => emptyManualEditDraft());
   const [manualEditHistory, setManualEditHistory] = useState<ManualEditHistoryEntry[]>([]);
   const [manualEditUndone, setManualEditUndone] = useState<ManualEditHistoryEntry[]>([]);
+  const [manualEditConflicts, setManualEditConflicts] = useState<SourcePatch[]>([]);
   const [manualEditError, setManualEditError] = useState<string | null>(null);
   const [manualEditSaving, setManualEditSaving] = useState(false);
   const manualEditSavingRef = useRef(false);
@@ -3375,6 +3375,7 @@ function HtmlViewer({
     setManualEditDraft(emptyManualEditDraft());
     setManualEditHistory([]);
     setManualEditUndone([]);
+    setManualEditConflicts([]);
     setManualEditError(null);
   }, [file.name]);
 
@@ -3589,10 +3590,20 @@ function HtmlViewer({
         setManualEditError(result.error ?? 'Could not apply edit.');
         return;
       }
-      if (!(await confirmManualEditHistorySource(
-        baseSource,
-        'The file changed outside manual edit mode. Refreshing before applying manual edits.',
-      ))) return;
+      const entryId = `${Date.now()}-${manualEditHistory.length}`;
+      if (!(await confirmManualEditHistorySource(baseSource, {
+        message: 'The file changed outside manual edit mode. Refreshing before applying manual edits.',
+        pendingPatch: buildSourcePatch({
+          id: entryId,
+          label,
+          patch,
+          baseSource,
+          aiSource: source,
+          manualSource: result.source,
+          targetId: 'id' in patch ? patch.id : selectedManualEditTarget?.id,
+          sourceBacked: selectedManualEditTarget?.sourceBacked,
+        }),
+      }))) return;
       const saved = await writeProjectTextFile(projectId, file.name, result.source, {
         artifactManifest: file.artifactManifest,
       });
@@ -3601,17 +3612,28 @@ function HtmlViewer({
         return;
       }
       const entry: ManualEditHistoryEntry = {
-        id: `${Date.now()}-${manualEditHistory.length}`,
+        id: entryId,
         label,
         patch,
         beforeSource: baseSource,
         afterSource: result.source,
         createdAt: Date.now(),
+        sourcePatch: buildSourcePatch({
+          id: entryId,
+          label,
+          patch,
+          baseSource,
+          aiSource: result.source,
+          manualSource: result.source,
+          targetId: 'id' in patch ? patch.id : selectedManualEditTarget?.id,
+          sourceBacked: selectedManualEditTarget?.sourceBacked,
+        }),
       };
       setSource(result.source);
       setInlinedSource(null);
       setManualEditHistory((current) => [entry, ...current]);
       setManualEditUndone([]);
+      setManualEditConflicts([]);
       setManualEditDraft((current) => ({ ...current, fullSource: result.source }));
       await onFileSaved?.();
     } finally {
@@ -3620,7 +3642,10 @@ function HtmlViewer({
     }
   }
 
-  async function confirmManualEditHistorySource(expectedSource: string, message: string): Promise<boolean> {
+  async function confirmManualEditHistorySource(
+    expectedSource: string,
+    options: { message: string; pendingPatch?: SourcePatch },
+  ): Promise<boolean> {
     const persisted = await fetchProjectFileText(projectId, file.name, {
       cache: 'no-store',
       cacheBustKey: Date.now(),
@@ -3628,10 +3653,9 @@ function HtmlViewer({
     if (persisted == null || persisted === expectedSource) return true;
     setSource(persisted);
     setInlinedSource(null);
-    setManualEditHistory([]);
-    setManualEditUndone([]);
+    setManualEditConflicts(options.pendingPatch ? [{ ...options.pendingPatch, aiSource: persisted, conflict: persisted !== options.pendingPatch.manualSource }] : []);
     setManualEditDraft((current) => ({ ...current, fullSource: persisted }));
-    setManualEditError(message);
+    setManualEditError(options.message);
     return false;
   }
 
@@ -3642,10 +3666,10 @@ function HtmlViewer({
     manualEditSavingRef.current = true;
     setManualEditSaving(true);
     try {
-      if (!(await confirmManualEditHistorySource(
-        latest.afterSource,
-        'The file changed outside manual edit mode. History was cleared to avoid overwriting newer content.',
-      ))) return;
+      if (!(await confirmManualEditHistorySource(latest.afterSource, {
+        message: 'The file changed outside manual edit mode. History was preserved as a conflict preview.',
+        pendingPatch: latest.sourcePatch,
+      }))) return;
       const saved = await writeProjectTextFile(projectId, file.name, latest.beforeSource, {
         artifactManifest: file.artifactManifest,
       });
@@ -3657,6 +3681,7 @@ function HtmlViewer({
       setInlinedSource(null);
       setManualEditHistory(rest);
       setManualEditUndone((current) => [latest, ...current]);
+      setManualEditConflicts([]);
       setManualEditDraft((current) => ({ ...current, fullSource: latest.beforeSource }));
       await onFileSaved?.();
     } finally {
@@ -3672,10 +3697,10 @@ function HtmlViewer({
     manualEditSavingRef.current = true;
     setManualEditSaving(true);
     try {
-      if (!(await confirmManualEditHistorySource(
-        latest.beforeSource,
-        'The file changed outside manual edit mode. History was cleared to avoid overwriting newer content.',
-      ))) return;
+      if (!(await confirmManualEditHistorySource(latest.beforeSource, {
+        message: 'The file changed outside manual edit mode. History was preserved as a conflict preview.',
+        pendingPatch: latest.sourcePatch,
+      }))) return;
       const saved = await writeProjectTextFile(projectId, file.name, latest.afterSource, {
         artifactManifest: file.artifactManifest,
       });
@@ -3687,7 +3712,33 @@ function HtmlViewer({
       setInlinedSource(null);
       setManualEditUndone(rest);
       setManualEditHistory((current) => [latest, ...current]);
+      setManualEditConflicts([]);
       setManualEditDraft((current) => ({ ...current, fullSource: latest.afterSource }));
+      await onFileSaved?.();
+    } finally {
+      manualEditSavingRef.current = false;
+      setManualEditSaving(false);
+    }
+  }
+
+  async function resolveManualEditConflict(patch: SourcePatch, strategy: 'ai' | 'manual' | 'merge') {
+    if (manualEditSavingRef.current) return;
+    manualEditSavingRef.current = true;
+    setManualEditSaving(true);
+    setManualEditError(null);
+    try {
+      const resolved = resolveConflict(patch, strategy);
+      const saved = await writeProjectTextFile(projectId, file.name, resolved.resolvedSource, {
+        artifactManifest: file.artifactManifest,
+      });
+      if (!saved) {
+        setManualEditError('Could not save the resolved manual edit conflict.');
+        return;
+      }
+      setSource(resolved.resolvedSource);
+      setInlinedSource(null);
+      setManualEditConflicts((current) => current.filter((entry) => entry.id !== patch.id));
+      setManualEditDraft((current) => ({ ...current, fullSource: resolved.resolvedSource }));
       await onFileSaved?.();
     } finally {
       manualEditSavingRef.current = false;
@@ -4703,6 +4754,7 @@ function HtmlViewer({
                 selectedTarget={selectedManualEditTarget}
                 draft={manualEditDraft}
                 history={manualEditHistory}
+                conflicts={manualEditConflicts}
                 error={manualEditError}
                 canUndo={manualEditHistory.length > 0}
                 canRedo={manualEditUndone.length > 0}
@@ -4721,6 +4773,9 @@ function HtmlViewer({
                 }}
                 onRedo={() => {
                   void redoManualEdit();
+                }}
+                onResolveConflict={(patch, strategy) => {
+                  void resolveManualEditConflict(patch, strategy);
                 }}
               />
             ) : null}

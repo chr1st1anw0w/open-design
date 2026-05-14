@@ -7,8 +7,8 @@ import type {
   AppVersionResponse,
   AudioKind,
   ChatAttachment,
-  ChatCommentAttachment,
-  ChatMessage,
+  ChatCommentAttachment as ContractChatCommentAttachment,
+  ChatMessage as ContractChatMessage,
   ConnectionTestKind,
   ConnectionTestProtocol,
   ConnectionTestRequest,
@@ -72,6 +72,36 @@ export type {
   PreviewCommentMember,
   PreviewCommentSelectionKind,
 } from '@open-design/contracts';
+
+export type ChatCommentSelectionKind = PreviewCommentSelectionKind | 'visual';
+export type PreviewVisualMarkKind = 'stroke' | 'click' | 'click+stroke';
+export type ProjectPlatform = 'web' | 'desktop' | 'mobile' | string;
+export type ChatMessageFeedbackRating = 'positive' | 'negative';
+export type ChatMessageFeedbackReasonCode =
+  | 'incorrect'
+  | 'incomplete'
+  | 'not_following_instructions'
+  | 'unsafe'
+  | 'other'
+  | string;
+
+export interface ChatMessageFeedback {
+  rating: ChatMessageFeedbackRating;
+  reasonCodes?: ChatMessageFeedbackReasonCode[];
+  customReason?: string;
+  reasonsSubmittedAt?: number;
+}
+
+export interface ChatCommentAttachment extends Omit<ContractChatCommentAttachment, 'selectionKind'> {
+  selectionKind?: ChatCommentSelectionKind;
+  screenshotPath?: string;
+  markKind?: PreviewVisualMarkKind;
+  intent?: string;
+}
+
+export interface ChatMessage extends Omit<ContractChatMessage, 'commentAttachments'> {
+  commentAttachments?: ChatCommentAttachment[];
+}
 
 export type ExecMode = 'daemon' | 'api';
 export type ApiProtocol = 'anthropic' | 'openai' | 'azure' | 'google' | 'ollama';
@@ -329,6 +359,7 @@ export interface AppConfig {
   // Langfuse-backed telemetry endpoint. All three default to off until the
   // user makes an explicit choice.
   telemetry?: TelemetryConfig;
+  customInstructions?: string;
 }
 
 export interface TelemetryConfig {
@@ -350,7 +381,20 @@ export interface LiveArtifactEventItem {
   event: Extract<AgentEvent, { kind: 'live_artifact' | 'live_artifact_refresh' }>;
 }
 
-export type { ChatAttachment, ChatCommentAttachment, ChatMessage };
+export type ChatMessageFeedbackChange =
+  | ({
+      rating: ChatMessageFeedbackRating;
+    } & Partial<
+      Pick<
+        ChatMessageFeedback,
+        'reasonCodes' | 'customReason' | 'reasonsSubmittedAt'
+      >
+    >)
+  | null;
+
+export type {
+  ChatAttachment,
+};
 
 export interface Artifact {
   identifier: string;

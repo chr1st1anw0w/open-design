@@ -1,0 +1,562 @@
+<!doctype html>
+<!--
+  zh-tw-design-brief Workshop deck (helix).
+
+  Source-of-truth: workshops/zh-tw-design-brief/source/notion-*.{md,html}
+  Draft: workshops/zh-tw-design-brief/DECK.md
+
+  Hard rules:
+  - One theme per deck: <body data-theme="helix">
+  - Do NOT rewrite the <script> at the bottom (iframe nav bugs).
+  - No invented metrics; use — when unknown.
+-->
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>工作坊（Workshop）— zh-TW Design Brief</title>
+  <style>
+    /* ─── font stacks (local-first; no external fonts) ───────────── */
+    :root {
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Noto Sans TC', 'Inter', 'Segoe UI', system-ui, sans-serif;
+      --font-sans-display: -apple-system, BlinkMacSystemFont, 'Noto Sans TC', 'Inter Display', 'Inter', 'Segoe UI', system-ui, sans-serif;
+      --font-mono: ui-monospace, 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+    }
+
+    /* ─── theme: helix (copied from skills/replit-deck/assets/template.html) ─ */
+    body[data-theme="helix"] {
+      --bg:        #fafafa;
+      --surface:   #ffffff;
+      --fg:        #19191c;
+      --muted:     #6e6e73;
+      --border:    #e4e4e7;
+      --accent:    #5889fe;
+      --accent-soft: color-mix(in oklch, #5889fe 14%, transparent);
+      --font-display: var(--font-sans-display);
+      --font-body:    var(--font-sans);
+      --display-weight: 700; /* align to Noto Sans TC Bold */
+      --display-tracking: -0.02em;
+    }
+
+    /* ─── chart tokens (from skills/index.css) ───────────────────── */
+    body[data-theme="helix"] {
+      --chart-1: oklch(0.6539 0.2322 24.3251);
+      --chart-2: oklch(0.6250 0.2583 305.8714);
+      --chart-3: oklch(0.8964 0.1094 204.8017);
+      --chart-4: oklch(0.9136 0.1310 177.7414);
+      --chart-5: oklch(0.9453 0.1453 102.8937);
+    }
+
+    /* ─── reset / base ───────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--font-body);
+      font-size: 18px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      display: flex;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
+    }
+    body::-webkit-scrollbar { display: none; }
+    p { text-wrap: pretty; margin: 0; }
+    h1, h2, h3 { text-wrap: balance; margin: 0; font-weight: var(--display-weight); letter-spacing: var(--display-tracking); }
+
+    /* ─── slide surface ───────────────────────────────────────────── */
+    .slide {
+      flex: 0 0 100vw;
+      width: 100vw;
+      height: 100vh;
+      scroll-snap-align: start;
+      padding: clamp(48px, 6vw, 96px) clamp(56px, 7vw, 112px);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+    .slide.center { align-items: center; justify-content: center; text-align: center; }
+
+    /* ─── meta bar ───────────────────────────────────────────────── */
+    .meta-bar {
+      position: absolute;
+      top: clamp(32px, 4vw, 56px);
+      left: clamp(56px, 7vw, 112px);
+      right: clamp(56px, 7vw, 112px);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* ─── typography primitives ──────────────────────────────────── */
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .eyebrow.accent { color: var(--accent); }
+    .h-hero { font-family: var(--font-display); font-size: clamp(56px, 8.5vw, 128px); line-height: 1.02; }
+    .h-xl   { font-family: var(--font-display); font-size: clamp(40px, 5vw, 76px);  line-height: 1.08; }
+    .h-lg   { font-family: var(--font-display); font-size: clamp(28px, 3vw, 44px);  line-height: 1.14; }
+    .h-md   { font-family: var(--font-display); font-size: clamp(20px, 1.6vw, 24px); line-height: 1.25; }
+    .lead   { font-size: clamp(16px, 1.2vw, 19px); color: var(--muted); max-width: 56ch; }
+
+    .divider { height: 1px; background: var(--border); margin: clamp(16px, 2vw, 32px) 0; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(32px, 4vw, 64px); align-items: start; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(24px, 3vw, 48px); }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: clamp(20px, 2vw, 32px);
+    }
+
+    /* simple chart legend */
+    .legend { display: flex; flex-wrap: wrap; gap: 12px 16px; font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+    .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; margin-right: 8px; border: 1px solid color-mix(in oklch, var(--fg) 12%, transparent); }
+
+    /* ─── deck chrome (counter, progress, hint) ──────────────────── */
+    .deck-counter {
+      position: fixed;
+      bottom: 24px; right: 32px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 6px 12px;
+      background: color-mix(in oklch, var(--bg) 92%, transparent);
+      border: 1px solid var(--border);
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      z-index: 10;
+    }
+    .deck-hint {
+      position: fixed;
+      bottom: 24px; left: 32px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      z-index: 10;
+    }
+    .deck-progress {
+      position: fixed;
+      top: 0; left: 0;
+      height: 2px;
+      background: var(--accent);
+      width: 0;
+      z-index: 10;
+      transition: width 0.18s ease;
+    }
+  </style>
+</head>
+<body data-theme="helix">
+  <!-- 01 Cover -->
+  <section class="slide center" data-screen-label="01 Cover">
+    <div class="meta-bar">
+      <span>OPEN DESIGN · WORKSHOP</span>
+      <span>01 / 18</span>
+    </div>
+    <div>
+      <p class="eyebrow" style="margin-bottom: 28px;">ZH-TW DESIGN BRIEF · 120 MIN</p>
+      <h1 class="h-hero" style="max-width: 14ch;">用 120 分鐘完成一份可落地的設計簡報（Design brief）。</h1>
+      <p class="lead" style="margin-top: 28px;">以繁中為主、技術詞中英對照；輸出可直接進入 Open Design 工作流。</p>
+    </div>
+  </section>
+
+  <!-- 02 Why now -->
+  <section class="slide" data-screen-label="02 Why now">
+    <div class="meta-bar">
+      <span>WHY NOW</span>
+      <span>02 / 18</span>
+    </div>
+    <div style="margin-top: auto; margin-bottom: auto;">
+      <p class="eyebrow accent" style="margin-bottom: 24px;">PROBLEM → DECISION</p>
+      <h2 class="h-xl" style="max-width: 16ch;">沒有一致的 brief，就沒有一致的決策。</h2>
+      <p class="lead" style="margin-top: 20px;">待匯入母本內容：此頁應以 Notion 母本的痛點/機會段落替換，不新增自造論述。</p>
+    </div>
+  </section>
+
+  <!-- 03 Team map -->
+  <section class="slide" data-screen-label="03 Team map">
+    <div class="meta-bar">
+      <span>AUDIENCE MAP</span>
+      <span>03 / 18</span>
+    </div>
+    <h2 class="h-xl" style="margin-top: clamp(40px, 6vh, 80px); margin-bottom: clamp(28px, 4vh, 48px);">參與者地圖（Team map）</h2>
+    <div class="grid-3" style="flex: 1;">
+      <div class="card">
+        <p class="eyebrow accent" style="margin-bottom: 14px;">TECH (3)</p>
+        <p class="h-md" style="margin-bottom: 10px;">關注：可實作性（Feasibility）</p>
+        <p class="lead">系統邊界、風險、依賴、驗證方式。</p>
+      </div>
+      <div class="card">
+        <p class="eyebrow accent" style="margin-bottom: 14px;">DECISION (2)</p>
+        <p class="h-md" style="margin-bottom: 10px;">關注：取捨（Trade-off）</p>
+        <p class="lead">優先順序、資源配置、時間點、成功指標。</p>
+      </div>
+      <div class="card">
+        <p class="eyebrow accent" style="margin-bottom: 14px;">BUSINESS (5)</p>
+        <p class="h-md" style="margin-bottom: 10px;">關注：價值（Value）</p>
+        <p class="lead">受眾、定位、敘事、轉換路徑、風險敘述。</p>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="legend">
+      <span><span class="swatch" style="background: var(--accent);"></span>Primary（主強調）</span>
+      <span><span class="swatch" style="background: var(--chart-1);"></span>Chart 1</span>
+      <span><span class="swatch" style="background: var(--chart-2);"></span>Chart 2</span>
+      <span><span class="swatch" style="background: var(--chart-3);"></span>Chart 3</span>
+      <span><span class="swatch" style="background: var(--chart-4);"></span>Chart 4</span>
+      <span><span class="swatch" style="background: var(--chart-5);"></span>Chart 5</span>
+    </div>
+  </section>
+
+  <!-- 04 Objectives -->
+  <section class="slide" data-screen-label="04 Objectives">
+    <div class="meta-bar">
+      <span>OBJECTIVES</span>
+      <span>04 / 18</span>
+    </div>
+    <div style="margin-top: auto; margin-bottom: auto;">
+      <p class="eyebrow" style="margin-bottom: 24px;">OUTCOMES (可驗收)</p>
+      <h2 class="h-xl" style="max-width: 18ch;">工作坊結束時，能交付的不是想法，而是決策。</h2>
+      <div class="divider"></div>
+      <div class="grid-2">
+        <div>
+          <p class="h-md" style="margin-bottom: 12px;">目標（Objective）</p>
+          <p class="lead">待匯入母本內容：請以 Notion 規格中的目標清單替換。</p>
+        </div>
+        <div>
+          <p class="h-md" style="margin-bottom: 12px;">驗收（Acceptance）</p>
+          <p class="lead">每一點目標都對應「可驗收」的輸出欄位或產出物。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 Deliverables -->
+  <section class="slide" data-screen-label="05 Deliverables">
+    <div class="meta-bar">
+      <span>DELIVERABLES</span>
+      <span>05 / 18</span>
+    </div>
+    <h2 class="h-xl" style="margin-top: clamp(40px, 6vh, 80px); margin-bottom: clamp(24px, 4vh, 48px);">今日產出物（Deliverables）</h2>
+    <div class="grid-2" style="flex: 1;">
+      <div class="card">
+        <p class="eyebrow accent" style="margin-bottom: 14px;">PRIMARY</p>
+        <p class="h-md" style="margin-bottom: 10px;">DESIGN BRIEF</p>
+        <p class="lead">可直接被 Open Design 消化的 `DESIGN.md`（或對應結構）。</p>
+      </div>
+      <div class="card">
+        <p class="eyebrow accent" style="margin-bottom: 14px;">SECONDARY</p>
+        <p class="h-md" style="margin-bottom: 10px;">DECISIONS / BACKLOG</p>
+        <p class="lead">決策記錄（Decision log）與下一步待辦（Backlog）。</p>
+      </div>
+    </div>
+    <p class="lead" style="margin-top: 18px;">待匯入母本內容：請將 Notion 規格中的 deliverables 清單替換到此頁。</p>
+  </section>
+
+  <!-- 06 Method A (Definition) -->
+  <section class="slide" data-screen-label="06 Method A — Definition">
+    <div class="meta-bar">
+      <span>METHOD A</span>
+      <span>06 / 18</span>
+    </div>
+    <div style="margin-top: auto; margin-bottom: auto;">
+      <p class="eyebrow accent" style="margin-bottom: 24px;">DEFINITION</p>
+      <h2 class="h-xl" style="max-width: 18ch;">核心概念 A（Concept A）</h2>
+      <p class="lead" style="margin-top: 20px;">待匯入母本內容：名稱、定義、適用情境，全部引用 Notion 母本，不自造。</p>
+    </div>
+  </section>
+
+  <!-- 07 Method A (Example) -->
+  <section class="slide" data-screen-label="07 Method A — Example">
+    <div class="meta-bar">
+      <span>METHOD A</span>
+      <span>07 / 18</span>
+    </div>
+    <h2 class="h-xl" style="margin-top: clamp(40px, 6vh, 80px); margin-bottom: clamp(24px, 4vh, 48px);">範例（Example）</h2>
+    <div class="grid-2" style="flex: 1;">
+      <div class="card">
+        <p class="eyebrow accent" style="margin-bottom: 14px;">EXAMPLE</p>
+        <p class="lead">待匯入母本內容：使用 Notion 母本的示例段落或表格。</p>
+      </div>
+      <div class="card">
+        <p class="eyebrow" style="margin-bottom: 14px;">COMMON MISREAD</p>
+        <p class="lead">待匯入母本內容：常見誤解（Anti-pattern）或風險說明。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 08 Exercise 1 -->
+  <section class="slide" data-screen-label="08 Exercise 1">
+    <div class="meta-bar">
+      <span>EXERCISE 1</span>
+      <span>08 / 18</span>
+    </div>
+    <div style="margin-top: auto; margin-bottom: auto;">
+      <p class="eyebrow accent" style="margin-bottom: 24px;">PRACTICE</p>
+      <h2 class="h-xl" style="max-width: 18ch;">練習 1：把模糊需求變成可驗收輸出。</h2>
+      <div class="divider"></div>
+      <p class="lead">待匯入母本內容：步驟（Steps）+ 成功判準（Success criteria）。</p>
+    </div>
+  </section>
+
+  <!-- 09 Share & Synthesize -->
+  <section class="slide" data-screen-label="09 Synthesize">
+    <div class="meta-bar">
+      <span>SYNTHESIZE</span>
+      <span>09 / 18</span>
+    </div>
+    <h2 class="h-xl" style="margin-top: clamp(40px, 6vh, 80px); margin-bottom: clamp(20px, 3vh, 36px);">分享與彙整（Share &amp; Synthesize）</h2>
+    <p class="lead">此頁預留給模板/表格（table）匯入：建議用 Notion 規格提供的欄位作為 row/column。</p>
+    <div class="divider"></div>
+    <div class="card" style="font-family: var(--font-mono); font-size: 13px; color: var(--muted); line-height: 1.6;">
+      <div style="display: grid; grid-template-columns: 180px 1fr; gap: 16px;">
+        <div>欄位（Field）</div><div>內容（Content）</div>
+        <div>Problem</div><div>—</div>
+        <div>Audience</div><div>—</div>
+        <div>Constraints</div><div>—</div>
+        <div>Success</div><div>—</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 Method B (Definition) -->
+  <section class="slide" data-screen-label="10 Method B — Definition">
+    <div class="meta-bar">
+      <span>METHOD B</span>
+      <span>10 / 18</span>
+    </div>
+    <div style="margin-top: auto; margin-bottom: auto;">
+      <p class="eyebrow accent" style="margin-bottom: 24px;">DEFINITION</p>
+      <h2 class="h-xl" style="max-width: 18ch;">核心概念 B（Concept B）</h2>
+      <p class="lead" style="margin-top: 20px;">待匯入母本內容：名稱、定義、適用情境引用 Notion 母本。</p>
+    </div>
+  </section>
+
+  <!-- 11 Method B (Example) -->
+  <section class="slide" data-screen-label="11 Method B — Example">
+    <div class="meta-bar">
+      <span>METHOD B</span>
+      <span>11 / 18</span>
+    </div>
+    <h2 class="h-xl" style="margin-top: clamp(40px, 6vh, 80px); margin-bottom: clamp(24px, 4vh, 48px);">範例（Example）</h2>
+    <div class="grid-2" style="flex: 1;">
+      <div class="card">
+        <p class="eyebrow accent" style="margin-bottom: 14px;">EXAMPLE</p>
+        <p class="lead">待匯入母本內容：示例段落或表格。</p>
+      </div>
+      <div class="card">
+        <p class="eyebrow" style="margin-bottom: 14px;">RISKS</p>
+        <p class="lead">待匯入母本內容：限制、風險、或避免事項。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 Exercise 2 -->
+  <section class="slide" data-screen-label="12 Exercise 2">
+    <div class="meta-bar">
+      <span>EXERCISE 2</span>
+      <span>12 / 18</span>
+    </div>
+    <div style="margin-top: auto; margin-bottom: auto;">
+      <p class="eyebrow accent" style="margin-bottom: 24px;">PRACTICE</p>
+      <h2 class="h-xl" style="max-width: 20ch;">練習 2：將輸出格式化成可直接交付的文件。</h2>
+      <p class="lead" style="margin-top: 20px;">待匯入母本內容：步驟 + 成功判準。</p>
+    </div>
+  </section>
+
+  <!-- 13 Anti-patterns -->
+  <section class="slide" data-screen-label="13 Anti-patterns">
+    <div class="meta-bar">
+      <span>ANTI-PATTERNS</span>
+      <span>13 / 18</span>
+    </div>
+    <h2 class="h-xl" style="margin-top: clamp(40px, 6vh, 80px); margin-bottom: clamp(24px, 4vh, 48px);">常見誤區（Anti-patterns）</h2>
+    <div class="grid-2" style="flex: 1;">
+      <div class="card">
+        <p class="eyebrow accent" style="margin-bottom: 14px;">DON'T</p>
+        <p class="lead">不要把「漂亮」當成 brief；請把「可驗收」當成 brief。</p>
+      </div>
+      <div class="card">
+        <p class="eyebrow" style="margin-bottom: 14px;">NOTE</p>
+        <p class="lead">待匯入母本內容：此頁需以 Notion 規格/母本的 anti-pattern 清單替換。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 Open Design workflow -->
+  <section class="slide" data-screen-label="14 Open Design workflow">
+    <div class="meta-bar">
+      <span>OPEN DESIGN</span>
+      <span>14 / 18</span>
+    </div>
+    <div style="margin-top: auto; margin-bottom: auto;">
+      <p class="eyebrow accent" style="margin-bottom: 24px;">WORKFLOW</p>
+      <h2 class="h-xl" style="max-width: 18ch;">把 brief 變成可執行的流程（Executable workflow）。</h2>
+      <div class="divider"></div>
+      <div class="grid-2">
+        <div>
+          <p class="h-md" style="margin-bottom: 12px;">Artifacts</p>
+          <p class="lead">`DESIGN.md` / `DECK.md` / `index.html` /（必要時）`cases.json`。</p>
+        </div>
+        <div>
+          <p class="h-md" style="margin-bottom: 12px;">Skills</p>
+          <p class="lead">本 deck 採用 `replit-deck`（helix）。若要對齊品牌可改用 `simple-deck`（另檔）。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 Action plan -->
+  <section class="slide" data-screen-label="15 Action plan">
+    <div class="meta-bar">
+      <span>ACTION PLAN</span>
+      <span>15 / 18</span>
+    </div>
+    <h2 class="h-xl" style="margin-top: clamp(40px, 6vh, 80px); margin-bottom: clamp(24px, 4vh, 48px);">行動計畫（Action plan）</h2>
+    <div class="grid-2" style="flex: 1;">
+      <div class="card">
+        <p class="eyebrow accent" style="margin-bottom: 14px;">NEXT WEEK</p>
+        <p class="lead">待匯入母本內容：下一週可執行清單（不超過 5 點）。</p>
+      </div>
+      <div class="card">
+        <p class="eyebrow accent" style="margin-bottom: 14px;">NEXT SPRINT</p>
+        <p class="lead">待匯入母本內容：下個 Sprint 的里程碑與驗收標準。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 16 Q&A -->
+  <section class="slide" data-screen-label="16 Q&A">
+    <div class="meta-bar">
+      <span>Q&amp;A</span>
+      <span>16 / 18</span>
+    </div>
+    <div style="margin-top: auto; margin-bottom: auto;">
+      <p class="eyebrow accent" style="margin-bottom: 24px;">QUESTION FUNNEL</p>
+      <h2 class="h-xl" style="max-width: 20ch;">先收斂問題，再做回答（Clarify before answer）。</h2>
+      <div class="divider"></div>
+      <p class="lead">待匯入母本內容：問題框架（例如：目標/限制/受眾/風險/成本）。</p>
+    </div>
+  </section>
+
+  <!-- 17 Recap -->
+  <section class="slide" data-screen-label="17 Recap">
+    <div class="meta-bar">
+      <span>RECAP</span>
+      <span>17 / 18</span>
+    </div>
+    <div style="margin-top: auto; margin-bottom: auto;">
+      <p class="eyebrow accent" style="margin-bottom: 24px;">3 TAKEAWAYS</p>
+      <h2 class="h-xl" style="max-width: 20ch;">三句帶走的話（Takeaways）。</h2>
+      <div class="divider"></div>
+      <div class="grid-3">
+        <div class="card"><p class="h-md" style="margin-bottom: 8px;">1</p><p class="lead">待填：Takeaway 1</p></div>
+        <div class="card"><p class="h-md" style="margin-bottom: 8px;">2</p><p class="lead">待填：Takeaway 2</p></div>
+        <div class="card"><p class="h-md" style="margin-bottom: 8px;">3</p><p class="lead">待填：Takeaway 3</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 18 Closing -->
+  <section class="slide center" data-screen-label="18 Closing">
+    <div class="meta-bar">
+      <span>OPEN DESIGN · WORKSHOP</span>
+      <span>18 / 18</span>
+    </div>
+    <div>
+      <p class="eyebrow" style="margin-bottom: 24px;">NEXT STEP</p>
+      <h2 class="h-hero" style="max-width: 18ch;">把今天的 brief，變成下一步的 commit。</h2>
+      <p class="lead" style="margin-top: 24px;">待匯入母本內容：CTA（下一步/資源連結）。</p>
+    </div>
+  </section>
+
+  <!-- chrome (do not move) -->
+  <div class="deck-progress" id="deck-progress" aria-hidden></div>
+  <div class="deck-counter"  id="deck-counter">1 / 18</div>
+  <div class="deck-hint">← / → · scroll · swipe</div>
+
+  <script>
+    /*
+      Five hard rules for deck nav inside an iframe.
+      Verified by skills/simple-deck — do not rewrite.
+
+      1. Detect the real scroller — body OR documentElement.
+      2. Listen for scroll on BOTH window and document, capture phase.
+      3. Listen for keydown on BOTH window and document, capture phase.
+      4. Auto-focus body so arrow keys work without an upfront click.
+      5. Never use Element.scrollIntoView — yanks host page.
+    */
+    (function () {
+      var slides   = document.querySelectorAll('.slide');
+      var counter  = document.getElementById('deck-counter');
+      var progress = document.getElementById('deck-progress');
+      var KEY      = 'od-deck-pos:' + (location.pathname || '/');
+      var active   = 0;
+
+      function scroller() {
+        if (document.body.scrollWidth > document.body.clientWidth + 1) return document.body;
+        return document.scrollingElement || document.documentElement;
+      }
+      function setActive(i) {
+        active = i;
+        if (counter)  counter.textContent  = (i + 1) + ' / ' + slides.length;
+        if (progress) progress.style.width = (((i + 1) / slides.length) * 100) + '%';
+        try { localStorage.setItem(KEY, String(i)); } catch (_) {}
+      }
+      function go(i) {
+        var next = Math.max(0, Math.min(slides.length - 1, i));
+        setActive(next);
+        scroller().scrollTo({ left: next * window.innerWidth, behavior: 'smooth' });
+      }
+      function syncFromScroll() {
+        var i = Math.round(scroller().scrollLeft / window.innerWidth);
+        if (i !== active && i >= 0 && i < slides.length) setActive(i);
+      }
+      function onKey(e) {
+        var t = e.target;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
+        if      (e.key === 'ArrowRight' || e.key === ' '       || e.key === 'PageDown') { e.preventDefault(); go(active + 1); }
+        else if (e.key === 'ArrowLeft'  || e.key === 'PageUp')                            { e.preventDefault(); go(active - 1); }
+        else if (e.key === 'Home')                                                        { e.preventDefault(); go(0); }
+        else if (e.key === 'End')                                                         { e.preventDefault(); go(slides.length - 1); }
+      }
+
+      window.addEventListener('keydown', onKey, true);
+      document.addEventListener('keydown', onKey, true);
+      document.addEventListener('scroll', syncFromScroll, { passive: true, capture: true });
+      window.addEventListener('scroll', syncFromScroll,   { passive: true });
+
+      document.body.setAttribute('tabindex', '-1');
+      document.body.style.outline = 'none';
+      function focusDeck() { try { window.focus(); document.body.focus({ preventScroll: true }); } catch (_) {} }
+      document.addEventListener('mousedown', focusDeck);
+      window.addEventListener('load', focusDeck);
+      focusDeck();
+
+      try {
+        var saved = parseInt(localStorage.getItem(KEY) || '0', 10);
+        if (!isNaN(saved) && saved >= 0 && saved < slides.length) {
+          setActive(saved);
+          scroller().scrollTo({ left: saved * window.innerWidth, behavior: 'instant' });
+        } else {
+          setActive(0);
+        }
+      } catch (_) { setActive(0); }
+    })();
+  </script>
+</body>
+</html>
+

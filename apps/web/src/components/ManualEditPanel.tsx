@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useT } from '../i18n';
-import { emptyManualEditStyles, type ManualEditHistoryEntry, type ManualEditPatch, type ManualEditStyles, type ManualEditTarget } from '../edit-mode/types';
+import { DiffView } from '../edit-mode/DiffView';
+import { emptyManualEditStyles, type ManualEditHistoryEntry, type ManualEditPatch, type ManualEditStyles, type ManualEditTarget, type SourcePatch } from '../edit-mode/types';
 
 export interface ManualEditDraft {
   text: string;
@@ -33,6 +34,7 @@ export function ManualEditPanel({
   selectedTarget,
   draft,
   history,
+  conflicts,
   error,
   canUndo,
   canRedo,
@@ -44,11 +46,13 @@ export function ManualEditPanel({
   onCancelDraft,
   onUndo,
   onRedo,
+  onResolveConflict,
 }: {
   targets: ManualEditTarget[];
   selectedTarget: ManualEditTarget | null;
   draft: ManualEditDraft;
   history: ManualEditHistoryEntry[];
+  conflicts: SourcePatch[];
   error: string | null;
   canUndo: boolean;
   canRedo: boolean;
@@ -60,13 +64,26 @@ export function ManualEditPanel({
   onCancelDraft: () => void;
   onUndo: () => void;
   onRedo: () => void;
+  onResolveConflict: (patch: SourcePatch, strategy: 'ai' | 'manual' | 'merge') => void;
 }) {
   const t = useT();
   const [tab, setTab] = useState<ManualEditTab>('content');
+  const [selectedDiffId, setSelectedDiffId] = useState<string | null>(null);
 
   useEffect(() => {
     setTab('content');
   }, [selectedTarget?.id]);
+
+  useEffect(() => {
+    setSelectedDiffId((current) => current ?? conflicts[0]?.id ?? history[0]?.id ?? null);
+  }, [conflicts, history]);
+
+  const selectedPatch =
+    conflicts.find((entry) => entry.id === selectedDiffId) ??
+    history.find((entry) => entry.id === selectedDiffId)?.sourcePatch ??
+    conflicts[0] ??
+    history[0]?.sourcePatch ??
+    null;
 
   return (
     <>
@@ -216,13 +233,23 @@ export function ManualEditPanel({
           ) : (
             <div className="manual-edit-history-list">
               {history.map((entry) => (
-                <article key={entry.id} className="manual-edit-history-entry">
+                <article
+                  key={entry.id}
+                  className={`manual-edit-history-entry ${selectedDiffId === entry.id ? 'selected' : ''}`}
+                  onClick={() => setSelectedDiffId(entry.id)}
+                >
                   <strong>{entry.label}</strong>
                   <code>{manualEditPatchSummary(entry.patch)}</code>
                 </article>
               ))}
             </div>
           )}
+          {selectedPatch ? (
+            <DiffView
+              patch={selectedPatch}
+              onResolve={selectedPatch.conflict ? (strategy) => onResolveConflict(selectedPatch, strategy) : undefined}
+            />
+          ) : null}
         </section>
       </aside>
     </>

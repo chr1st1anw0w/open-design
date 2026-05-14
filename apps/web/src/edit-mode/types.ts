@@ -35,6 +35,7 @@ export interface ManualEditTarget {
   tagName: string;
   className: string;
   text: string;
+  sourceBacked: boolean;
   rect: ManualEditRect;
   fields: ManualEditFields;
   attributes: Record<string, string>;
@@ -59,6 +60,44 @@ export interface ManualEditHistoryEntry {
   beforeSource: string;
   afterSource: string;
   createdAt: number;
+  sourcePatch?: SourcePatch;
+}
+
+export type DiffLineKind = 'context' | 'add' | 'remove' | 'modify';
+
+export interface DiffLine {
+  key: string;
+  kind: DiffLineKind;
+  beforeNumber: number | null;
+  afterNumber: number | null;
+  beforeText: string;
+  afterText: string;
+  lockedBy?: 'user';
+}
+
+export interface LockedLine {
+  beforeNumber: number | null;
+  afterNumber: number | null;
+  lockedBy: 'user';
+}
+
+export interface SourcePatch {
+  id: string;
+  label: string;
+  patch: ManualEditPatch;
+  targetId?: string;
+  sourceBacked: boolean;
+  baseSource: string;
+  aiSource: string;
+  manualSource: string;
+  diffLines: DiffLine[];
+  lockedLines: LockedLine[];
+  conflict: boolean;
+}
+
+export interface ResolvedPatch extends SourcePatch {
+  resolution: 'ai' | 'manual' | 'merge';
+  resolvedSource: string;
 }
 
 export interface ManualEditTargetMessage {

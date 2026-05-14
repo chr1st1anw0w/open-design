@@ -15,7 +15,9 @@ export interface PreviewCommentPosition {
   height: number;
 }
 
-export type PreviewCommentSelectionKind = 'element' | 'pod';
+export type PreviewCommentSelectionKind = 'element' | 'pod' | 'visual';
+export type ChatCommentSelectionKind = PreviewCommentSelectionKind;
+export type PreviewVisualMarkKind = 'stroke' | 'click' | 'click+stroke';
 
 export interface PreviewCommentMember {
   elementId: string;

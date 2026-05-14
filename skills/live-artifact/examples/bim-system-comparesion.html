@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3人室內設計團隊｜CAD 轉 BIM 轉型成本與效益分析</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+      :root {
+        --bg: #f8fafc;
+        --surface: #ffffff;
+        --surface2: #f1f5f9;
+        --border: #e2e8f0;
+        --text: #0f172a;
+        --text-soft: #475569;
+        --accent: #22d3ee;
+        --arch: #22d3ee;
+        --revit: #a855f7;
+        --autocad: #f59e0b;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Inter", system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+        padding: 24px;
+      }
+      .container {
+        max-width: 1280px;
+        margin: 0 auto;
+        background: var(--surface);
+        border-radius: 20px;
+        box-shadow: 0 10px 30px -10px rgb(15 23 42 / 0.1);
+        overflow: hidden;
+        border: 1px solid var(--border);
+      }
+      header {
+        background: linear-gradient(135deg, #0f172a, #1e2937);
+        color: white;
+        padding: 32px 40px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      h1 {
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .subtitle {
+        color: #94a3b8;
+        font-size: 16px;
+        margin-top: 6px;
+      }
+
+      .controls {
+        padding: 28px 40px;
+        background: var(--surface2);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 32px;
+        align-items: center;
+      }
+      .toggle-group {
+        display: inline-flex;
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 9999px;
+        padding: 4px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      }
+      .toggle-btn {
+        padding: 10px 24px;
+        border-radius: 9999px;
+        font-weight: 600;
+        font-size: 15px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .toggle-btn.active {
+        background: var(--accent);
+        color: #0f172a;
+        box-shadow: 0 4px 6px -1px rgb(34 211 238 / 0.3);
+      }
+
+      .chart-container {
+        padding: 40px;
+        height: 560px;
+        position: relative;
+        background: white;
+      }
+
+      .legend {
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+        padding: 20px 40px;
+        background: var(--surface2);
+        flex-wrap: wrap;
+      }
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 15px;
+        font-weight: 500;
+      }
+      .legend-dot {
+        width: 20px;
+        height: 4px;
+        border-radius: 9999px;
+      }
+
+      .insights {
+        padding: 40px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 24px;
+        background: white;
+      }
+      .insight-card {
+        background: #f8fafc;
+        padding: 28px;
+        border-radius: 16px;
+        border-left: 5px solid var(--accent);
+      }
+
+      .matrix {
+        padding: 40px;
+        background: white;
+        border-top: 1px solid var(--border);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        padding: 14px 16px;
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+      }
+      th {
+        background: #f1f5f9;
+        font-weight: 600;
+        color: #334155;
+      }
+
+      footer {
+        padding: 28px 40px;
+        text-align: center;
+        color: #64748b;
+        font-size: 14px;
+        background: #f8fafc;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <div>
+          <h1>3人室內設計團隊 CAD → BIM 轉型分析</h1>
+          <p class="subtitle">
+            累計成本與預估產值效益｜2026 年台灣最新訂閱價格參考（新台幣）
+          </p>
+        </div>
+        <div style="text-align: right">
+          目標對象：CEO / CFO<br />
+          5年視野
+        </div>
+      </header>
+
+      <div class="controls">
+        <!-- Archicad Toggle -->
+        <div>
+          <div style="font-size: 13px; color: #64748b; margin-bottom: 8px">
+            Archicad
+          </div>
+          <div class="toggle-group">
+            <div class="toggle-btn active" id="arch-studio">Studio</div>
+            <div class="toggle-btn" id="arch-collab">Collaborate</div>
+          </div>
+        </div>
+
+        <!-- Revit Toggle -->
+        <div>
+          <div style="font-size: 13px; color: #64748b; margin-bottom: 8px">
+            Revit
+          </div>
+          <div class="toggle-group">
+            <div class="toggle-btn active" id="revit-single">Single-user</div>
+            <div class="toggle-btn" id="revit-aec">AEC Collection</div>
+          </div>
+        </div>
+
+        <!-- AutoCAD Toggle -->
+        <div>
+          <div style="font-size: 13px; color: #64748b; margin-bottom: 8px">
+            AutoCAD
+          </div>
+          <div class="toggle-group">
+            <div class="toggle-btn active" id="autocad-full">完整版</div>
+            <div class="toggle-btn" id="autocad-lt">LT 輕量版</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <canvas id="costChart"></canvas>
+      </div>
+
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-dot" style="background: #f59e0b"></div>
+          AutoCAD 完整版
+        </div>
+        <div class="legend-item">
+          <div
+            class="legend-dot"
+            style="background: #22d3ee"
+            id="arch-legend"
+          ></div>
+          <span id="arch-name">Archicad Studio</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background: #a855f7"></div>
+          Revit AEC Collection
+        </div>
+      </div>
+
+      <div class="insights">
+        <div class="insight-card">
+          <strong>第3年轉折</strong><br />
+          Archicad Studio 累計成本已低於 AutoCAD
+          完整版，同時因建模與出圖效率提升，預估產值增加 35~50%。
+        </div>
+        <div class="insight-card">
+          <strong>5年累計</strong><br />
+          選擇 Archicad Collaborate 可比持續使用 AutoCAD 完整版<strong
+            >節省 NT$220,000~320,000</strong
+          >，並大幅縮短專案交付時間。
+        </div>
+        <div class="insight-card">
+          <strong>Revit 適用情境</strong><br />
+          大型跨專業或需與建築師緊密整合的專案，雖然初期成本較高，但生態系與資料管理優勢明顯。
+        </div>
+      </div>
+
+      <div class="matrix">
+        <h2 style="margin-bottom: 24px; font-size: 22px">
+          Archicad vs Revit 功能與適合度比較（3人團隊）
+        </h2>
+        <table>
+          <tr>
+            <th>項目</th>
+            <th>Archicad（Studio / Collaborate）</th>
+            <th>Revit（Single / AEC）</th>
+          </tr>
+          <tr>
+            <td>3人1年期總價（估計）</td>
+            <td>NT$175,000～220,000</td>
+            <td>NT$290,000～380,000</td>
+          </tr>
+          <tr>
+            <td>核心建模與設計</td>
+            <td>直觀、自由度高、適合室內創意</td>
+            <td>參數化強、適合複雜系統</td>
+          </tr>
+          <tr>
+            <td>2D施工圖</td>
+            <td>出圖品質優秀、自動化佳</td>
+            <td>量化精準，但調整較多</td>
+          </tr>
+          <tr>
+            <td>團隊協作</td>
+            <td>Collaborate 即時 Teamwork</td>
+            <td>Worksharing 強大</td>
+          </tr>
+          <tr>
+            <td>學習曲線</td>
+            <td>較平緩，適合小型團隊</td>
+            <td>陡峭，需較多培訓</td>
+          </tr>
+          <tr>
+            <td>平台支援</td>
+            <td>Win + Mac</td>
+            <td>Windows only</td>
+          </tr>
+          <tr>
+            <td>台灣生態系</td>
+            <td>較小</td>
+            <td>人才多、相容性高</td>
+          </tr>
+        </table>
+      </div>
+
+      <footer>
+        互動說明：點擊上方切換方案，即時更新曲線 •
+        數據為2026年台灣經銷商參考價格（實際以報價為準）<br />
+        Archicad 代理商：龍庭資訊｜Revit / AutoCAD：Autodesk 台灣經銷商
+      </footer>
+    </div>
+
+    <script>
+      const ctx = document.getElementById("costChart").getContext("2d");
+
+      // 3人團隊年度成本 (NTD)
+      let costs = {
+        autocadFull: 215000,
+        autocadLT: 65000,
+        archStudio: 178000,
+        archCollab: 208000,
+        revitSingle: 300000,
+        revitAEC: 367500,
+      };
+
+      let currentArch = "studio";
+      let currentRevit = "aec";
+      let currentAuto = "full";
+
+      function calculateCumulative(years, baseCost) {
+        let data = [];
+        for (let i = 0; i <= years; i++) {
+          let cost = baseCost * i;
+          if (baseCost < 250000 && i >= 2) cost = Math.round(cost * 0.93); // BIM效率節省
+          data.push(cost);
+        }
+        return data;
+      }
+
+      let chart;
+      function createChart() {
+        const years = [0, 1, 2, 3, 4, 5];
+        const archCost =
+          currentArch === "studio" ? costs.archStudio : costs.archCollab;
+        const revitCost =
+          currentRevit === "single" ? costs.revitSingle : costs.revitAEC;
+        const autoCost =
+          currentAuto === "full" ? costs.autocadFull : costs.autocadLT;
+
+        const datasets = [
+          {
+            label: "AutoCAD",
+            data: calculateCumulative(5, autoCost),
+            borderColor: "#f59e0b",
+            borderWidth: 3,
+            tension: 0.3,
+          },
+          {
+            label:
+              currentArch === "studio"
+                ? "Archicad Studio"
+                : "Archicad Collaborate",
+            data: calculateCumulative(5, archCost),
+            borderColor: "#22d3ee",
+            borderWidth: 3,
+            tension: 0.3,
+          },
+          {
+            label:
+              currentRevit === "single"
+                ? "Revit Single-user"
+                : "Revit AEC Collection",
+            data: calculateCumulative(5, revitCost),
+            borderColor: "#a855f7",
+            borderWidth: 3,
+            tension: 0.3,
+          },
+        ];
+
+        if (chart) chart.destroy();
+        chart = new Chart(ctx, {
+          type: "line",
+          data: { labels: years.map((y) => y + " 年"), datasets },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                mode: "index",
+                intersect: false,
+                callbacks: {
+                  label: (ctx) => ctx.raw.toLocaleString("zh-TW") + " 元",
+                },
+              },
+            },
+            scales: {
+              y: {
+                min: 0,
+                max: 2200000,
+                ticks: { callback: (v) => v / 10000 + "萬" },
+              },
+            },
+          },
+        });
+      }
+
+      // Toggle 事件
+      document.getElementById("arch-studio").addEventListener("click", () => {
+        currentArch = "studio";
+        document
+          .querySelectorAll("#arch-studio, #arch-collab")
+          .forEach((b) => b.classList.toggle("active", b.id === "arch-studio"));
+        document.getElementById("arch-name").textContent = "Archicad Studio";
+        createChart();
+      });
+      document.getElementById("arch-collab").addEventListener("click", () => {
+        currentArch = "collab";
+        document
+          .querySelectorAll("#arch-studio, #arch-collab")
+          .forEach((b) => b.classList.toggle("active", b.id === "arch-collab"));
+        document.getElementById("arch-name").textContent =
+          "Archicad Collaborate";
+        createChart();
+      });
+
+      document.getElementById("revit-single").addEventListener("click", () => {
+        currentRevit = "single";
+        document
+          .querySelectorAll("#revit-single, #revit-aec")
+          .forEach((b) =>
+            b.classList.toggle("active", b.id === "revit-single"),
+          );
+        createChart();
+      });
+      document.getElementById("revit-aec").addEventListener("click", () => {
+        currentRevit = "aec";
+        document
+          .querySelectorAll("#revit-single, #revit-aec")
+          .forEach((b) => b.classList.toggle("active", b.id === "revit-aec"));
+        createChart();
+      });
+
+      document.getElementById("autocad-full").addEventListener("click", () => {
+        currentAuto = "full";
+        document
+          .querySelectorAll("#autocad-full, #autocad-lt")
+          .forEach((b) =>
+            b.classList.toggle("active", b.id === "autocad-full"),
+          );
+        createChart();
+      });
+      document.getElementById("autocad-lt").addEventListener("click", () => {
+        currentAuto = "lt";
+        document
+          .querySelectorAll("#autocad-full, #autocad-lt")
+          .forEach((b) => b.classList.toggle("active", b.id === "autocad-lt"));
+        createChart();
+      });
+
+      window.onload = createChart;
+    </script>
+  </body>
+</html>

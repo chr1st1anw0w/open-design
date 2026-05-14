@@ -42,6 +42,7 @@ import {
   importFolderProject,
   listProjects,
   listTemplates,
+  deleteTemplate,
   patchProject,
 } from './state/projects';
 import { useI18n } from './i18n';
@@ -104,6 +105,26 @@ export function buildPersistedConfig(next: AppConfig, current: AppConfig): AppCo
   };
 }
 
+/**
+ * True when `next` and `last` produce an identical persisted shape —
+ * i.e. the only diffs between them are fields that buildPersistedConfig
+ * intentionally strips before disk/daemon writes (the Composio API key
+ * draft today; any future save-on-explicit-confirm secrets later).
+ *
+ * The autosave loop in Settings uses this to skip the "All changes
+ * saved" indicator transition when the user has only typed an unsaved
+ * secret. Without it, autosave completes a no-op write and flashes
+ * "Saved" — misleading users into trusting that a sensitive key has
+ * been persisted when in fact only the section-local "Save key"
+ * gesture commits it.
+ */
+export function isAutosaveDraftOnlyChange(next: AppConfig, last: AppConfig): boolean {
+  return (
+    JSON.stringify(buildPersistedConfig(next, next))
+    === JSON.stringify(buildPersistedConfig(last, last))
+  );
+}
+
 export function resolveSettingsCloseConfig(
   rendered: AppConfig,
   latestPersisted: AppConfig,
@@ -124,6 +145,8 @@ export function App() {
   const [settingsInitialSection, setSettingsInitialSection] = useState<SettingsSection>('execution');
   const [daemonLive, setDaemonLive] = useState(false);
   const [agents, setAgents] = useState<AgentInfo[]>([]);
+  // Functional skills (capabilities the agent invokes mid-task) — stays
+  // small and lives under the Settings → Skills surface.
   const [skills, setSkills] = useState<SkillSummary[]>([]);
   const [designSystems, setDesignSystems] = useState<DesignSystemSummary[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -420,6 +443,12 @@ export function App() {
     setTemplates(list);
   }, []);
 
+  const handleDeleteTemplate = useCallback(async (id: string) => {
+    const ok = await deleteTemplate(id);
+    if (ok) await refreshTemplates();
+    return ok;
+  }, [refreshTemplates]);
+
   const reloadMediaProvidersFromDaemon = useCallback(async () => {
     const result = await fetchMediaProvidersFromDaemon();
     if (result.status !== 'ok') {
@@ -558,7 +587,9 @@ export function App() {
   );
 
   const handleCreateProject = useCallback(
-    async (input: CreateInput & { pendingPrompt?: string }) => {
+    async (
+      input: CreateInput & { pendingPrompt?: string; requestId?: string },
+    ) => {
       // Honor an explicit `null` design system — the create panel defaults
       // to "None" for every kind now, and the user expects that to land
       // as a no-design-system project rather than silently inheriting the
@@ -574,7 +605,9 @@ export function App() {
         pendingPrompt: derivedPendingPrompt,
         metadata: input.metadata,
       });
-      if (!result) return;
+      if (!result) {
+        return;
+      }
       setProjects((curr) => [
         result.project,
         ...curr.filter((p) => p.id !== result.project.id),
@@ -643,6 +676,15 @@ export function App() {
       navigate({ kind: 'home' });
     }
   }, [route]);
+
+  const handleRenameProject = useCallback(async (id: string, name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setProjects((curr) =>
+      curr.map((p) => (p.id === id ? { ...p, name: trimmed } : p)),
+    );
+    void patchProject(id, { name: trimmed });
+  }, []);
 
   const handleBack = useCallback(() => {
     navigate({ kind: 'home' });
@@ -790,7 +832,22 @@ export function App() {
   }, [route.kind, refreshTemplates]);
 
   const enabledSkills = useMemo(
-    () => skills.filter((s) => !(config.disabledSkills ?? []).includes(s.id)),
+    () =>
+      skills.filter(
+        (s) => !(config.disabledSkills ?? []).includes(s.id),
+      ),
+    [skills, config.disabledSkills],
+  );
+  // Functional-skills-only enabled subset — what ProjectView's chat
+  // composer @-picker should see. Without this, a skill the user has
+  // disabled in Settings still appears in an existing project's @-mention
+  // popover and can ride along to the daemon via skillIds, breaking the
+  // Library toggle for projects opened on the post-split branch.
+  const enabledFunctionalSkills = useMemo(
+    () =>
+      skills.filter(
+        (s) => !(config.disabledSkills ?? []).includes(s.id),
+      ),
     [skills, config.disabledSkills],
   );
   const enabledDS = useMemo(
@@ -810,7 +867,7 @@ export function App() {
           routeFileName={route.kind === 'project' ? route.fileName : null}
           config={config}
           agents={agents}
-          skills={skills}
+          skills={enabledFunctionalSkills}
           designSystems={designSystems}
           daemonLive={daemonLive}
           onModeChange={handleModeChange}

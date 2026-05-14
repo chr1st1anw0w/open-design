@@ -1,0 +1,1027 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTML 難以置信的奇效 — 中文翻譯 · 20 個示例</title>
+<style>
+  :root {
+    --ivory:  #FAF9F5;
+    --paper:  #FFFFFF;
+    --slate:  #141413;
+    --clay:   #D97757;
+    --clay-d: #B85C3E;
+    --oat:    #E3DACC;
+    --olive:  #788C5D;
+    --g100:   #F0EEE6;
+    --g200:   #E6E3DA;
+    --g300:   #D1CFC5;
+    --g500:   #87867F;
+    --g700:   #3D3D3A;
+    --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--ivory);
+    color: var(--slate);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 32px 140px; }
+  header.masthead {
+    padding: 80px 0 56px;
+    border-bottom: 1.5px solid var(--g300);
+    margin-bottom: 12px;
+    position: relative;
+    overflow: visible;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--g500);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 24px; height: 1.5px;
+    background: var(--clay);
+  }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(38px, 5.4vw, 62px);
+    line-height: 1.06;
+    letter-spacing: -0.018em;
+    margin: 0 0 8px;
+    max-width: 17ch;
+  }
+  h1 em { font-style: italic; color: var(--clay); }
+  .intro {
+    font-size: 16.5px;
+    color: var(--g700);
+    margin: 22px 0 0;
+    max-width: 620px;
+  }
+  .intro a { color: var(--clay); text-decoration-color: var(--oat); text-underline-offset: 3px; }
+  .intro a:hover { text-decoration-color: var(--clay); }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 48px;
+    align-items: end;
+  }
+  @media (max-width: 880px) { .hero-grid { grid-template-columns: 1fr; } }
+  .hero-fig {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    align-items: end;
+  }
+  @media (max-width: 880px) { .hero-fig { max-width: 400px; margin-top: 28px; } }
+  .hero-fig .pane {
+    border-radius: 10px;
+    border: 1.5px solid var(--g300);
+    background: var(--paper);
+    padding: 14px;
+    aspect-ratio: 4/5;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    position: relative;
+  }
+  .hero-fig .pane.md {
+    background: var(--g100);
+    transform: rotate(-2.5deg) translateY(6px);
+  }
+  .hero-fig .pane.html {
+    transform: rotate(1.5deg);
+    border-color: var(--slate);
+    box-shadow: 0 12px 32px rgba(20,20,19,.10);
+  }
+  .hero-fig .tag {
+    position: absolute;
+    top: -10px; left: 12px;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: var(--ivory);
+    padding: 2px 7px;
+    border: 1.5px solid var(--g300);
+    border-radius: 6px;
+    color: var(--g500);
+  }
+  .hero-fig .pane.html .tag { border-color: var(--slate); color: var(--slate); }
+  .hero-fig .l { height: 6px; border-radius: 3px; background: var(--g300); }
+  .hero-fig .l.w90 { width: 90%; } .hero-fig .l.w75 { width: 75%; }
+  .hero-fig .l.w60 { width: 60%; } .hero-fig .l.w82 { width: 82%; }
+  .hero-fig .l.w70 { width: 70%; } .hero-fig .l.w50 { width: 50%; }
+  .hero-fig .pane.html .l { background: var(--g200); }
+  .hero-fig .pane.html .blk {
+    border-radius: 5px;
+    flex: 1;
+    background: linear-gradient(135deg, var(--oat), #ECE1CF);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-fig .pane.html .blk::after {
+    content: "";
+    position: absolute;
+    left: 18%; right: 18%; top: 28%;
+    height: 40%;
+    border: 2px solid var(--clay);
+    border-radius: 50%;
+    opacity: .7;
+  }
+  .hero-fig .pane.html .row { display: flex; gap: 6px; align-items: flex-end; }
+  .hero-fig .pane.html .bar { flex: 1; border-radius: 3px 3px 0 0; }
+  .hero-fig .pane.html .bar.b1 { height: 14px; background: var(--olive); }
+  .hero-fig .pane.html .bar.b2 { height: 26px; background: var(--clay); }
+  .hero-fig .pane.html .bar.b3 { height: 18px; background: var(--oat); }
+  .hero-fig .pane.html .bar.b4 { height: 30px; background: var(--slate); }
+  nav.toc {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 26px 0 0;
+  }
+  nav.toc a {
+    font-size: 12.5px;
+    padding: 7px 14px;
+    border: 1.5px solid var(--g300);
+    border-radius: 999px;
+    text-decoration: none;
+    color: var(--g700);
+    background: var(--paper);
+    transition: border-color 120ms, color 120ms, background 120ms;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+  nav.toc a .n {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--g500);
+  }
+  nav.toc a:hover { border-color: var(--slate); color: var(--slate); }
+  nav.toc a:hover .n { color: var(--clay); }
+  section { margin-top: 72px; scroll-margin-top: 28px; }
+  .sec-head {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 10px;
+  }
+  .sec-head .idx {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--clay);
+    font-weight: 600;
+    width: 34px;
+    flex-shrink: 0;
+  }
+  .sec-head h2 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 27px;
+    margin: 0;
+    letter-spacing: -0.012em;
+  }
+  .sec-head .count {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--g500);
+    background: var(--g100);
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+  .sec-intro {
+    font-size: 14.5px;
+    color: var(--g700);
+    max-width: 700px;
+    margin: 0 0 24px 50px;
+  }
+  @media (max-width: 640px) { .sec-intro { margin-left: 0; } }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(316px, 1fr));
+    gap: 20px;
+    margin-left: 50px;
+  }
+  @media (max-width: 640px) { .grid { margin-left: 0; } }
+  a.card {
+    display: flex;
+    flex-direction: column;
+    background: var(--paper);
+    border: 1.5px solid var(--g300);
+    border-radius: 14px;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+    overflow: hidden;
+    cursor: pointer;
+  }
+  a.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(20, 20, 19, 0.10);
+    border-color: var(--slate);
+  }
+  .thumb {
+    height: 132px;
+    background: var(--g100);
+    border-bottom: 1.5px solid var(--g200);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    transition: background 150ms ease;
+  }
+  a.card:hover .thumb { background: var(--oat); }
+  .thumb svg { width: 100%; height: 100%; overflow: visible; }
+  .thumb svg .st { stroke: var(--g500); fill: none; stroke-width: 2.5; }
+  .thumb svg .fl { fill: var(--g300); }
+  .thumb svg .cl { fill: var(--clay); }
+  .thumb svg .ol { fill: var(--olive); }
+  .thumb svg .oa { fill: var(--oat); stroke: var(--g500); stroke-width: 2.5; }
+  .thumb svg .sl { fill: var(--slate); }
+  .thumb svg .wh { fill: var(--paper); stroke: var(--g500); stroke-width: 2.5; }
+  .thumb svg .ln { stroke: var(--g500); stroke-width: 2.5; fill: none; stroke-linecap: round; }
+  .thumb svg .lc { stroke: var(--clay); stroke-width: 2.5; fill: none; stroke-linecap: round; }
+  .thumb svg .da { stroke-dasharray: 4 4; }
+  a.card:hover .thumb svg .fl { fill: var(--g500); }
+  a.card:hover .thumb svg .oa { fill: var(--paper); }
+  .body { padding: 18px 20px 16px; display: flex; flex-direction: column; flex: 1; }
+  .title {
+    font-family: var(--serif);
+    font-size: 19px;
+    font-weight: 500;
+    line-height: 1.22;
+    color: var(--slate);
+    margin-bottom: 7px;
+    letter-spacing: -0.008em;
+  }
+  .desc {
+    font-size: 13.5px;
+    color: var(--g700);
+    line-height: 1.5;
+    margin-bottom: 16px;
+    flex: 1;
+  }
+  .file {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--g500);
+    border-top: 1px solid var(--g100);
+    padding-top: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .file .arrow { transition: transform 150ms ease; color: var(--g300); }
+  a.card:hover .file { color: var(--clay); }
+  a.card:hover .file .arrow { transform: translateX(3px); color: var(--clay); }
+  .detail-panel {
+    display: none;
+    background: var(--paper);
+    border: 1.5px solid var(--slate);
+    border-radius: 14px;
+    padding: 28px 32px;
+    margin: 16px 0 0 50px;
+    box-shadow: 0 12px 40px rgba(20,20,19,0.12);
+  }
+  .detail-panel.open { display: block; }
+  @media (max-width: 640px) { .detail-panel { margin-left: 0; } }
+  .detail-panel h3 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 22px;
+    margin: 0 0 16px;
+  }
+  .detail-panel h4 {
+    font-family: var(--sans);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--g500);
+    margin: 20px 0 8px;
+  }
+  .detail-panel p { font-size: 14.5px; color: var(--g700); margin: 0 0 12px; }
+  .detail-panel ul { margin: 8px 0 16px; padding-left: 20px; }
+  .detail-panel li { font-size: 14px; color: var(--g700); margin-bottom: 6px; }
+  .detail-panel .prompt {
+    background: var(--g100);
+    border: 1.5px solid var(--g300);
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: 14px;
+    color: var(--g700);
+    margin: 12px 0;
+    line-height: 1.6;
+  }
+  .detail-panel .prompt .label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--g500);
+    display: block;
+    margin-bottom: 6px;
+  }
+  .detail-panel .close-btn {
+    display: inline-block;
+    margin-top: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--g500);
+    border: 1.5px solid var(--g300);
+    border-radius: 8px;
+    padding: 6px 14px;
+    cursor: pointer;
+    background: var(--ivory);
+    transition: border-color 120ms;
+  }
+  .detail-panel .close-btn:hover { border-color: var(--slate); color: var(--slate); }
+  .detail-panel .orig-link {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--clay);
+    text-decoration: none;
+    border-bottom: 1px dotted transparent;
+    margin-left: 12px;
+  }
+  .detail-panel .orig-link:hover { border-bottom-color: var(--clay); }
+  footer {
+    margin-top: 100px;
+    border-top: 1.5px solid var(--g300);
+    padding-top: 36px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 20px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--g500);
+  }
+  footer .k { font-family: var(--serif); font-style: italic; color: var(--g700); font-size: 15px; }
+  footer a { color: var(--clay); text-decoration-color: var(--oat); text-underline-offset: 3px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="hero-grid">
+      <div>
+        <div class="eyebrow">部落格文章配套示例頁</div>
+        <h1>HTML 難以置信的<em>奇效</em></h1>
+        <p class="intro">
+          Agent 生成的 <code>.html</code> 檔案 —— 20 個自包含示例，替代了原本會是一堵文字牆的 Markdown。
+          每一個都用一份你<em>願意去讀</em>的文件替換了你只會掃一眼的東西 —— 直接在任何瀏覽器中開啟。
+          按它們替代的工作型別分組列出。
+        </p>
+        <nav class="toc">
+          <a href="#exploration">探索與規劃 <span class="n">3</span></a>
+          <a href="#code-review">程式碼審查 <span class="n">3</span></a>
+          <a href="#design">設計 <span class="n">2</span></a>
+          <a href="#prototyping">原型 <span class="n">2</span></a>
+          <a href="#illustrations">圖表 <span class="n">2</span></a>
+          <a href="#decks">幻燈片 <span class="n">1</span></a>
+          <a href="#research">調研 <span class="n">2</span></a>
+          <a href="#reports">報告 <span class="n">2</span></a>
+          <a href="#editors">自定義編輯器 <span class="n">3</span></a>
+        </nav>
+      </div>
+      <div class="hero-fig" aria-hidden="true">
+        <div class="pane md">
+          <span class="tag">.md</span>
+          <span class="l w90"></span><span class="l w75"></span><span class="l w82"></span>
+          <span class="l w60"></span><span class="l w90"></span><span class="l w70"></span>
+          <span class="l w82"></span><span class="l w50"></span><span class="l w75"></span>
+          <span class="l w90"></span><span class="l w60"></span>
+        </div>
+        <div class="pane html">
+          <span class="tag">.html</span>
+          <span class="l w60"></span>
+          <span class="blk"></span>
+          <span class="row"><span class="bar b1"></span><span class="bar b2"></span><span class="bar b3"></span><span class="bar b4"></span></span>
+          <span class="l w75"></span><span class="l w50"></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================== 探索與規劃 ========================== -->
+  <section id="exploration">
+    <div class="sec-head"><span class="idx">01</span><h2>探索與規劃</h2><span class="count">3 個示例</span></div>
+    <p class="sec-intro">
+      當你還不確定自己想要什麼的時候。讓 Agent 向多個方向展開探索，把它們並排展示出來，
+      讓你可以指向其中一個——而不是依次閱讀三堵文字牆並試圖全記在腦子裡。
+      選定方向後，把選擇變成實施者能真正閱讀的計劃。
+    </p>
+    <div class="grid">
+      <a class="card" href="01-exploration-code-approaches.html" onclick="toggleDetail('d01')">
+        <div class="thumb"><svg viewBox="0 0 120 80">
+          <rect class="wh" x="4" y="10" width="32" height="60" rx="5"/>
+          <rect class="wh" x="44" y="10" width="32" height="60" rx="5"/>
+          <rect class="oa" x="84" y="10" width="32" height="60" rx="5"/>
+          <line class="ln" x1="10" y1="26" x2="30" y2="26"/><line class="ln" x1="10" y1="36" x2="26" y2="36"/>
+          <line class="ln" x1="50" y1="26" x2="70" y2="26"/><line class="ln" x1="50" y1="36" x2="66" y2="36"/>
+          <line class="lc" x1="90" y1="26" x2="110" y2="26"/><line class="lc" x1="90" y1="36" x2="106" y2="36"/>
+          <circle class="cl" cx="100" cy="56" r="6"/>
+        </svg></div>
+        <div class="body">
+          <div class="title">三種程式碼實現方式</div>
+          <div class="desc">三種解決同一問題的方案並排對比，每種方案的取捨一目瞭然。</div>
+          <div class="file"><span>01-exploration-code-approaches.html</span><span class="arrow">→</span></div>
+        </div>
+      </a>
+      <div class="detail-panel" id="d01"><div>
+        <h3>三種程式碼實現方式</h3>
+        <p>探索 React 程式碼庫中任務篩選輸入框的三種防抖搜尋實現方案，並列對比每種方案的取捨。</p>
+        <div class="prompt"><span class="label">提示詞</span>展示三種不同的防抖搜尋實現方式，用於我們 React 程式碼庫中的任務篩選輸入框，並列出每種方案的利弊。</div>
+        <p>三種方案：1) 內聯 useEffect + setTimeout、2) 自定義 useDebounce 鉤子、3) 小型第三方庫。包含程式碼面板、Pro/Con 表格和最終推薦。</p>
+        <a class="orig-link" href="01-exploration-code-approaches.html" target="_blank">檢視原始互動頁面 →</a>
+        <span class="close-btn" onclick="toggleDetail('d01')">收起</span>
+      </div></div>
+
+      <a class="card" href="02-exploration-visual-designs.html" onclick="toggleDetail('d02')">
+        <div class="thumb"><svg viewBox="0 0 120 80">
+          <rect class="wh" x="6" y="8" width="50" height="30" rx="4"/>
+          <rect class="oa" x="64" y="8" width="50" height="30" rx="4"/>
+          <rect class="oa" x="6" y="44" width="50" height="30" rx="4"/>
+          <rect class="wh" x="64" y="44" width="50" height="30" rx="4"/>
+          <circle class="cl" cx="18" cy="20" r="5"/><rect class="fl" x="28" y="16" width="22" height="4" rx="2"/>
+          <rect class="ol" x="72" y="16" width="34" height="6" rx="3"/>
+          <rect class="sl" x="14" y="54" width="34" height="6" rx="3"/>
+          <circle class="ol" cx="102" cy="58" r="6"/>
+        </svg></div>
+        <div class="body">
+          <div class="title">視覺設計方案探索</div>
+          <div class="desc">多種佈局和調色方案即時渲染，讓你可以真切感受，而非憑空想象。</div>
+          <div class="file"><span>02-exploration-visual-designs.html</span><span class="arrow">→</span></div>
+        </div>
+      </a>
+      <div class="detail-panel" id="d02"><div>
+        <h3>四種視覺設計方案</h3>
+        <p>為"暫無任務"狀態探索四種視覺方向——極簡、插畫、趣味、引導，支援淺色/深色背景切換。</p>
+        <div class="prompt"><span class="label">提示詞</span>為空狀態元件探索四種視覺方向。每種都即時渲染，以便我們對比基調、密度和在淺色/深色背景上的表現。</div>
+        <p>A) 極簡——純排版，單操作；B) 插畫——幾何圖形解釋物件模型；C) 趣味——輕柔彈跳動畫增加活力；D) 引導式——當作新手引導，密度更高但每條都可操作。</p>
+        <a class="orig-link" href="02-exploration-visual-designs.html" target="_blank">檢視原始互動頁面 →</a>
+        <span class="close-btn" onclick="toggleDetail('d02')">收起</span>
+      </div></div>
+
+      <a class="card" href="16-implementation-plan.html" onclick="toggleDetail('d16')">
+        <div class="thumb"><svg viewBox="0 0 120 80">
+          <line class="ln" x1="14" y1="12" x2="14" y2="68"/>
+          <circle class="cl" cx="14" cy="16" r="5"/><circle class="ol" cx="14" cy="40" r="5"/><circle class="fl" cx="14" cy="64" r="5"/>
+          <rect class="fl" x="28" y="12" width="48" height="4" rx="2"/><rect class="fl" x="28" y="21" width="34" height="4" rx="2"/>
+          <rect class="fl" x="28" y="36" width="42" height="4" rx="2"/><rect class="fl" x="28" y="45" width="28" height="4" rx="2"/>
+          <rect class="fl" x="28" y="60" width="44" height="4" rx="2"/>
+          <rect class="oa" x="86" y="12" width="28" height="24" rx="4"/>
+          <rect class="wh" x="86" y="44" width="28" height="24" rx="4"/>
+          <line class="lc" x1="92" y1="56" x2="108" y2="56"/>
+        </svg></div>
+        <div class="body">
+          <div class="title">實施計劃</div>
+          <div class="desc">時間線上的里程碑、資料流圖、內嵌模擬圖、風險程式碼和風險表格——可以直接交付的計劃。</div>
+          <div class="file"><span>16-implementation-plan.html</span><span class="arrow">→</span></div>
+        </div>
+      </a>
+      <div class="detail-panel" id="d16"><div>
+        <h3>實施計劃：任務卡片的評論執行緒</h3>
+        <p>為給任務卡片新增執行緒化評論功能建立完整的實施計劃，包括模擬圖、資料流、關鍵程式碼和風險表。</p>
+        <div class="prompt"><span class="label">提示詞</span>為給任務卡片新增執行緒化評論建立一個全面的實施計劃。包含模擬圖、從客戶端到持久層的資料流、需要編寫的關鍵程式碼，以及風險表。讓它便於在手機上瀏覽。</div>
+        <p>涵蓋：6 個里程碑（2 周工期）、客戶端→API→DB 資料流圖、任務卡片內聯執行緒模擬圖、關鍵程式碼片段（遷移指令碼 + React Query 樂觀更新）、風險評估表和遺留問題。</p>
+        <a class="orig-link" href="16-implementation-plan.html" target="_blank">檢視原始互動頁面 →</a>
+        <span class="close-btn" onclick="toggleDetail('d16')">收起</span>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- ========================== 程式碼審查與理解 ========================== -->
+  <section id="code-review">
+    <div class="sec-head"><span class="idx">02</span><h2>程式碼審查與理解</h2><span class="count">3 個示例</span></div>
+    <p class="sec-intro">
+      差異對比和呼叫圖是空間資訊；Markdown 把它們壓扁了。讓 Agent 把變更渲染為帶標註的差異對比圖，
+      把模組畫成方框和箭頭，或者寫出審查者真正想要的 PR 描述——讓程式碼的結構一目瞭然。
+    </p>
+    <div class="grid">
+      <a class="card" href="03-code-review-pr.html" onclick="toggleDetail('d03')">
+        <div class="thumb"><svg viewBox="0 0 120 80">
+          <rect class="wh" x="6" y="8" width="72" height="64" rx="5"/>
+          <line class="ln" x1="14" y1="20" x2="66" y2="20"/>
+          <rect class="ol" x="14" y="28" width="56" height="7" rx="2" opacity=".5"/>
+          <rect class="cl" x="14" y="38" width="48" height="7" rx="2" opacity=".5"/>
+          <line class="ln" x1="14" y1="52" x2="58" y2="52"/><line class="ln" x1="14" y1="62" x2="50" y2="62"/>
+          <rect class="oa" x="86" y="22" width="28" height="20" rx="4"/>
+          <line class="lc da" x1="78" y1="32" x2="86" y2="32"/>
+          <circle class="cl" cx="100" cy="58" r="7"/>
+        </svg></div>
+        <div class="body">
+          <div class="title">帶註釋的 PR 審查</div>
+          <div class="desc">差異渲染帶邊距註釋、嚴重性標籤和跳轉連結——比滾動終端更易瀏覽。</div>
+          <div class="file"><span>03-code-review-pr.html</span><span class="arrow">→</span></div>
+        </div>
+      </a>
+      <div class="detail-panel" id="d03"><div>
+        <h3>PR #247 — 審查摘要</h3>
+        <p>為任務列表變更新增樂觀更新的 PR 審查頁面，包含風險地圖、帶註釋的差異對比和審查評論氣泡。</p>
+        <div class="prompt"><span class="label">提示詞</span>幫我審查這個 PR，建立一個描述它的 HTML 檔案。我對 streaming/backpressure 邏輯不太熟悉，所以重點分析那部分。渲染實際的差異對比，在邊距中加上行內註釋，按嚴重程度用顏色編碼。</div>
+        <p>包含：風險地圖（注意力/值得看/安全三級）、6 個檔案的差異對比（帶行內審查評論）、阻塞性問題氣泡標註和下一步建議清單。顏色編碼：紅色=阻塞、黃色=值得看、綠色=安全。</p>
+        <a class="orig-link" href="03-code-review-pr.html" target="_blank">檢視原始互動頁面 →</a>
+        <span class="close-btn" onclick="toggleDetail('d03')">收起</span>
+      </div></div>
+
+      <a class="card" href="17-pr-writeup.html" onclick="toggleDetail('d17')">
+        <div class="thumb"><svg viewBox="0 0 120 80">
+          <rect class="oa" x="6" y="8" width="48" height="28" rx="4"/>
+          <rect class="wh" x="6" y="44" width="48" height="28" rx="4"/>
+          <line class="ln" x1="14" y1="20" x2="46" y2="20"/><line class="ln" x1="14" y1="28" x2="38" y2="28"/>
+          <line class="lc" x1="14" y1="56" x2="46" y2="56"/><line class="ln" x1="14" y1="64" x2="38" y2="64"/>
+          <rect class="wh" x="64" y="8" width="50" height="64" rx="5"/>
+          <circle class="cl" cx="74" cy="22" r="5"/><rect class="fl" x="84" y="19" width="24" height="5" rx="2"/>
+          <circle class="ol" cx="74" cy="42" r="5"/><rect class="fl" x="84" y="39" width="22" height="5" rx="2"/>
+          <circle class="fl" cx="74" cy="62" r="5"/><rect class="fl" x="84" y="59" width="26" height="5" rx="2"/>
+        </svg></div>
+        <div class="body">
+          <div class="title">給審查者的 PR 說明</div>
+          <div class="desc">作者視角：動機、變更前後對比、逐檔案遍歷附 <em>為什麼</em>，以及審查重點。</div>
+          <div class="file"><span>17-pr-writeup.html</span><span class="arrow">→</span></div>
+        </div>
+      </a>
+      <div class="detail-panel" id="d17"><div>
+        <h3>PR #312 — 將通知投遞遷移到佇列</h3>
+        <p>將內聯通知傳送改造為基於 pg-boss 佇列的非同步投遞，含逐檔案說明、測試計劃和分階段釋出策略。</p>
+        <div class="prompt"><span class="label">提示詞</span>為我的審查者寫一份 PR #312 說明。解釋動機，逐檔案帶他們瞭解變更及每個檔案的<em>為什麼</em>，展示前後行為對比，並明確指出審查重點。</div>
+        <p>包含：TL;DR、前後對比（p99 從 1.4s 降至 180ms）、6 個檔案逐一遍覽（含程式碼）、3 個審查重點、4 項測試計劃和分階段釋出（內部→10%→100%）。</p>
+        <a class="orig-link" href="17-pr-writeup.html" target="_blank">檢視原始互動頁面 →</a>
+        <span class="close-btn" onclick="toggleDetail('d17')">收起</span>
+      </div></div>
+
+      <a class="card" href="04-code-understanding.html" onclick="toggleDetail('d04')">
+        <div class="thumb"><svg viewBox="0 0 120 80">
+          <rect class="wh" x="44" y="8" width="32" height="20" rx="4"/>
+          <rect class="oa" x="8" y="52" width="32" height="20" rx="4"/>
+          <rect class="cl" x="44" y="52" width="32" height="20" rx="4"/>
+          <rect class="wh" x="80" y="52" width="32" height="20" rx="4"/>
+          <line class="ln" x1="50" y1="28" x2="26" y2="52"/>
+          <line class="lc" x1="60" y1="28" x2="60" y2="52"/>
+          <line class="ln" x1="70" y1="28" x2="94" y2="52"/>
+        </svg></div>
+        <div class="body">
+          <div class="title">模組架構圖</div>
+          <div class="desc">一個不熟悉的包被畫成方框和箭頭，熱路徑被高亮，入口點被列出。</div>
+          <div class="file"><span>04-code-understanding.html</span><span class="arrow">→</span></div>
+        </div>
+      </a>
+      <div class="detail-panel" id="d04"><div>
+        <h3>認證流程：程式碼庫中的完整路徑</h3>
+        <p>Birchline 使用基於 Cookie 的會話，從瀏覽器到資料庫的完整認證路徑拆解，配有架構圖、呼叫棧講解、關鍵檔案列表和注意事項。</p>
+        <p>涵蓋 5 個步驟：AuthProvider→會話路由→verifyToken 中介軟體（信任邊界）→SessionStore（LRU+Postgres）→資料庫遷移指令碼。邊欄列出 6 個關鍵檔案和 2 個注意事項。</p>
+        <a class="orig-link" href="04-code-understanding.html" target="_blank">檢視原始互動頁面 →</a>
+        <span class="close-btn" onclick="toggleDetail('d04')">收起</span>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- ========================== 設計 ========================== -->
+  <section id="design">
+    <div class="sec-head"><span class="idx">03</span><h2>設計</h2><span class="count">2 個示例</span></div>
+    <p class="sec-intro">
+      HTML <em>就是</em>你的設計系統交付的媒介，所以它也是討論設計的天然格式。
+      Token 變成色卡，元件變成一覽表，生成的產物可以直接喂回下一個提示詞。
+    </p>
+    <div class="grid">
+      <a class="card" href="05-design-system.html" onclick="toggleDetail('d05')">
+        <div class="thumb"><svg viewBox="0 0 120 80">
+          <rect class="cl" x="8" y="10" width="22" height="22" rx="4"/>
+          <rect class="ol" x="36" y="10" width="22" height="22" rx="4"/>
+          <rect class="oa" x="64" y="10" width="22" height="22" rx="4"/>
+          <rect class="sl" x="92" y="10" width="22" height="22" rx="4"/>
+          <rect class="fl" x="8" y="42" width="80" height="8" rx="2"/>
+          <rect class="fl" x="8" y="56" width="56" height="6" rx="2"/>
+          <rect class="fl" x="8" y="68" width="40" height="5" rx="2"/>
+        </svg></div>
+        <div class="body">
+          <div class="title">活的設計系統</div>
+          <div class="desc">從程式碼庫中提取的顏色、字型和間距 Token，渲染為可直接複製的色卡。</div>
+          <div class="file"><span>05-design-system.html</span><span class="arrow">→</span></div>
+        </div>
+      </a>
+      <div class="detail-panel" id="d05"><div>
+        <h3>Birchline 設計系統參考</h3>
+        <p>從程式碼庫 Token 和元件自動生成的活設計系統參考頁面，包含完整色板、字型層級、間距標尺、圓角/陰影 Token 和核心元件展示。</p>
+        <p>包含：3 組共 13 個顏色色卡（主色/中性色/語義色）、6 級字型層級（Display→Caption）、8 級間距標尺（4px→64px）、4 級圓角、3 級陰影、4 個核心元件變體展示。</p>
+        <a class="orig-link" href="05-design-system.html" target="_blank">檢視原始互動頁面 →</a>
+        <span class="close-btn" onclick="toggleDetail('d05')">收起</span>
+      </div></div>
+
+      <a class="card" href="06-component-variants.html" onclick="toggleDetail('d06')">
+        <div class="thumb"><svg viewBox="0 0 120 80">
+          <rect class="cl" x="10" y="14" width="44" height="14" rx="7"/>
+          <rect class="wh" x="10" y="34" width="44" height="14" rx="7"/>
+          <rect class="oa" x="10" y="54" width="44" height="14" rx="7"/>
+          <rect class="cl" x="66" y="14" width="34" height="11" rx="5.5"/>
+          <rect class="wh" x="66" y="32" width="34" height="11" rx="5.5"/>
+          <rect class="oa" x="66" y="50" width="34" height="11" rx="5.5"/>
+          <circle class="cl" cx="110" cy="20" r="4"/><circle class="fl" cx="110" cy="37" r="4"/><circle class="ol" cx="110" cy="56" r="4"/>
+        </svg></div>
+        <div class="body">
+          <div class="title">元件變體矩陣</div>
+          <div class="desc">一個元件的每種尺寸、狀態和意圖，展現在一張表上供審查。</div>
+          <div class="file"><span>06-component-variants.html</span><span class="arrow">→</span></div>
+        </div>
+      </a>
+      <div class="detail-panel" id="d06"><div>
+        <h3>卡片元件變體矩陣</h3>
+        <p>Birchline Card 元件的六種結構性處理方案，帶即時控制面板和 JSX 程式碼片段預覽。</p>
+        <p>六種變體：A) 平面、B) 描邊、C) 陰影、D) 強調色條、E) 內嵌填充、F) 水平緊湊。每種標註了最佳使用場景，懸停時顯示對應 JSX 程式碼。控制面板可即時調整內邊距、邊框樣式和陰影。</p>
+        <a class="orig-link" href="06-component-variants.html" target="_blank">檢視原始互動頁面 →</a>
+        <span class="close-btn" onclick="toggleDetail('d06')">收起</span>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- ========================== 原型 ========================== -->
+  <section id="prototyping">
+    <div class="sec-head"><span class="idx">04</span><h2>原型製作</h2><span class="count">2 個示例</span></div>
+    <p class="sec-intro">
+      動效和互動無法用文字描述，只能靠感受。一個帶有真實緩動曲線或真實點選流程的即用即棄頁面，
+      五秒鐘就能告訴你一段文字永遠表達不了的東西。
+    </p>
+    <div class="grid">
+      <a class="card" href="07-prototype-animation.html" onclick="toggleDetail('d07')">
+        <div class="thumb"><svg viewBox="0 0 120 80">
+          <rect class="wh" x="8" y="10" width="104" height="34" rx="5"/>
+          <path class="lc" d="M16 38 C 40 38, 56 16, 104 16" fill="none"/>
+          <circle class="cl" cx="72" cy="23" r="4.5"/>
+          <line class="ln" x1="12" y1="58" x2="108" y2="58"/><circle class="cl" cx="44" cy="58" r="6"/>
+          <line class="ln" x1="12" y1="70" x2="108" y2="70"/><circle class="ol" cx="82" cy="70" r="6"/>
+        </svg></div>
+        <div class="body">
+          <div class="title">動畫沙盒</div>
+          <div class="desc">獨立執行的過渡動畫，帶持續時間和緩動引數滑塊，讓你在正式整合前先調好。</div>
+          <div class="file"><span>07-prototype-animation.html</span><span class="arrow">→</span></div>
+        </div>
+      </a>
+      <div class="detail-panel" id="d07"><div>
+        <h3>任務完成微互動動畫</h3>
+        <p>完整的任務完成互動動畫原型：點選任務行，圓環填充→勾號繪製→文字劃線→彩紙爆發→行摺疊，五個階段一氣呵成。</p>
+        <p>包含：可互動的任務行（點選切換完成/未完成）、4 種緩動曲線選擇（線性/緩出/彈跳）、動畫時間線視覺化（5 個關鍵幀）、可直接複製的 CSS 程式碼。全部純 CSS 動畫，無 JS 動畫庫。</p>
+        <a class="orig-link" href="07-prototype-animation.html" target="_blank">檢視原始互動頁面 →</a>
+        <span class="close-btn" onclick="toggleDetail('d07')">收起</span>
+      </div></div>
+
+      <a class="card" href="08-prototype-interaction.html" onclick="toggleDetail('d08')">
+        <div class="thumb"><svg viewBox="0 0 120 80">
+          <rect class="wh" x="6" y="22" width="28" height="36" rx="4"/>
+          <rect class="oa" x="46" y="22" width="28" height="36" rx="4"/>
+          <rect class="wh" x="86" y="22" width="28" height="36" rx="4"/>
+          <line class="lc" x1="34" y1="40" x2="46" y2="40"/>
+          <line class="lc" x1="74" y1="40" x2="86" y2="40"/>
+          <circle class="cl" cx="20" cy="50" r="4"/><rect class="fl" x="52" y="30" width="16" height="4" rx="2"/><rect class="ol" x="92" y="46" width="16" height="6" rx="3"/>
+        </svg></div>
+        <div class="body">
+          <div class="title">可點選流程</div>
+          <div class="desc">四個螢幕連結在一起——足夠讓你感受這個互動設計是否合適。</div>
+          <div class="file"><span>08-prototype-interaction.html</span><span class="arrow">→</span></div>
+        </div>
+      </a>
+      <div class="detail-panel" id="d08"><div>
+        <h3>側邊欄拖拽重排</h3>
+        <p>即用即棄的 HTML 拖拽重排原型，使用原生 HTML5 Drag & Drop API，約 40 行 JS，無外部庫。</p>
+        <p>包含：6 個可拖拽的側邊欄檢視項、拖拽放置指示線（吸附到最近間隔）、設計決策說明面板和 3 個待定問題。亮點：放置指示線吸附到間隙中點、拖拽項以 35% 透明度+2°傾斜保持原位、整個行都可拖拽。</p>
+        <a class="orig-link" href="08-prototype-interaction.html" target="_blank">檢視原始互動頁面 →</a>
+        <span class="close-btn" onclick="toggleDetail('d08')">收起</span>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- ========================== 插畫與圖表 ========================== -->
+  <section id="illustrations">
+    <div class="sec-head"><span class="idx">05</span><h2>插畫與圖表</h2><span class="count">2 個示例</span></div>
+    <p class="sec-intro">
+      內聯 SVG 給了 Agent 一支真正的筆。讓它為部落格文章配圖或繪製流程圖，
+      得到可以手動調整或直接貼上到最終文件中的向量圖。
+    </p>
+    <div class="grid">
+      <a class="card" href="10-svg-illustrations.html" onclick="toggleDetail('d10')">
+        <div class="thumb"><svg viewBox="0 0 120 80">
+          <circle class="oa" cx="32" cy="40" r="24"/>
+          <circle class="cl" cx="32" cy="40" r="11"/>
+          <path class="lc" d="M68 60 L86 20 L104 60" fill="none"/>
+          <line class="ln" x1="66" y1="66" x2="106" y2="66"/>
+          <circle class="ol" cx="86" cy="20" r="5"/>
+        </svg></div>
+        <div class="body">
+          <div class="title">SVG 插畫頁</div>
+          <div class="desc">為一篇部落格文章配的圖，內聯繪製以便逐一調整和複製。</div>
+          <div class="file"><span>10-svg-illustrations.html</span><span class="arrow">→</span></div>
+        </div>
+      </a>
+      <div class="detail-panel" id="d10"><div>
+        <h3>後臺任務 — 頁首插畫</h3>
+        <p>三張 720×320 的手繪 SVG 插畫，用於文件中後臺任務章節的頁首。扁平填充、固定調色盤，每張可獨立下載。</p>
+        <p>A) 佇列——FIFO 工作佇列視覺化；B) 帶退避的重試——指數退避時間線；C) 扇出/扇入——父任務生成 N 個子任務匯聚在完成屏障。每張配有繪製規則說明。</p>
+        <a class="orig-link" href="10-svg-illustrations.html" target="_blank">檢視原始互動頁面 →</a>
+        <span class="close-btn" onclick="toggleDetail('d10')">收起</span>
+      </div></div>
+
+      <a class="card" href="13-flowchart-diagram.html" onclick="toggleDetail('d13')">
+        <div class="thumb"><svg viewBox="0 0 120 80">
+          <rect class="wh" x="10" y="10" width="30" height="16" rx="4"/>
+          <path class="oa" d="M60 34 L80 46 L60 58 L40 46 Z"/>
+          <rect class="wh" x="82" y="10" width="30" height="16" rx="4"/>
+          <rect class="cl" x="82" y="56" width="30" height="16" rx="4"/>
+          <line class="ln" x1="25" y1="26" x2="25" y2="46"/><line class="ln" x1="25" y1="46" x2="40" y2="46"/>
+          <line class="lc" x1="80" y1="46" x2="97" y2="46"/><line class="lc" x1="97" y1="46" x2="97" y2="56"/>
+          <line class="ln" x1="60" y1="34" x2="60" y2="22"/><line class="ln" x1="60" y1="22" x2="82" y2="22"/>
+        </svg></div>
+        <div class="body">
+          <div class="title">帶註釋的流程圖</div>
+          <div class="desc">部署流水線畫成真正的流程圖——點選任一步驟檢視執行詳情、耗時和失敗路徑。</div>
+          <div class="file"><span>13-flowchart-diagram.html</span><span class="arrow">→</span></div>
+        </div>
+      </a>
+      <div class="detail-panel" id="d13"><div>
+        <h3>部署流水線流程圖</h3>
+        <p>從 <code>git push main</code> 到部署完成的完整流程圖，使用內聯 SVG + 互動式點選面板。</p>
+        <p>共 10 個節點：git push → CI 檢查 → 測試（3 分片）→ 測試透過？→ 構建映象 → Argo 金絲雀 5% → SLO 達標？→ 逐步釋出 25→50→100% → 生產冒煙測試 → 部署完成。包含失敗路徑（狀態通知和自動回滾）。</p>
+        <a class="orig-link" href="13-flowchart-diagram.html" target="_blank">檢視原始互動頁面 →</a>
+        <span class="close-btn" onclick="toggleDetail('d13')">收起</span>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- ========================== 幻燈片 ========================== -->
+  <section id="decks">
+    <div class="sec-head"><span class="idx">06</span><h2>幻燈片</h2><span class="count">1 個示例</span></div>
+    <p class="sec-intro">
+      幾個 <code>&lt;section&gt;</code> 標籤加二十行 JavaScript 就是一個幻燈片。
+      讓 Agent 讀一個 Slack 執行緒或設計文件，就能得到一個可以在會議上用方向鍵翻頁的東西——
+      不需要 Keynote，不需要匯出步驟。
+    </p>
+    <div class="grid">
+      <a class="card" href="09-slide-deck.html" onclick="toggleDetail('d09')">
+        <div class="thumb"><svg viewBox="0 0 120 80">
+          <rect class="oa" x="8" y="18" width="70" height="44" rx="5"/>
+          <rect class="wh" x="22" y="12" width="76" height="50" rx="5"/>
+          <rect class="cl" x="32" y="24" width="36" height="7" rx="3"/>
+          <rect class="fl" x="32" y="36" width="52" height="4" rx="2"/><rect class="fl" x="32" y="44" width="44" height="4" rx="2"/>
+          <circle class="fl" cx="50" cy="70" r="3"/><circle class="cl" cx="60" cy="70" r="3"/><circle class="fl" cx="70" cy="70" r="3"/>
+        </svg></div>
+        <div class="body">
+          <div class="title">方向鍵翻頁幻燈片</div>
+          <div class="desc">一份簡短簡報，單一 HTML 檔案。左右方向鍵導航，無需構建步驟。</div>
+          <div class="file"><span>09-slide-deck.html</span><span class="arrow">→</span></div>
+        </div>
+      </a>
+      <div class="detail-panel" id="d09"><div>
+        <h3>平臺工程團隊週報幻燈片</h3>
+        <p>完整的 6 頁幻燈片，使用 CSS scroll-snap 實現，左右方向鍵或空格鍵翻頁。包含頁面計數器、深色/淺色交替背景。</p>
+        <p>6 頁：1) 標題頁、2) 本週交付（3 項）、3) 進行中（2 項帶進度條）、4) 指標（API 延遲+錯誤率）、5) 待定決策、6) 下週安排。每頁都包含真實資料和設計細節。</p>
+        <a class="orig-link" href="09-slide-deck.html" target="_blank">檢視原始互動頁面 →</a>
+        <span class="close-btn" onclick="toggleDetail('d09')">收起</span>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- ========================== 研究與學習 ========================== -->
+  <section id="research">
+    <div class="sec-head"><span class="idx">07</span><h2>研究與學習</h2><span class="count">2 個示例</span></div>
+    <p class="sec-intro">
+      帶有可摺疊章節、標籤頁程式碼示例和邊欄詞彙表的解釋頁面，
+      與同樣內容線性堆疊的文件閱讀體驗截然不同。Agent 可以構建讓新主題變得可導航的學習框架。
+    </p>
+    <div class="grid">
+      <a class="card" href="14-research-feature-explainer.html" onclick="toggleDetail('d14')">
+        <div class="thumb"><svg viewBox="0 0 120 80">
+          <rect class="cl" x="8" y="8" width="104" height="20" rx="4" opacity=".35"/>
+          <rect class="fl" x="14" y="15" width="60" height="6" rx="3"/>
+          <rect class="wh" x="8" y="34" width="104" height="14" rx="4"/>
+          <rect class="wh" x="8" y="52" width="104" height="14" rx="4"/>
+          <path class="ln" d="M16 39 l4 4 l-4 4"/><rect class="fl" x="28" y="38" width="46" height="5" rx="2.5"/>
+          <path class="ln" d="M16 57 l4 4 l-4 4"/><rect class="fl" x="28" y="56" width="38" height="5" rx="2.5"/>
+        </svg></div>
+        <div class="body">
+          <div class="title">特性工作原理</div>
+          <div class="desc">"解釋這個程式碼庫中的限流機制"—TL;DR 框、可摺疊的請求路徑步驟、標籤頁配置片段和 FAQ。</div>
+          <div class="file"><span>14-research-feature-explainer.html</span><span class="arrow">→</span></div>
+        </div>
+      </a>
+      <div class="detail-panel" id="d14"><div>
+        <h3>限流機制工作原理</h3>
+        <p>深入解釋 Birchline API 中的限流機制：每個請求透過 rateLimit() 中介軟體，從 Redis 獲取令牌桶，消費一個令牌或返回 429。</p>
+        <p>包含：側邊導航、4 步請求路徑分解（可摺疊，每步標註檔案位置）、3 個配置示例（帶標籤頁切換）、注意事項、FAQ。全部僅 ~40 行中介軟體程式碼，p50 增加約 0.4ms。</p>
+        <a class="orig-link" href="14-research-feature-explainer.html" target="_blank">檢視原始互動頁面 →</a>
+        <span class="close-btn" onclick="toggleDetail('d14')">收起</span>
+      </div></div>
+
+      <a class="card" href="15-research-concept-explainer.html" onclick="toggleDetail('d15')">
+        <div class="thumb"><svg viewBox="0 0 120 80">
+          <circle class="st" cx="42" cy="40" r="26"/>
+          <circle class="cl" cx="42" cy="14" r="5"/><circle class="ol" cx="68" cy="40" r="5"/>
+          <circle class="fl" cx="42" cy="66" r="5"/><circle class="fl" cx="16" cy="40" r="5"/>
+          <rect class="fl" x="82" y="20" width="30" height="5" rx="2.5"/><rect class="fl" x="82" y="32" width="24" height="5" rx="2.5"/>
+          <rect class="fl" x="82" y="44" width="28" height="5" rx="2.5"/><rect class="fl" x="82" y="56" width="20" height="5" rx="2.5"/>
+        </svg></div>
+        <div class="body">
+          <div class="title">概念直譯器</div>
+          <div class="desc">帶即時互動環的一致性雜湊教學工具——可增刪節點，對比表格，懸停連結的詞彙表。</div>
+          <div class="file"><span>15-research-concept-explainer.html</span><span class="arrow">→</span></div>
+        </div>
+      </a>
+      <div class="detail-panel" id="d15"><div>
+        <h3>一致性雜湊互動式直譯器</h3>
+        <p>在環形圖上直觀演示一致性雜湊的工作原理。可調整節點數和鍵數，增刪節點，即時觀察鍵的重新分配。</p>
+        <ul>
+          <li>互動式環形視覺化：節點數 2-8 可調，鍵數 10-60 可調</li>
+          <li>即時統計：上次變更移動的鍵數（數量和百分比）</li>
+          <li>對比表格：hash mod N 與一致性雜湊 4 維對比</li>
+          <li>側邊詞彙表：5 個術語，懸停聯動高亮</li>
+        </ul>
+        <a class="orig-link" href="15-research-concept-explainer.html" target="_blank">檢視原始互動頁面 →</a>
+        <span class="close-btn" onclick="toggleDetail('d15')">收起</span>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- ========================== 報告 ========================== -->
+  <section id="reports">
+    <div class="sec-head"><span class="idx">08</span><h2>報告</h2><span class="count">2 個示例</span></div>
+    <p class="sec-intro">
+      週期性文件——狀態更新、事後覆盤——最受益於結構和色彩的加持。
+      一個小圖表和彩色時間線能把人們只會掃一眼的內容變成他們會實際閱讀的東西。
+    </p>
+    <div class="grid">
+      <a class="card" href="11-status-report.html" onclick="toggleDetail('d11')">
+        <div class="thumb"><svg viewBox="0 0 120 80">
+          <rect class="fl" x="8" y="10" width="54" height="6" rx="3"/>
+          <rect class="ol" x="8" y="24" width="36" height="8" rx="3" opacity=".6"/>
+          <rect class="oa" x="8" y="38" width="28" height="8" rx="3"/>
+          <rect class="cl" x="8" y="52" width="20" height="8" rx="3" opacity=".6"/>
+          <rect class="wh" x="72" y="16" width="40" height="48" rx="5"/>
+          <rect class="ol" x="80" y="44" width="6" height="14"/>
+          <rect class="cl" x="90" y="34" width="6" height="24"/>
+          <rect class="fl" x="100" y="50" width="6" height="8"/>
+        </svg></div>
+        <div class="body">
+          <div class="title">周度狀態報告</div>
+          <div class="desc">什麼已交付、什麼延期了，加上一個小圖表——為週一早晨快速瀏覽而格式化。</div>
+          <div class="file"><span>11-status-report.html</span><span class="arrow">→</span></div>
+        </div>
+      </a>
+      <div class="detail-panel" id="d11"><div>
+        <h3>工程狀態—第 11 周</h3>
+        <p>自動生成的工程團隊週報，包含概要統計、亮點、已合併 PR 列表、速度圖表和遺留事項。</p>
+        <p>包含：4 格指標卡片（14 PR 合併/6 次部署/1 次事故/3 個修復）、3 條亮點、8 條 PR 表格、7 天柱狀圖、3 項遺留事項。</p>
+        <a class="orig-link" href="11-status-report.html" target="_blank">檢視原始互動頁面 →</a>
+        <span class="close-btn" onclick="toggleDetail('d11')">收起</span>
+      </div></div>
+
+      <a class="card" href="12-incident-report.html" onclick="toggleDetail('d12')">
+        <div class="thumb"><svg viewBox="0 0 120 80">
+          <line class="ln" x1="18" y1="12" x2="18" y2="68"/>
+          <circle class="fl" cx="18" cy="16" r="5"/><circle class="cl" cx="18" cy="34" r="5"/>
+          <circle class="cl" cx="18" cy="50" r="5"/><circle class="ol" cx="18" cy="66" r="5"/>
+          <rect class="fl" x="32" y="13" width="40" height="5" rx="2.5"/>
+          <rect class="fl" x="32" y="31" width="56" height="5" rx="2.5"/>
+          <rect class="fl" x="32" y="47" width="48" height="5" rx="2.5"/>
+          <rect class="fl" x="32" y="63" width="36" height="5" rx="2.5"/>
+          <rect class="oa" x="94" y="26" width="20" height="30" rx="4"/>
+        </svg></div>
+        <div class="body">
+          <div class="title">事故時間線</div>
+          <div class="desc">一份事後覆盤，包含逐分鐘時間線、日誌摘錄和後續行動清單。</div>
+          <div class="file"><span>12-incident-report.html</span><span class="arrow">→</span></div>
+        </div>
+      </a>
+      <div class="detail-panel" id="d12"><div>
+        <h3>INC-2025-0412 — 任務同步 502 錯誤</h3>
+        <p>SEV-2 級別事故完整覆盤：配置錯誤導致連線池限制從 64 降至 8，約 21% 請求在 47 分鐘內返回 502。</p>
+        <p>包含：TL;DR 摘要、7 步時間線、根因分析（含錯誤程式碼 diff）、影響統計（約 41,200 次失敗、約 2,300 個工作區）、4 項行動項（含負責人和截止日期，可勾選）。</p>
+        <a class="orig-link" href="12-incident-report.html" target="_blank">檢視原始互動頁面 →</a>
+        <span class="close-btn" onclick="toggleDetail('d12')">收起</span>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- ========================== 自定義編輯介面 ========================== -->
+  <section id="editors">
+    <div class="sec-head"><span class="idx">09</span><h2>自定義編輯介面</h2><span class="count">3 個示例</span></div>
+    <p class="sec-intro">
+      有時候你很難在文本框中描述你想要什麼。讓 Agent 為你的當前任務生成一個即用即棄的編輯器——
+      並且始終以匯出按鈕結尾，將你在 UI 中的操作轉回可貼上回 Agent 或提交的文本。
+      你保持在迴路中；迴路變得更緊密。
+    </p>
+    <div class="grid">
+      <a class="card" href="18-editor-triage-board.html" onclick="toggleDetail('d18')">
+        <div class="thumb"><svg viewBox="0 0 120 80">
+          <rect class="wh" x="6" y="10" width="24" height="60" rx="4"/>
+          <rect class="wh" x="34" y="10" width="24" height="60" rx="4"/>
+          <rect class="wh" x="62" y="10" width="24" height="60" rx="4"/>
+          <rect class="wh" x="90" y="10" width="24" height="60" rx="4"/>
+          <rect class="cl" x="10" y="18" width="16" height="9" rx="2"/>
+          <rect class="fl" x="10" y="31" width="16" height="9" rx="2"/>
+          <rect class="fl" x="10" y="44" width="16" height="9" rx="2"/>
+          <rect class="fl" x="38" y="18" width="16" height="9" rx="2"/>
+          <rect class="ol" x="38" y="31" width="16" height="9" rx="2"/>
+          <rect class="fl" x="66" y="18" width="16" height="9" rx="2"/>
+          <rect class="oa" x="48" y="50" width="20" height="11" rx="2"/>
+        </svg></div>
+        <div class="body">
+          <div class="title">工單分類看板</div>
+          <div class="desc">將 30 個工單拖拽至 Now/Next/Later/Cut 四列，然後將最終排序複製為 Markdown。</div>
+          <div class="file"><span>18-editor-triage-board.html</span><span class="arrow">→</span></div>
+        </div>
+      </a>
+      <div class="detail-panel" id="d18"><div>
+        <h3>Cycle 14 工單分類</h3>
+        <p>24 個 Linear 工單的互動式分類看板，支援拖拽分類、標籤篩選、按列統計和匯出 Markdown。</p>
+        <p>功能：4 列看板（Now/Next/Later/Cut）、即時統計各列數量和估算點數、點選標籤篩選、"Copy as markdown" 匯出。24 個工單涵蓋 bug/feat/chore/debt 四類標籤。</p>
+        <a class="orig-link" href="18-editor-triage-board.html" target="_blank">檢視原始互動頁面 →</a>
+        <span class="close-btn" onclick="toggleDetail('d18')">收起</span>
+      </div></div>
+
+      <a class="card" href="19-editor-feature-flags.html" onclick="toggleDetail('d19')">
+        <div class="thumb"><svg viewBox="0 0 120 80">
+          <rect class="wh" x="8" y="10" width="104" height="14" rx="4"/>
+          <rect class="wh" x="8" y="30" width="104" height="14" rx="4"/>
+          <rect class="wh" x="8" y="50" width="104" height="14" rx="4"/>
+          <rect class="ol" x="88" y="13" width="18" height="8" rx="4"/><circle class="wh" cx="100" cy="17" r="3"/>
+          <rect class="fl" x="88" y="33" width="18" height="8" rx="4"/><circle class="wh" cx="93" cy="37" r="3"/>
+          <rect class="cl" x="88" y="53" width="18" height="8" rx="4"/><circle class="wh" cx="100" cy="57" r="3"/>
+          <rect class="fl" x="14" y="14" width="34" height="5" rx="2.5"/>
+          <rect class="fl" x="14" y="34" width="42" height="5" rx="2.5"/>
+          <rect class="fl" x="14" y="54" width="28" height="5" rx="2.5"/>
+          <line class="lc da" x1="62" y1="24" x2="62" y2="50"/>
+        </svg></div>
+        <div class="body">
+          <div class="title">特性標誌編輯器</div>
+          <div class="desc">按領域分組的開關，前置條件未開啟時顯示依賴警告，以及僅複製已變更鍵的"複製差異"按鈕。</div>
+          <div class="file"><span>19-editor-feature-flags.html</span><span class="arrow">→</span></div>
+        </div>
+      </a>
+      <div class="detail-panel" id="d19"><div>
+        <h3>flags.production.json 編輯器</h3>
+        <p>生產環境特性標誌配置的基於表單的編輯器。開關切換標誌，即時顯示依賴衝突警告，僅複製已變更的行。</p>
+        <p>功能：4 組 14 個特性標誌、開關切換帶即時游標反饋、前置依賴自動檢測和警告、右側邊欄即時差異、3 個匯出按鈕（複製差異/複製完整 JSON/重置）。</p>
+        <a class="orig-link" href="19-editor-feature-flags.html" target="_blank">檢視原始互動頁面 →</a>
+        <span class="close-btn" onclick="toggleDetail('d19')">收起</span>
+      </div></div>
+
+      <a class="card" href="20-editor-prompt-tuner.html" onclick="toggleDetail('d20')">
+        <div class="thumb"><svg viewBox="0 0 120 80">
+          <rect class="wh" x="6" y="10" width="56" height="60" rx="4"/>
+          <rect class="fl" x="12" y="18" width="40" height="4" rx="2"/>
+          <rect class="cl" x="12" y="26" width="22" height="4" rx="2"/>
+          <rect class="fl" x="12" y="34" width="44" height="4" rx="2"/>
+          <rect class="ol" x="12" y="42" width="18" height="4" rx="2"/>
+          <rect class="fl" x="12" y="50" width="36" height="4" rx="2"/>
+          <rect class="oa" x="68" y="10" width="46" height="18" rx="4"/>
+          <rect class="oa" x="68" y="32" width="46" height="18" rx="4"/>
+          <rect class="oa" x="68" y="54" width="46" height="18" rx="4"/>
+        </svg></div>
+        <div class="body">
+          <div class="title">提示詞調優器</div>
+          <div class="desc">左側可編輯模板（變數槽位高亮顯示），右側三個示例輸入隨你的輸入即時重新渲染。</div>
+          <div class="file"><span>20-editor-prompt-tuner.html</span><span class="arrow">→</span></div>
+        </div>
+      </a>
+      <div class="detail-panel" id="d20"><div>
+        <h3>客服回覆提示詞調優器</h3>
+        <p>互動式提示詞模板編輯器：左側編輯支援客服提示詞模板（{{雙大括號}}語法標記變數），右側三個真實示例工單即時渲染填充後的完整回覆。</p>
+        <p>功能：contenteditable 模板編輯區（語法高亮）、3 個示例工單（不同客戶/套餐/語氣）、即時字元和 Token 計數器、複製/重置按鈕。三個示例覆蓋免費/團隊/工作室三種套餐和溫暖耐心/直接道歉/輕快友好三種語氣。</p>
+        <a class="orig-link" href="20-editor-prompt-tuner.html" target="_blank">檢視原始互動頁面 →</a>
+        <span class="close-btn" onclick="toggleDetail('d20')">收起</span>
+      </div></div>
+    </div>
+  </section>
+
+  <footer>
+    <span class="k">本頁面本身也是一個單獨的 <code>.html</code> 檔案。</span>
+    <span>檢視原始倉庫 · <a href="https://thariqs.github.io/html-effectiveness/" target="_blank">thariqs.github.io/html-effectiveness</a></span>
+  </footer>
+
+</div>
+
+<script>
+  function toggleDetail(id) {
+    var panel = document.getElementById(id);
+    if (!panel) return;
+    panel.classList.toggle('open');
+  }
+</script>
+</body>
+</html>
