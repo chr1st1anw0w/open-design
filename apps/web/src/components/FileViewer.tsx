@@ -59,6 +59,7 @@ import type {
 import { Icon } from './Icon';
 import {
   buildBoardCommentAttachments,
+  isOverlayableSnapshot,
   liveSnapshotForComment,
   overlayBoundsFromSnapshot,
   selectionKindLabel,
@@ -2273,7 +2274,11 @@ function CommentPreviewOverlays({
     .filter((item): item is { comment: PreviewComment; index: number; snapshot: PreviewCommentSnapshot } =>
       Boolean(item.snapshot),
     );
-  const targetOverlay = activeTarget ?? hoveredTarget;
+  const targetOverlay = isOverlayableSnapshot(activeTarget)
+    ? activeTarget
+    : isOverlayableSnapshot(hoveredTarget)
+      ? hoveredTarget
+      : null;
   return (
     <div className="comment-overlay-layer" aria-hidden={false}>
       {visibleComments.map(({ comment, index, snapshot }) => {

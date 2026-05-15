@@ -55,6 +55,7 @@ import { LibrarySection } from './LibrarySection';
 import { PrivacySection } from './PrivacySection';
 import { RoutinesSection } from './RoutinesSection';
 import { ConnectorsBrowser } from './ConnectorsBrowser';
+import { getChatUIMode, toggleChatUIMode, type ChatUIMode } from '../lib/feature-flags';
 import {
   applyAppearanceToDocument,
   normalizeAccentColor,
@@ -861,6 +862,7 @@ export function SettingsDialog({
     () => agents.filter((a) => a.available).length,
     [agents],
   );
+  const [chatUIMode, setChatUIMode] = useState<ChatUIMode>(() => getChatUIMode());
 
   const setMode = (mode: ExecMode) => setCfg((c) => ({ ...c, mode }));
   const setApiProtocol = (protocol: ApiProtocol) => {
@@ -1706,6 +1708,30 @@ export function SettingsDialog({
                   <span className="seg-meta">{t('settings.modeApi')}</span>
                 </button>
               </div>
+              <section className="settings-section">
+                <div className="section-head">
+                  <div>
+                    <h3>Chat UI</h3>
+                    <p className="hint">Legacy 與 C1 stub 的本機切換。變更會保留在 localStorage。</p>
+                  </div>
+                </div>
+                <div className="toggle-row">
+                  <div className="toggle-copy">
+                    <strong>{chatUIMode === 'c1' ? 'C1' : 'Legacy'}</strong>
+                    <span>目前模式：{chatUIMode}</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="ghost"
+                    onClick={() => {
+                      const nextMode = toggleChatUIMode();
+                      setChatUIMode(nextMode);
+                    }}
+                  >
+                    切換為 {chatUIMode === 'c1' ? 'Legacy' : 'C1'}
+                  </button>
+                </div>
+              </section>
               {cfg.mode === 'api' ? (
                 <div
                   className="protocol-chips"

@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
 
 /* ============================================================
    Open Design — neutral product workspace
@@ -1147,6 +1148,147 @@ code {
   color: var(--red);
   padding: 10px 12px;
   border-radius: var(--radius-sm);
+}
+.c1-chat-header {
+  border-bottom-color: var(--border);
+}
+.c1-conversation-strip {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px 0;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+.c1-conversation-chip {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-muted);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.c1-conversation-chip.active {
+  color: var(--text);
+  border-color: var(--text);
+}
+.c1-chat-log {
+  gap: 18px;
+  background: var(--bg-panel);
+}
+.c1-msg.assistant {
+  max-width: 100%;
+}
+.c1-assistant-body {
+  display: grid;
+  gap: 10px;
+}
+.c1-prose {
+  white-space: pre-wrap;
+}
+.c1-empty-state {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border: 1px dashed var(--border);
+  border-radius: 16px;
+  background: var(--bg);
+  color: var(--text-muted);
+}
+.c1-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+}
+.c1-badge-danger {
+  color: var(--red);
+  border-color: var(--red-border);
+  background: var(--red-bg);
+}
+.c1-badge-success {
+  color: var(--green);
+  border-color: var(--green-border);
+  background: var(--green-bg);
+}
+.c1-card {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg);
+}
+.c1-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.c1-card-meta {
+  color: var(--text-faint);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.c1-tool-card.is-error {
+  border-color: var(--red-border);
+  background: var(--red-bg);
+}
+.c1-inline-code,
+.c1-card code {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px;
+}
+.c1-code-block,
+.c1-result-block {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--bg-subtle);
+  color: var(--text);
+  overflow: auto;
+  font-size: 12px;
+  line-height: 1.45;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+}
+.c1-todo-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.c1-todo-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.c1-todo-item.is-completed {
+  color: var(--text-faint);
+}
+.c1-todo-state {
+  width: 16px;
+  text-align: center;
+  color: var(--text-muted);
+}
+.c1-thinking {
+  padding: 8px 12px;
+  border-left: 2px solid var(--border);
+  color: var(--text-muted);
+  white-space: pre-wrap;
+}
+.c1-error-text {
+  color: var(--red);
+  font-size: 12px;
 }
 
 /* -------- Composer -------------------------------------------------- */

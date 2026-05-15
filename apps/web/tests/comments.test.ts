@@ -3,6 +3,7 @@ import {
   buildBoardCommentAttachments,
   commentsToAttachments,
   historyWithCommentAttachmentContext,
+  isOverlayableSnapshot,
   liveSnapshotForComment,
   mergeAttachedComments,
   messageContentWithCommentAttachments,
@@ -182,6 +183,38 @@ describe('preview comment attachment helpers', () => {
 
     expect(liveSnapshotForComment(saved, snapshots)?.elementId).toBe('hero-title');
     expect(liveSnapshotForComment(comment({ filePath: 'other.html' }), snapshots)).toBeNull();
+  });
+
+  it('does not restore visual comments as DOM overlays', () => {
+    const visual = comment({
+      elementId: 'visual-mark-1',
+      selectionKind: 'visual',
+      position: { x: 0, y: 0, width: 1200, height: 900 },
+    });
+    const snapshots = new Map([
+      ['visual-mark-1', {
+        filePath: 'index.html',
+        elementId: 'visual-mark-1',
+        selector: '',
+        label: 'visual',
+        text: '',
+        htmlHint: '',
+        selectionKind: 'visual' as const,
+        position: { x: 0, y: 0, width: 1200, height: 900 },
+      }],
+    ]);
+
+    expect(liveSnapshotForComment(visual, snapshots)).toBeNull();
+    expect(isOverlayableSnapshot({
+      filePath: 'index.html',
+      elementId: 'visual-mark-1',
+      selector: '',
+      label: 'visual',
+      text: '',
+      htmlHint: '',
+      selectionKind: 'visual',
+      position: { x: 0, y: 0, width: 1200, height: 900 },
+    })).toBe(false);
   });
 
   it('serializes selected comments into API-mode prompt context without visible input', () => {

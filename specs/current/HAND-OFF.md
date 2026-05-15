@@ -5,11 +5,71 @@ category: development
 tags: [hand-off, open-design, design-review, roadmap, claude-code, skywalker, thesys-c1]
 status: active
 created: 2026-05-11
-updated: 2026-05-11
+updated: 2026-05-15
 author: perplexity-ai
 ---
 
 # HAND-OFF: open-design 規格設計審查規劃
+
+## 2026-05-15 C1 Phase A 接手摘要
+
+### 本次已完成
+- C1 視覺策略調整：
+  - 明確排除 Skywalker 主題套用。
+  - C1 一律使用自身或系統中性樣式，不承接 Skywalker brand token。
+- C1 預設模式調整：
+  - `apps/web/src/lib/feature-flags.ts` 預設改為 `c1`
+  - `apps/web/.env.example` 同步改為 `NEXT_PUBLIC_CHAT_UI=c1`
+  - 測試環境仍可透過 localStorage override 回退 legacy
+- `apps/web/src/components/ChatPane.tsx`
+  - 改為 dispatcher。
+  - 依 `getChatUIMode()` 切換 `ChatPaneLegacy` / `ChatPaneC1`。
+- `apps/web/src/components/ChatPaneLegacy.tsx`
+  - 保留原 `ChatPane.tsx` 既有行為，含 question-form scroll 與 `onCollapse`。
+- `apps/web/src/components/chat-c1/ChatPaneC1.tsx`
+  - 已改為可用的 C1 對話框殼層。
+  - 直接渲染既有 daemon `messages/events`，不再只是 stub 標籤。
+- `apps/web/src/components/chat-c1/customComponents/*.tsx`
+  - `CLIBadge`、`TodoWriteCard`、`BashCard`、`FileCard`、`ArtifactChip` 已接真實 props 與 UI。
+  - `SkillPicker`、`CritiqueScorecard`、`DiscoveryForm`、`AgentPicker` 仍為 placeholder。
+- `apps/web/src/components/chat-c1/theme.ts`
+  - 建立最小中性 theme 對映，不綁定 Skywalker accent。
+- `apps/web/src/lib/c1-bridge/{event-mapper,xml-builder,sse-parser,thread-store}.ts`
+  - 建立最小 bridge scaffold。
+  - `event-mapper.ts` 已把 `tool_use` / `tool_result` 映射為 C1 custom component schema。
+- `apps/web/app/api/c1/**`
+  - 建立 Next App Router route handlers。
+  - `POST /api/c1` 已接到 daemon `/api/runs` 與 `/api/runs/:id/events`
+  - daemon SSE 會轉為 C1 response XML chunk 後再回傳前端
+- `apps/web/.env.example`
+  - 新增 `NEXT_PUBLIC_CHAT_UI=legacy`
+- `apps/web/src/components/SettingsDialog.tsx`
+  - 新增本機 Chat UI 切換（legacy / c1），以 localStorage 生效。
+
+### 已驗證
+- `pnpm --filter @open-design/web typecheck` ✅
+- `pnpm --filter @open-design/web test feature-flags.test.ts ChatPane.dispatcher.test.tsx c1-event-mapper.test.ts ChatPaneC1.test.tsx` ✅
+
+### 驗證例外
+- `pnpm --filter @open-design/web test chat-scroll-preservation.test.tsx` ❌
+  - 失敗原因為既有 React/Vitest 測試環境訊息：`act(...) is not supported in production builds of React.`
+  - 目前看起來不是本次 C1 scaffold 直接造成的型別或路由錯誤。
+
+### 重要路徑校正
+- C1 API 應放在 `apps/web/app/api/c1/**`
+- 不是 `apps/web/src/app/api/c1/**`
+- 原因：本 repo 的 Next App Router entry 在 `apps/web/app/`
+
+### 下一步建議
+1. 將 Settings 的 Chat UI 切換文案正式接入 i18n
+2. 補 `/api/c1/threads/*` 真正資料持久化，不再只用記憶體 `Map`
+3. 決定是否正式安裝 `@thesysai/genui-sdk` / `@crayonai/react-ui`
+4. 若導入 SDK，應以目前 custom component schema 為 adapter 層，不直接把 Skywalker 或第三方 theme 綁進 C1
+
+### 目前限制
+- 尚未安裝 `@thesysai/genui-sdk` / `@crayonai/react-ui`
+- `ChatPaneC1` 目前是 open-design 原生 renderer，不是實際 C1 SDK render
+- 部分 custom components 仍是 placeholder，尚未涵蓋 Skill / Discovery / Critique 全流程
 
 > **用途**：本文件為 Augment Code Agent 對話的完整交接文件，供 Claude Code 接續執行，無需重新探索已完成工作。
 

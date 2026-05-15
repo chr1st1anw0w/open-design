@@ -90,6 +90,7 @@ export function liveSnapshotForComment(
   comment: PreviewComment,
   snapshots: Map<string, PreviewCommentSnapshot>,
 ): PreviewCommentSnapshot | null {
+  if (comment.selectionKind === 'visual') return null;
   const snapshot = snapshots.get(comment.elementId);
   if (snapshot && snapshot.filePath === comment.filePath) return snapshot;
   if (!comment.elementId.startsWith('pin-')) return null;
@@ -105,6 +106,11 @@ export function liveSnapshotForComment(
     memberCount: comment.memberCount,
     podMembers: normalizeMembers(comment.podMembers),
   };
+}
+
+export function isOverlayableSnapshot(snapshot: PreviewCommentSnapshot | null | undefined): snapshot is PreviewCommentSnapshot {
+  if (!snapshot) return false;
+  return snapshot.selectionKind !== 'visual';
 }
 
 export function commentToAttachment(

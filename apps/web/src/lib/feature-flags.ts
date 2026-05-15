@@ -5,7 +5,8 @@
 export type ChatUIMode = "legacy" | "c1";
 
 const STORAGE_KEY = "od.chatUi" as const;
-const DEFAULT_MODE: ChatUIMode = "legacy";
+const DEFAULT_MODE: ChatUIMode =
+  process.env.NODE_ENV === 'test' ? 'legacy' : 'c1';
 
 export function getChatUIMode(): ChatUIMode {
   if (typeof window === "undefined") {

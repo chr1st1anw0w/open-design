@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { I18nProvider } from '../src/i18n';
 import '../src/index.css';
+import "@crayonai/react-ui/styles/index.css";
 
 export const metadata: Metadata = {
   title: 'Open Design',
