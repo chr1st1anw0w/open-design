@@ -1,0 +1,23 @@
+{
+  "skill_name": "notion-agent",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I need to export my current Notion page as a Markdown file",
+      "expected_output": "The user should be guided to run the notion export command, with the output file saved to the specified location",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Search for all pages in my Notion workspace that contain 'project planning'",
+      "expected_output": "The skill should help execute notion search and display matching pages",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Read the content of my current Notion page and summarize it",
+      "expected_output": "The skill should extract page content via notion read and provide a summary",
+      "files": []
+    }
+  ]
+}

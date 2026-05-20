@@ -171,3 +171,21 @@ export interface InstallDesignSystemResponse {
 export interface UninstallResponse {
   ok: true;
 }
+
+export interface SkillDesktopSyncRequest {
+  dryRun?: boolean;
+  sourceDir?: string;
+  targetDir?: string;
+}
+
+export interface SkillDesktopSyncResponse {
+  sourceDir: string;
+  targetDir: string;
+  dryRun: boolean;
+  added: number;
+  updated: number;
+  unchanged: number;
+  deleted: number;
+  skipped: number;
+  errors: string[];
+}

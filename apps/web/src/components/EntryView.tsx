@@ -58,7 +58,14 @@ interface Props {
   promptTemplatesLoading?: boolean;
   onCreateProject: (input: CreateInput & { pendingPrompt?: string }) => void;
   onImportClaudeDesign: (file: File) => Promise<void> | void;
-  onImportFolder?: (baseDir: string) => Promise<void> | void;
+  onImportFolder?: (baseDir: string) => Promise<{ error?: string } | void> | ({ error?: string } | void);
+  onCreatePathBackedProject?: (
+    input: {
+      name: string;
+      baseDir: string;
+      createMode: 'use-existing' | 'create-if-empty';
+    },
+  ) => Promise<{ error?: string } | void> | ({ error?: string } | void);
   onImportFolderResponse?: (response: ImportFolderResponse) => Promise<void> | void;
   onOpenProject: (id: string) => void;
   onOpenLiveArtifact: (projectId: string, artifactId: string) => void;
@@ -230,6 +237,7 @@ export function EntryView({
   onCreateProject,
   onImportClaudeDesign,
   onImportFolder,
+  onCreatePathBackedProject,
   onImportFolderResponse,
   onOpenProject,
   onOpenLiveArtifact,
@@ -480,6 +488,7 @@ export function EntryView({
           onCreate={handleCreate}
           onImportClaudeDesign={onImportClaudeDesign}
           onImportFolder={onImportFolder}
+          onCreatePathBackedProject={onCreatePathBackedProject}
           onImportFolderResponse={onImportFolderResponse}
           mediaProviders={config.mediaProviders}
           connectors={connectors}

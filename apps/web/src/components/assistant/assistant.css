@@ -1,0 +1,184 @@
+/* ── FAB ─────────────────────────────────────────────────────────────── */
+.assistant-fab {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: linear-gradient(135deg, #5b8cff 0%, #8b5bff 100%);
+  color: #fff;
+  box-shadow: 0 12px 32px rgba(20, 24, 48, 0.32), 0 2px 6px rgba(20, 24, 48, 0.18);
+  cursor: pointer;
+  z-index: 1100;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+  padding: 0;
+}
+
+.assistant-fab:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.assistant-fab:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+.assistant-fab-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  object-fit: contain;
+  display: block;
+}
+
+.assistant-fab-close {
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 400;
+  color: #fff;
+}
+
+/* ── Floating panel ──────────────────────────────────────────────────── */
+.assistant-float-panel {
+  position: fixed;
+  z-index: 1090;
+  background: var(--od-surface, #ffffff);
+  color: var(--od-text, #0c111f);
+  border-radius: 14px;
+  box-shadow:
+    0 24px 64px rgba(8, 10, 24, 0.28),
+    0 4px 16px rgba(8, 10, 24, 0.16),
+    0 0 0 1px rgba(127, 127, 153, 0.14);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* panel captures events; rest of UI stays interactive */
+  pointer-events: auto;
+  /* smooth appear */
+  animation: assistant-float-in 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes assistant-float-in {
+  from { opacity: 0; transform: scale(0.96) translateY(6px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* top-left resize handle */
+.assistant-float-resize {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 20px;
+  height: 20px;
+  cursor: nwse-resize;
+  z-index: 10;
+}
+
+.assistant-float-resize::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 10px;
+  height: 10px;
+  border-top: 2px solid rgba(127, 127, 153, 0.4);
+  border-left: 2px solid rgba(127, 127, 153, 0.4);
+  border-radius: 2px 0 0 0;
+}
+
+/* draggable title bar */
+.assistant-float-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(127, 127, 153, 0.18);
+  cursor: grab;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.assistant-float-header:active {
+  cursor: grabbing;
+}
+
+.assistant-float-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* ── Shared badge / close / body ─────────────────────────────────────── */
+.assistant-sidebar-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 20px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #5b8cff 0%, #8b5bff 100%);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}
+
+.assistant-sidebar-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 0;
+  background: transparent;
+  font-size: 20px;
+  cursor: pointer;
+  color: inherit;
+  flex-shrink: 0;
+}
+
+.assistant-sidebar-close:hover {
+  background: rgba(127, 127, 153, 0.12);
+}
+
+.assistant-float-close {
+  cursor: pointer;
+}
+
+.assistant-sidebar-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.assistant-panel-c1 {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.assistant-panel-c1 > * {
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── Dark mode ───────────────────────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  .assistant-float-panel {
+    background: var(--od-surface, #14172a);
+    color: var(--od-text, #f3f4fb);
+    box-shadow:
+      0 24px 64px rgba(0, 0, 0, 0.48),
+      0 4px 16px rgba(0, 0, 0, 0.32),
+      0 0 0 1px rgba(255, 255, 255, 0.08);
+  }
+}

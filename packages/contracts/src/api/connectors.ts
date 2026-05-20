@@ -128,6 +128,30 @@ export interface ConnectorAuthConfigPrepareResponse {
   results: Record<string, ConnectorAuthConfigPrepareResult>;
 }
 
+export interface ComposioDesktopSyncRequest {
+  dryRun?: boolean;
+  conflictPolicy?: 'skip' | 'overwrite';
+}
+
+export interface ComposioDesktopSyncResponse {
+  sourceDir: string;
+  targetDir: string;
+  dryRun: boolean;
+  apiKey: 'added' | 'updated' | 'unchanged' | 'conflict' | 'missing';
+  authConfigIds: {
+    added: number;
+    updated: number;
+    unchanged: number;
+    conflicts: number;
+  };
+  requiresReauth: boolean;
+  errors: string[];
+  publicConfig: {
+    configured: boolean;
+    apiKeyTail: string;
+  };
+}
+
 export interface ConnectorExecuteRequest {
   connectorId: string;
   toolName: string;

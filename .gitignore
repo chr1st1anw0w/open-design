@@ -55,6 +55,11 @@ specs/change/active
 # Nix and direnv
 .direnv/
 .envrc
+
+# Local env / secrets — never commit
+.env
+.env.local
+.env.*.local
 # Local design assistant context
 .impeccable.md
 

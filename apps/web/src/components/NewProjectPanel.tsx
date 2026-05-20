@@ -69,6 +69,12 @@ function formatPickAndImportErrorDetails(details: unknown): string | undefined {
   return undefined;
 }
 
+function basenameFromPath(input: string): string {
+  const normalized = input.replace(/\\/g, '/').replace(/\/+$/, '');
+  const parts = normalized.split('/');
+  return parts[parts.length - 1] || normalized || 'project';
+}
+
 // Snapshot of a curated prompt template, captured at New Project time and
 // folded into ProjectMetadata.promptTemplate. The user may have edited the
 // prompt body before clicking Create — that edited copy lives here.
@@ -100,7 +106,14 @@ interface Props {
   // input and the renderer POSTs `/api/import/folder` itself. Browser
   // builds have no `shell.openPath` surface, so the renderer naming a
   // path here cannot escalate (PR #974 trust model).
-  onImportFolder?: (baseDir: string) => Promise<void> | void;
+  onImportFolder?: (baseDir: string) => Promise<{ error?: string } | void> | ({ error?: string } | void);
+  onCreatePathBackedProject?: (
+    input: {
+      name: string;
+      baseDir: string;
+      createMode: 'use-existing' | 'create-if-empty';
+    },
+  ) => Promise<{ error?: string } | void> | ({ error?: string } | void);
   // Electron flow: the desktop main process owns the picker dialog and
   // the import call atomically (`pickAndImport` IPC). The renderer
   // never sees the path or the HMAC token; it only receives the
@@ -156,6 +169,7 @@ export function NewProjectPanel({
   onCreate,
   onImportClaudeDesign,
   onImportFolder,
+  onCreatePathBackedProject,
   onImportFolderResponse,
   mediaProviders,
   connectors,
@@ -168,6 +182,7 @@ export function NewProjectPanel({
   const [importing, setImporting] = useState(false);
   const [baseDir, setBaseDir] = useState('');
   const [importingFolder, setImportingFolder] = useState(false);
+  const [pathBackedMode, setPathBackedMode] = useState<'use-existing' | 'create-if-empty'>('use-existing');
   // PR #974 round-4 (mrcfps): pickAndImport now returns structured
   // failure shapes (`desktop auth secret not registered`, `web sidecar
   // URL not available`, `daemon returned HTTP X`) — surfacing them
@@ -468,9 +483,33 @@ export function NewProjectPanel({
     if (!onImportFolder) return;
     const trimmed = baseDir.trim();
     if (!trimmed) return;
+    setImportFolderError(null);
     setImportingFolder(true);
     try {
-      await onImportFolder(trimmed);
+      const result = await onImportFolder(trimmed);
+      if (result && typeof result === 'object' && 'error' in result && typeof result.error === 'string') {
+        setImportFolderError({ message: result.error });
+      }
+    } finally {
+      setImportingFolder(false);
+    }
+  }
+
+  async function handleCreatePathBacked() {
+    if (!onCreatePathBackedProject) return;
+    const trimmed = baseDir.trim();
+    if (!trimmed) return;
+    setImportFolderError(null);
+    setImportingFolder(true);
+    try {
+      const result = await onCreatePathBackedProject({
+        name: name.trim() || basenameFromPath(trimmed),
+        baseDir: trimmed,
+        createMode: pathBackedMode,
+      });
+      if (result && typeof result === 'object' && 'error' in result && typeof result.error === 'string') {
+        setImportFolderError({ message: result.error });
+      }
     } finally {
       setImportingFolder(false);
     }
@@ -690,15 +729,42 @@ export function NewProjectPanel({
         {(hasElectronPickAndImport ? onImportFolderResponse : onImportFolder) ? (
           <div className="newproj-open-folder">
             {!hasElectronPickAndImport ? (
-              <input
-                type="text"
-                className="newproj-folder-input"
-                placeholder="/path/to/project"
-                value={baseDir}
-                onChange={(e) => setBaseDir(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') void handleOpenFolder(); }}
-                disabled={importingFolder}
-              />
+              <>
+                <input
+                  type="text"
+                  className="newproj-folder-input"
+                  placeholder="/path/to/project"
+                  value={baseDir}
+                  onChange={(e) => setBaseDir(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') void handleOpenFolder(); }}
+                  disabled={importingFolder}
+                />
+                <div className="newproj-folder-actions">
+                  <label className="newproj-folder-mode">
+                    <span>Path-backed mode</span>
+                    <select
+                      value={pathBackedMode}
+                      onChange={(e) => setPathBackedMode(e.target.value as 'use-existing' | 'create-if-empty')}
+                      disabled={importingFolder}
+                    >
+                      <option value="use-existing">use-existing</option>
+                      <option value="create-if-empty">create-if-empty</option>
+                    </select>
+                  </label>
+                  {onCreatePathBackedProject ? (
+                    <button
+                      type="button"
+                      className="ghost newproj-import"
+                      disabled={!baseDir.trim() || importingFolder}
+                      onClick={() => void handleCreatePathBacked()}
+                    >
+                      <Icon name="plus" size={13} />
+                      <span>{importingFolder ? 'Creating…' : 'Create path-backed'}</span>
+                    </button>
+                  ) : null}
+                </div>
+                <p className="hint">Folder import edits the original folder in place (not a copy).</p>
+              </>
             ) : null}
             <button
               type="button"

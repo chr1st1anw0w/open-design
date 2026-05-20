@@ -5,8 +5,10 @@
 export type ChatUIMode = "legacy" | "c1";
 
 const STORAGE_KEY = "od.chatUi" as const;
-const DEFAULT_MODE: ChatUIMode =
-  process.env.NODE_ENV === 'test' ? 'legacy' : 'c1';
+// Default Chat UI mode is `legacy`. The C1 conversational UI is surfaced
+// globally through the floating AssistantFab/AssistantSidebar instead of
+// replacing the per-project chat pane.
+const DEFAULT_MODE: ChatUIMode = 'legacy';
 
 export function getChatUIMode(): ChatUIMode {
   if (typeof window === "undefined") {

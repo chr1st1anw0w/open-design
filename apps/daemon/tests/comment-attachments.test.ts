@@ -188,6 +188,27 @@ describe('preview comment agent payload', () => {
     expect(normalized[0]?.memberCount).toBe(2);
     expect(hint).toContain('member.1: hero | section.hero | [data-od-id="hero"]');
   });
+
+  it('preserves visual image attachment context for the agent hint', () => {
+    const normalized = normalizeCommentAttachments([
+      commentAttachment({
+        id: 'visual-1',
+        selectionKind: 'visual',
+        screenshotPath: 'uploads/reference.png',
+        markKind: 'click',
+        intent: 'Use the uploaded reference image when editing the selected element.',
+      }),
+    ]);
+
+    const hint = renderCommentAttachmentHint(normalized);
+
+    expect(normalized[0]?.selectionKind).toBe('visual');
+    expect(normalized[0]?.screenshotPath).toBe('uploads/reference.png');
+    expect(hint).toContain('targetKind: visual');
+    expect(hint).toContain('screenshot: uploads/reference.png');
+    expect(hint).toContain('markKind: click');
+    expect(hint).toContain('intent: Use the uploaded reference image when editing the selected element.');
+  });
 });
 
 function seededDb() {

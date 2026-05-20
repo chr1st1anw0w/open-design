@@ -106,6 +106,40 @@ export interface UpdateMcpServersRequest {
   servers: McpServerConfig[];
 }
 
+export interface DesktopSyncSummary {
+  sourceDir: string;
+  targetDir: string;
+  dryRun: boolean;
+  added: number;
+  updated: number;
+  unchanged: number;
+  conflicts: number;
+  skipped: number;
+  errors: string[];
+}
+
+export interface McpDesktopSyncRequest {
+  dryRun?: boolean;
+  direction?: 'desktop-to-runtime';
+  conflictPolicy?: 'skip' | 'overwrite';
+}
+
+export interface McpDesktopSyncResponse extends DesktopSyncSummary {}
+
+export interface DesktopProfileStatusResponse {
+  namespace: string;
+  dataDir: string;
+  exists: boolean;
+  skillsDir: string;
+  designSystemsDir: string;
+  mcpConfigPath: string;
+  composioConfigPath: string;
+  runtimeDataDir: string;
+  isRuntimeUsingDesktopProfile: boolean;
+  runtimeSqlitePath: string;
+  desktopSqlitePath: string;
+}
+
 // ─────────────────────────────────────────────────────────────────────
 // Daemon-owned OAuth flow for HTTP / SSE MCP servers.
 //

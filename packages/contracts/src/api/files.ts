@@ -27,9 +27,36 @@ export interface ProjectFile {
   artifactManifest?: ArtifactManifest;
 }
 
+export interface ProjectFolder {
+  name: string;
+  path: string;
+  type: 'folder';
+}
+
 export interface ProjectFilesResponse {
   files: ProjectFile[];
+  folders?: ProjectFolder[];
 }
+
+export interface CreateProjectFolderRequest {
+  name: string;
+}
+
+export interface CreateProjectFolderResponse {
+  folder: ProjectFolder;
+}
+
+export interface RenameProjectFolderRequest {
+  from: string;
+  to: string;
+}
+
+export interface RenameProjectFolderResponse {
+  oldName: string;
+  newName: string;
+}
+
+export interface DeleteProjectFolderResponse extends OkResponse {}
 
 export interface ProjectFileResponse {
   file: ProjectFile;

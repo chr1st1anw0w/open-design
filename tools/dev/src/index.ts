@@ -68,6 +68,10 @@ type CliOptions = ToolDevOptions & {
   path?: string;
   selector?: string;
   timeout?: string;
+  dryRun?: boolean;
+  apply?: boolean;
+  sourceDir?: string;
+  targetDir?: string;
 };
 
 const TOOLS_DEV_PARENT_PID_ENV = SIDECAR_ENV.TOOLS_DEV_PARENT_PID;
@@ -820,6 +824,36 @@ async function readLogs(config: ToolDevConfig, appName: ToolDevAppName) {
   return { app: appName, lines: await readLogTail(logPath, 200), logPath };
 }
 
+async function syncDesktopSkillsViaDaemon(config: ToolDevConfig, options: CliOptions) {
+  const daemon = await inspectAppStatus(config, APP_KEYS.DAEMON);
+  if (!daemon || daemon.state !== "running" || typeof daemon.url !== "string" || daemon.url.length === 0) {
+    throw new Error("daemon must be running before sync desktop-skills");
+  }
+  const body = {
+    dryRun: options.dryRun !== false,
+    sourceDir: typeof options.sourceDir === "string" ? options.sourceDir : undefined,
+    targetDir: typeof options.targetDir === "string" ? options.targetDir : undefined,
+  };
+  const resp = await fetch(`${daemon.url}/api/skills/sync-desktop`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const text = await resp.text();
+  let json: unknown = {};
+  try {
+    json = text ? JSON.parse(text) : {};
+  } catch {
+    json = { error: text || `HTTP ${resp.status}` };
+  }
+  if (!resp.ok) {
+    const detail = (json as { error?: { message?: string } | string }).error;
+    const msg = typeof detail === "string" ? detail : detail?.message;
+    throw new Error(msg || `sync desktop-skills failed (${resp.status})`);
+  }
+  return json;
+}
+
 function createLogDiagnostics(logs: Record<string, LogResult>): Record<string, LogDiagnostic[]> {
   return Object.fromEntries(
     Object.entries(logs).map(([appName, log]) => [appName, detectLogDiagnostics(log.lines)] as const),
@@ -1065,6 +1099,25 @@ addSharedOptions(cli.command("check [app]", "Print status and recent logs for qu
     printCheckResult({ apps, diagnostics: createLogDiagnostics(logs), logs, namespace: config.namespace }, options);
   },
 );
+
+addSharedOptions(
+  cli.command("sync <target>", "Sync helper tasks (currently: desktop-skills)"),
+)
+  .option("--dry-run", "preview only (default: true)")
+  .option("--apply", "apply changes (equivalent to --dry-run false)")
+  .option("--source-dir <path>", "override source skills directory")
+  .option("--target-dir <path>", "override target skills directory")
+  .action(async (target: string, options: CliOptions) => {
+    if (target !== "desktop-skills") {
+      throw new Error(`unsupported sync target: ${target}`);
+    }
+    const config = resolveToolDevConfig(options);
+    const result = await syncDesktopSkillsViaDaemon(config, {
+      ...options,
+      dryRun: options.apply ? false : options.dryRun,
+    });
+    output(result, options);
+  });
 
 cli.help();
 

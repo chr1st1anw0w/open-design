@@ -1,0 +1,1803 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>XUANSPARK AI Workflow Workshop</title>
+  <style>
+    :root {
+      --bg: #fafafa;
+      --surface: #ffffff;
+      --surface-soft: #f6f5f4;
+      --surface-tint: #f4f4f5;
+      --fg: #1a1a1a;
+      --text: #37352f;
+      --muted: #5d5b54;
+      --subtle: #787671;
+      --border: #ebebeb;
+      --border-strong: #c8c4be;
+      --accent: #5645d4;
+      --accent-2: #0070f3;
+      --accent-soft: #e6e0f5;
+      --ink-deep: #0a1530;
+      --success: #1aae39;
+      --error: #e03131;
+      --warning: #dd5b00;
+      --tint-peach: #ffe8d4;
+      --tint-rose: #fde0ec;
+      --tint-mint: #d9f3e1;
+      --tint-lavender: #e6e0f5;
+      --tint-sky: #dcecfa;
+      --tint-yellow: #f9e79f;
+      --shadow-1: 0 1px 1px rgba(0, 0, 0, 0.02), 0 2px 2px rgba(0, 0, 0, 0.04);
+      --shadow-2: 0 4px 12px rgba(15, 15, 15, 0.08);
+      --font-display: "Noto Sans TC", "Inter", "SF Pro Display", system-ui, sans-serif;
+      --font-body: "Noto Sans TC", "Inter", "SF Pro Text", system-ui, sans-serif;
+      --font-mono: "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
+      --hero-bg: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+      --section-gap: 34px;
+      --radius: 8px;
+      --radius-lg: 12px;
+      --content-max: 1320px;
+    }
+
+    body[data-theme="notion-soft"] {
+      --accent: #5645d4;
+      --accent-2: #0070f3;
+      --surface-soft: #f6f5f4;
+      --hero-bg: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+    }
+
+    body[data-theme="vercel-blue"] {
+      --accent: #0070f3;
+      --accent-2: #0a1530;
+      --surface-soft: #f8fbff;
+      --accent-soft: #dcecfa;
+      --hero-bg: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+    }
+
+    body[data-density="compact"] {
+      --section-gap: 26px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      line-height: 1.58;
+      -webkit-font-smoothing: antialiased;
+    }
+    h1, h2, h3, p, ul { margin: 0; }
+    h1, h2, h3 { color: var(--fg); text-wrap: balance; }
+    p, li { text-wrap: pretty; }
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; }
+
+    .progress {
+      position: fixed;
+      inset: 0 0 auto;
+      height: 4px;
+      background: rgba(0, 0, 0, 0.04);
+      z-index: 40;
+    }
+    .progress-bar {
+      width: 0;
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width 180ms ease-out;
+    }
+
+    .page-shell {
+      width: min(var(--content-max), calc(100vw - 40px));
+      margin: 0 auto;
+    }
+
+    .hero {
+      min-height: 100vh;
+      display: grid;
+      align-items: end;
+      padding: 56px 0 40px;
+      background: var(--hero-bg);
+    }
+    .hero-inner {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+      gap: 28px;
+      align-items: end;
+    }
+    .meta-row,
+    .section-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--subtle);
+    }
+    .meta-row {
+      margin-bottom: 36px;
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--accent);
+      background: var(--surface);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+    }
+    .hero h1 {
+      margin-top: 18px;
+      font-family: var(--font-display);
+      font-size: clamp(58px, 7.2vw, 108px);
+      line-height: 0.94;
+      letter-spacing: -0.05em;
+      max-width: 10ch;
+    }
+    .hero .lead {
+      margin-top: 24px;
+      max-width: 40ch;
+      color: var(--muted);
+      font-size: clamp(20px, 2vw, 26px);
+    }
+    .hero-rail {
+      display: grid;
+      gap: 14px;
+    }
+    .hero-card {
+      padding: 22px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background: var(--surface);
+      box-shadow: var(--shadow-1);
+    }
+    .hero-card .label,
+    .section-summary .label,
+    .tool-card .label,
+    .image-slot .label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+    .hero-card strong {
+      color: var(--fg);
+      font-weight: 600;
+    }
+
+    main {
+      padding: 8px 0 120px;
+    }
+    .story-section {
+      position: relative;
+      padding: 44px 0 34px;
+      border-top: 1px solid var(--border);
+      scroll-margin-top: 30px;
+    }
+    .section-meta {
+      margin-bottom: 18px;
+    }
+    .section-meta .group {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-meta .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+      gap: 26px;
+      margin-bottom: 24px;
+      align-items: start;
+    }
+    .section-head h2 {
+      font-family: var(--font-display);
+      font-size: clamp(38px, 4.2vw, 62px);
+      line-height: 1.02;
+      letter-spacing: -0.04em;
+      margin-bottom: 10px;
+    }
+    .section-head h3 {
+      font-size: clamp(18px, 1.8vw, 24px);
+      line-height: 1.4;
+      color: var(--muted);
+      font-weight: 500;
+      max-width: 34ch;
+    }
+    .section-summary {
+      padding: 18px 20px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface-soft);
+    }
+    .section-summary p {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .content-grid {
+      display: grid;
+      gap: var(--section-gap);
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .card,
+    .tool-card,
+    .speaker-popover,
+    .modal-card,
+    .image-slot {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow-1);
+    }
+    .card {
+      padding: 20px;
+    }
+    .card h4 {
+      font-size: 20px;
+      margin-bottom: 8px;
+      color: var(--fg);
+    }
+    .card p,
+    .card li,
+    .tool-card p,
+    .tool-card li {
+      color: var(--muted);
+      font-size: 15px;
+    }
+    .card ul,
+    .tool-card ul {
+      padding-left: 18px;
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .tint-peach { background: var(--tint-peach); }
+    .tint-rose { background: var(--tint-rose); }
+    .tint-mint { background: var(--tint-mint); }
+    .tint-lavender { background: var(--tint-lavender); }
+    .tint-sky { background: var(--tint-sky); }
+    .tint-yellow { background: var(--tint-yellow); }
+
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .kpi {
+      padding: 18px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .kpi .name {
+      font-size: 13px;
+      color: var(--subtle);
+      margin-bottom: 8px;
+    }
+    .kpi .value {
+      font-family: var(--font-display);
+      font-size: clamp(28px, 2.8vw, 44px);
+      line-height: 1;
+      letter-spacing: -0.04em;
+      color: var(--fg);
+    }
+    .kpi .desc {
+      margin-top: 10px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .compare {
+      display: grid;
+      grid-template-columns: 1fr 60px 1fr;
+      gap: 16px;
+      align-items: stretch;
+    }
+    .compare-panel {
+      padding: 20px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      min-height: 240px;
+    }
+    .compare-panel.raw {
+      background: var(--surface-tint);
+    }
+    .compare-panel.rendered {
+      background: var(--surface);
+    }
+    .compare-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .compare-tag.raw { background: rgba(224, 49, 49, 0.12); color: var(--error); }
+    .compare-tag.rendered { background: rgba(26, 174, 57, 0.12); color: var(--success); }
+    .compare pre,
+    .mini-code {
+      margin: 0;
+      white-space: pre-wrap;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--fg);
+    }
+    .compare-arrow {
+      display: grid;
+      place-items: center;
+      font-family: var(--font-mono);
+      color: var(--accent);
+      font-size: 22px;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 12px;
+    }
+    .timeline-item {
+      display: grid;
+      grid-template-columns: 84px 1fr 84px;
+      gap: 14px;
+      align-items: center;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+    .timeline-item strong {
+      color: var(--fg);
+      font-weight: 600;
+    }
+    .timeline-item span {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--accent);
+    }
+
+    .flow-steps {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      align-items: stretch;
+    }
+    .flow-step {
+      padding: 20px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      position: relative;
+    }
+    .flow-step::after {
+      content: "→";
+      position: absolute;
+      top: 18px;
+      right: -11px;
+      color: var(--accent);
+      font-family: var(--font-mono);
+    }
+    .flow-step:last-child::after { display: none; }
+
+    .matrix {
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 820px;
+    }
+    th, td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+    }
+    th {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--subtle);
+      background: var(--surface-soft);
+    }
+    td strong { color: var(--fg); }
+
+    .tool-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .tool-card {
+      padding: 18px;
+      cursor: pointer;
+      transition: transform 140ms ease, border-color 140ms ease;
+    }
+    .tool-card:hover,
+    .tool-card:focus-visible {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+      outline: none;
+    }
+    .tool-card h4 {
+      margin-bottom: 8px;
+      font-size: 18px;
+    }
+    .tool-card .meta {
+      margin-top: 14px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--subtle);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .image-slot {
+      padding: 20px;
+      min-height: 250px;
+      background:
+        linear-gradient(135deg, rgba(86, 69, 212, 0.05), rgba(0, 112, 243, 0.03)),
+        var(--surface);
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+    .image-slot .prompt {
+      padding: 14px;
+      border-radius: 6px;
+      background: var(--surface-tint);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--fg);
+      white-space: pre-wrap;
+    }
+
+    .note-trigger {
+      position: absolute;
+      right: 22px;
+      bottom: 20px;
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--border-strong);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.94);
+      color: var(--accent);
+      cursor: pointer;
+      box-shadow: var(--shadow-2);
+      z-index: 5;
+    }
+    .speaker-popover {
+      position: absolute;
+      right: 22px;
+      bottom: 72px;
+      width: min(520px, calc(100vw - 72px));
+      padding: 18px;
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none;
+      transition: opacity 140ms ease, transform 140ms ease;
+      z-index: 8;
+    }
+    .story-section.note-open .speaker-popover,
+    .story-section:hover .speaker-popover[data-hover="true"] {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    .speaker-popover h4 {
+      margin-bottom: 8px;
+      font-size: 14px;
+      font-family: var(--font-mono);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .speaker-popover p {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .nav-cluster {
+      position: fixed;
+      left: 18px;
+      bottom: 18px;
+      z-index: 30;
+      display: grid;
+      grid-template-columns: auto auto auto;
+      gap: 8px;
+      align-items: center;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: var(--shadow-2);
+      backdrop-filter: blur(14px);
+    }
+    .nav-cluster button {
+      width: 34px;
+      height: 34px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--surface);
+      color: var(--fg);
+      cursor: pointer;
+    }
+    .nav-cluster .current {
+      min-width: 78px;
+      padding: 0 10px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--subtle);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--surface-soft);
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      place-items: center;
+      background: rgba(10, 21, 48, 0.28);
+      z-index: 60;
+      padding: 28px;
+    }
+    .modal.open { display: grid; }
+    .modal-card {
+      width: min(960px, 100%);
+      max-height: 82vh;
+      overflow: auto;
+      padding: 24px;
+    }
+    .modal-card header {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: start;
+      margin-bottom: 18px;
+    }
+    .modal-card h3 {
+      font-size: 30px;
+      letter-spacing: -0.03em;
+    }
+    .close-button {
+      width: 34px;
+      height: 34px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--surface);
+      cursor: pointer;
+    }
+
+    @media (max-width: 1100px) {
+      .hero-inner,
+      .section-head,
+      .grid-2,
+      .grid-3,
+      .grid-4,
+      .tool-grid,
+      .flow-steps,
+      .kpi-row,
+      .compare {
+        grid-template-columns: 1fr;
+      }
+      .compare-arrow { min-height: 38px; }
+      .flow-step::after {
+        right: auto;
+        left: 18px;
+        top: auto;
+        bottom: -14px;
+        content: "↓";
+      }
+      .hero {
+        min-height: auto;
+        padding-top: 96px;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .page-shell {
+        width: min(var(--content-max), calc(100vw - 24px));
+      }
+      .nav-cluster {
+        left: 12px;
+        bottom: 12px;
+      }
+      .note-trigger {
+        right: 14px;
+        bottom: 14px;
+      }
+      .speaker-popover {
+        right: 12px;
+        bottom: 62px;
+        width: calc(100vw - 36px);
+      }
+    }
+
+
+    /* === XuanSpark visual optimization layer: SVG/diagram-ready blocks === */
+    .hero-visual {
+      min-height: 420px;
+      padding: 24px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background:
+        linear-gradient(90deg, rgba(86,69,212,.06) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(86,69,212,.05) 1px, transparent 1px),
+        radial-gradient(circle at 78% 18%, rgba(220,236,250,.9), transparent 28%),
+        radial-gradient(circle at 52% 88%, rgba(230,224,245,.8), transparent 24%),
+        var(--surface);
+      background-size: 34px 34px, 34px 34px, auto, auto, auto;
+      box-shadow: var(--shadow-2);
+      overflow: hidden;
+      position: relative;
+    }
+    .hero-visual::after {
+      content: "";
+      position: absolute;
+      inset: auto -40px -70px auto;
+      width: 220px;
+      height: 220px;
+      border: 1px solid rgba(86,69,212,.22);
+      border-radius: 28px;
+      transform: rotate(18deg);
+    }
+    .os-canvas {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      grid-template-rows: repeat(5, 64px);
+      gap: 12px;
+      position: relative;
+      z-index: 1;
+    }
+    .os-card {
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(255,255,255,.88);
+      box-shadow: var(--shadow-1);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--subtle);
+    }
+    .os-card strong { display:block; color:var(--fg); font-family:var(--font-body); font-size:14px; margin-bottom:3px; }
+    .os-card.prompt { grid-column: 1 / 3; grid-row: 2 / 4; background: var(--tint-lavender); }
+    .os-card.context { grid-column: 3 / 5; grid-row: 1 / 3; }
+    .os-card.workflow { grid-column: 4 / 7; grid-row: 3 / 5; background: var(--tint-mint); }
+    .os-card.db { grid-column: 2 / 4; grid-row: 4 / 6; background: var(--tint-sky); }
+    .os-card.model { grid-column: 5 / 7; grid-row: 1 / 3; background: var(--tint-yellow); }
+    .visual-frame {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background: var(--surface);
+      box-shadow: var(--shadow-1);
+      padding: 20px;
+      overflow: hidden;
+    }
+    .visual-frame .visual-label,
+    .asset-plan .visual-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .diagram-flow {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      align-items: stretch;
+    }
+    .diagram-node {
+      position: relative;
+      min-height: 96px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface-soft);
+    }
+    .diagram-node::after {
+      content: "→";
+      position: absolute;
+      right: -13px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-size: 18px;
+      z-index: 2;
+    }
+    .diagram-node:last-child::after { display:none; }
+    .diagram-node strong { display:block; color:var(--fg); margin-bottom:4px; }
+    .diagram-node span { display:block; font-size:13px; color:var(--muted); }
+    .decision-map { display:grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .decision-card { padding:18px; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface-soft); }
+    .decision-card h4 { margin:0 0 10px; }
+    .decision-card ul { margin:0; padding-left:18px; color:var(--muted); font-size:14px; }
+    .svg-board { width:100%; height:auto; display:block; }
+    .asset-plan {
+      margin-top: 18px;
+      padding: 18px;
+      border: 1px dashed var(--border-strong);
+      border-radius: var(--radius);
+      background: linear-gradient(135deg, rgba(230,224,245,.45), rgba(250,250,250,.8));
+    }
+    .asset-plan-grid { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:12px; }
+    .asset-pill { padding:12px; border:1px solid var(--border); background:rgba(255,255,255,.8); border-radius:8px; }
+    .asset-pill strong { display:block; color:var(--fg); margin-bottom:4px; }
+    .asset-pill span { font-size:13px; color:var(--muted); }
+    .heat { display:inline-flex; min-width:42px; justify-content:center; padding:3px 8px; border-radius:6px; font-family:var(--font-mono); font-size:12px; }
+    .heat.good { background:var(--tint-mint); color:#0f7a27; }
+    .heat.mid { background:var(--tint-yellow); color:#7a4a00; }
+    .heat.bad { background:var(--tint-rose); color:var(--error); }
+    .matrix td:nth-child(2), .matrix td:nth-child(3), .matrix td:nth-child(4) { white-space: nowrap; }
+    .mini-caption { margin-top:12px; color:var(--subtle); font-size:13px; font-style:italic; }
+    .pyramid { display:grid; gap:10px; max-width:760px; margin:0 auto; }
+    .pyramid-tier { margin:0 auto; padding:16px 20px; border:1px solid var(--border); border-radius:var(--radius); text-align:center; background:var(--surface); }
+    .pyramid-tier.top { width:46%; background:var(--tint-lavender); }
+    .pyramid-tier.mid { width:68%; background:var(--tint-sky); }
+    .pyramid-tier.base { width:90%; background:var(--tint-mint); }
+    .roadmap { display:grid; grid-template-columns: repeat(3, 1fr); gap:16px; position:relative; }
+    .roadmap::before { content:""; position:absolute; top:36px; left:16%; right:16%; height:2px; background:linear-gradient(90deg,var(--accent),var(--accent-2)); }
+    .roadmap-step { position:relative; padding:66px 18px 18px; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface); }
+    .roadmap-step::before { content:""; position:absolute; top:25px; left:50%; width:22px; height:22px; transform:translateX(-50%); border-radius:50%; background:var(--accent); box-shadow:0 0 0 7px var(--accent-soft); }
+    .code-tree { font-family:var(--font-mono); font-size:13px; line-height:1.65; color:var(--fg); background:var(--surface-tint); padding:16px; border-radius:8px; border:1px solid var(--border); white-space:pre-wrap; }
+    @media (max-width: 1100px) {
+      .diagram-flow, .decision-map, .asset-plan-grid, .roadmap { grid-template-columns:1fr; }
+      .diagram-node::after { right:auto; left:18px; top:auto; bottom:-16px; transform:none; content:"↓"; }
+      .roadmap::before { display:none; }
+      .pyramid-tier.top, .pyramid-tier.mid, .pyramid-tier.base { width:100%; }
+      .os-canvas { grid-template-columns:1fr; grid-template-rows:auto; }
+      .os-card.prompt,.os-card.context,.os-card.workflow,.os-card.db,.os-card.model { grid-column:auto; grid-row:auto; }
+    }
+  </style>
+</head>
+<body data-theme="notion-soft" data-density="comfortable">
+  <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+
+  <div class="nav-cluster" aria-label="Section navigation">
+    <button id="prevSection" type="button" aria-label="上一節">←</button>
+    <div class="current" id="navCurrent">01 / 18</div>
+    <button id="nextSection" type="button" aria-label="下一節">→</button>
+  </div>
+
+  <header class="hero" id="section-01" data-section-title="封面">
+    <div class="page-shell">
+      <div class="meta-row">
+        <span>XUANSPARK · AI Workflow Workshop</span>
+        <span>Long-form HTML Deck · Vertical Narrative</span>
+      </div>
+      <div class="hero-inner">
+        <div>
+          <span class="eyebrow">Workshop Cover · Prompt to Workflow</span>
+          <h1>企業 AI Workflow 基礎建設與文件協同轉型</h1>
+          <p class="lead">從 Prompt 到 Workflow，不只教工具操作，而是建立可重跑、可追蹤、可交付的組織級工作方法。</p>
+        </div>
+        <div class="hero-rail">
+          <div class="hero-visual" aria-label="Prompt to workflow modular system visual">
+            <div class="os-canvas">
+              <div class="os-card prompt"><strong>Prompt</strong>chat input → intent</div>
+              <div class="os-card context"><strong>Context Layer</strong>Markdown · JSON · CSV</div>
+              <div class="os-card model"><strong>Model Router</strong>reasoning · fast · vision</div>
+              <div class="os-card db"><strong>Workflow Hub</strong>Project · Task · SOP</div>
+              <div class="os-card workflow"><strong>Reusable Pipeline</strong>parse → process → review → export</div>
+            </div>
+          </div>
+          <div class="hero-card">
+            <div class="label">Audience</div>
+            <p><strong>瑄燁團隊 10 人</strong>，含技術、決策與商學背景。目標是建立 AI 基礎觀念與企業導入共識。</p>
+          </div>
+          <div class="hero-card">
+            <div class="label">Session Arc</div>
+            <p>文件工程 → 模型選型 → 成本控制 → Notion 線上化 → 本地知識庫 → ERP / AI SOP 路線圖。</p>
+          </div>
+          <div class="hero-card">
+            <div class="label">Visual Language</div>
+            <p>Vercel 幾何骨架、Notion 淺色語彙、Raw vs Rendered 雙欄對比，以及可展開的工具與講者稿輔助層。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-shell" id="deckRoot">
+    <section class="story-section" id="section-02" data-title="議程總覽" data-screen-label="02 議程總覽">
+      <div class="section-meta">
+        <div class="group"><span class="dot"></span><span>P02 / 18</span></div>
+        <span>120 分鐘節奏設計</span>
+      </div>
+      <div class="section-head">
+        <div>
+          <h2>今日議程</h2>
+          <h3>三個層次：為什麼、怎麼做、未來方向。先建立共識，再交付方法。</h3>
+        </div>
+        <aside class="section-summary">
+          <div class="label">Audience fit</div>
+          <p>決策者看到導入策略，技術人員看到工具鏈，商學背景看到可執行的文件與協作方法。</p>
+        </aside>
+      </div>
+      <div class="content-grid">
+        <div class="grid-2">
+          <div class="timeline">
+            <div class="timeline-item"><span>00:00</span><strong>共識建立</strong><span>為什麼</span></div>
+            <div class="timeline-item"><span>00:15</span><strong>文件工程</strong><span>格式</span></div>
+            <div class="timeline-item"><span>00:35</span><strong>模型選型</strong><span>成本</span></div>
+            <div class="timeline-item"><span>00:55</span><strong>Notion 線上化</strong><span>協作</span></div>
+            <div class="timeline-item"><span>01:20</span><strong>Obsidian / LLM-WIKI</strong><span>知識庫</span></div>
+            <div class="timeline-item"><span>01:40</span><strong>ERP / AI SOP</strong><span>路線圖</span></div>
+          </div>
+          <div class="card tint-sky">
+            <h4>節奏分配</h4>
+            <ul>
+              <li>講解 30%：建立詞彙、原理與風險邊界。</li>
+              <li>示範 40%：讓抽象流程變成可見的操作畫面。</li>
+              <li>實操 20%：現場拆解格式、模型、頁面設計三題。</li>
+              <li>Q&amp;A 10%：收斂成瑄燁自己的導入優先序。</li>
+            </ul>
+          </div>
+        </div>
+        <div class="visual-frame">
+          <div class="visual-label">DIA-01 · Workshop rhythm chart</div>
+          <svg class="svg-board" viewBox="0 0 1100 260" role="img" aria-label="120 minute workshop rhythm chart">
+            <rect x="12" y="42" width="310" height="70" rx="10" fill="#e6e0f5" stroke="#ebebeb"/><text x="34" y="84" font-size="26" fill="#1a1a1a">講解 30%</text><text x="34" y="108" font-size="14" fill="#5d5b54">Lecture · principles</text>
+            <rect x="322" y="42" width="414" height="70" rx="10" fill="#dcecfa" stroke="#ebebeb"/><text x="344" y="84" font-size="26" fill="#1a1a1a">示範 40%</text><text x="344" y="108" font-size="14" fill="#5d5b54">Demo · tools and workflow</text>
+            <rect x="736" y="42" width="207" height="70" rx="10" fill="#d9f3e1" stroke="#ebebeb"/><text x="758" y="84" font-size="26" fill="#1a1a1a">實操 20%</text><text x="758" y="108" font-size="14" fill="#5d5b54">Hands-on</text>
+            <rect x="943" y="42" width="103" height="70" rx="10" fill="#f9e79f" stroke="#ebebeb"/><text x="960" y="84" font-size="24" fill="#1a1a1a">Q&A</text><text x="960" y="108" font-size="14" fill="#5d5b54">10%</text>
+            <path d="M60 172 H1010" stroke="#c8c4be" stroke-width="2"/><circle cx="60" cy="172" r="7" fill="#5645d4"/><circle cx="260" cy="172" r="7" fill="#5645d4"/><circle cx="460" cy="172" r="7" fill="#5645d4"/><circle cx="660" cy="172" r="7" fill="#5645d4"/><circle cx="860" cy="172" r="7" fill="#5645d4"/><circle cx="1010" cy="172" r="7" fill="#5645d4"/>
+            <text x="42" y="210" font-size="16" fill="#5d5b54">Opening</text><text x="226" y="210" font-size="16" fill="#5d5b54">Doc Eng.</text><text x="424" y="210" font-size="16" fill="#5d5b54">Model</text><text x="628" y="210" font-size="16" fill="#5d5b54">Notion</text><text x="824" y="210" font-size="16" fill="#5d5b54">Knowledge</text><text x="980" y="210" font-size="16" fill="#5d5b54">Roadmap</text>
+          </svg>
+          <p class="mini-caption">節奏設計採「先共識、再工具、最後路線圖」；此圖建議以 SVG 內嵌，不需 Image2。</p>
+        </div>
+      </div>
+      <button class="note-trigger" type="button" aria-label="開啟講者稿">備</button>
+      <aside class="speaker-popover" data-hover="true">
+        <h4>Speaker Notes</h4>
+        <p>開場先說明今天不是教大家多用幾個 AI 工具，而是建立組織級工作方法。這一頁只做心理建設，讓大家知道接下來每段都有對應的實務落點。</p>
+      </aside>
+    </section>
+
+    <section class="story-section" id="section-03" data-title="會用 AI 不等於有 Workflow" data-screen-label="03 共識建立">
+      <div class="section-meta">
+        <div class="group"><span class="dot"></span><span>P03 / 18</span></div>
+        <span>個人使用 vs 組織作業系統</span>
+      </div>
+      <div class="section-head">
+        <div>
+          <h2>為什麼會用 AI，不代表企業真的有 AI Workflow？</h2>
+          <h3>聊天工具假象、效率假象、創新假象，都可能讓組織誤以為自己已經導入 AI。</h3>
+        </div>
+        <aside class="section-summary">
+          <div class="label">Core claim</div>
+          <p>真正的 Workflow 必須同時具備可重跑、可追蹤、可交付，否則只是個人聊天紀錄。</p>
+        </aside>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi"><div class="name">Reproducible</div><div class="value">可重跑</div><div class="desc">同一流程可由不同人重現，不靠個人記憶。</div></div>
+        <div class="kpi"><div class="name">Traceable</div><div class="value">可追蹤</div><div class="desc">輸入來源、模型版本、修改軌跡都能被回溯。</div></div>
+        <div class="kpi"><div class="name">Deliverable</div><div class="value">可交付</div><div class="desc">最終能回到企業要用的文件、報表、SOP 或系統。</div></div>
+        <div class="kpi"><div class="name">Shared</div><div class="value">可協作</div><div class="desc">不是某個人的 Chat history，而是團隊可共用的工作流。</div></div>
+      </div>
+      <div class="visual-frame">
+        <div class="visual-label">DIA-02 · AI Workflow maturity triad</div>
+        <div class="diagram-flow">
+          <div class="diagram-node"><strong>個人 Chat</strong><span>輸出留在對話紀錄，難以移交。</span></div>
+          <div class="diagram-node"><strong>可重跑</strong><span>模板、輸入、模型與輸出規則固定。</span></div>
+          <div class="diagram-node"><strong>可追蹤</strong><span>來源、版本、審核與成本可回溯。</span></div>
+          <div class="diagram-node"><strong>可交付</strong><span>回到文件、報表、SOP 或系統。</span></div>
+          <div class="diagram-node tint-mint"><strong>Workflow OS</strong><span>團隊可共享、可審核、可擴展。</span></div>
+        </div>
+      </div>
+      <div class="grid-3">
+        <div class="card tint-rose"><h4>聊天工具假象</h4><p>看起來產出了很多文字，實際上沒有留下可接續的資料結構。</p></div>
+        <div class="card tint-peach"><h4>效率假象</h4><p>每次都得重新貼資料、重新解釋背景，長期成本反而更高。</p></div>
+        <div class="card tint-lavender"><h4>創新假象</h4><p>輸出有新鮮感，但組織流程、知識沉澱與權限邊界沒有升級。</p></div>
+      </div>
+      <button class="note-trigger" type="button" aria-label="開啟講者稿">備</button>
+      <aside class="speaker-popover" data-hover="true">
+        <h4>Speaker Notes</h4>
+        <p>先打掉一個常見迷思：會問 ChatGPT 不等於有 AI Workflow。這裡強調的是組織作業系統，不是單點工具熟練度。</p>
+      </aside>
+    </section>
+
+    <section class="story-section" id="section-04" data-title="文件工程基礎" data-screen-label="04 文件工程基礎">
+      <div class="section-meta">
+        <div class="group"><span class="dot"></span><span>P04 / 18</span></div>
+        <span>Word 檔的五大問題</span>
+      </div>
+      <div class="section-head">
+        <div>
+          <h2>為什麼 Word 檔可能是 AI 協作效率最低的格式？</h2>
+          <h3>不是因為 Word 無用，而是它對機器閱讀、版本控管與局部處理都不友善。</h3>
+        </div>
+        <aside class="section-summary">
+          <div class="label">Signature visual</div>
+          <p>這一頁開始建立全 deck 的核心視覺語言：Raw vs Rendered 雙欄式對比。</p>
+        </aside>
+      </div>
+      <div class="compare">
+        <div class="compare-panel raw">
+          <div class="compare-tag raw">RAW / SOURCE</div>
+          <pre>&lt;w:p&gt;
+  &lt;w:r&gt;&lt;w:t&gt;企業 AI Workflow&lt;/w:t&gt;&lt;/w:r&gt;
+&lt;/w:p&gt;
+&lt;w:p&gt;
+  &lt;w:r&gt;&lt;w:t&gt;版本資訊、樣式、註解、頁首頁尾...&lt;/w:t&gt;
+&lt;/w:r&gt;
+&lt;/w:p&gt;</pre>
+        </div>
+        <div class="compare-arrow">⇄</div>
+        <div class="compare-panel rendered">
+          <div class="compare-tag rendered">Preview / Rendered</div>
+          <div class="card tint-mint">
+            <h4>Markdown / 結構化片段</h4>
+            <p>同一段內容若先解構成章節、條列、表格與 metadata，AI 才能對局部做可靠處理。</p>
+          </div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <h4>傳統文件的五大問題</h4>
+          <ul>
+            <li>結構隱藏在樣式，不利機器理解。</li>
+            <li>整包傳遞，局部更新成本高。</li>
+            <li>版本差異不透明，難以比對。</li>
+            <li>大型附件吃 token，還會拖慢整體流程。</li>
+            <li>多人協作時，知識與責任難切分。</li>
+          </ul>
+        </div>
+        <div class="image-slot">
+          <div class="label">Image 2 placeholder · IMG-01</div>
+          <p>建議放一張「傳統文件像封死的紙箱、Workflow 像透明模組化抽屜」的情境圖。</p>
+          <div class="prompt">Clean isometric office workflow scene, sealed DOCX box on the left versus modular labeled drawers on the right, light background, high contrast typography space, no text inside image, subtle violet and blue accents, modern editorial tech mood, consistent character style.</div>
+        </div>
+      </div>
+      <button class="note-trigger" type="button" aria-label="開啟講者稿">備</button>
+      <aside class="speaker-popover" data-hover="true">
+        <h4>Speaker Notes</h4>
+        <p>這裡不要變成批判 Word，而是說明企業常用的檔案格式不適合作為 AI 工作流的中間層。重點是中間格式要能被拆、被比對、被局部更新。</p>
+      </aside>
+    </section>
+
+    <section class="story-section" id="section-05" data-title="格式適配矩陣" data-screen-label="05 格式適配矩陣">
+      <div class="section-meta">
+        <div class="group"><span class="dot"></span><span>P05 / 18</span></div>
+        <span>8 種格式 × 3 種角色</span>
+      </div>
+      <div class="section-head">
+        <div>
+          <h2>AI 真的讀懂你的文件了，還是只是看起來像讀懂？</h2>
+          <h3>格式不是中立的。不同格式對人、機器與版本控管的友善度完全不同。</h3>
+        </div>
+        <aside class="section-summary">
+          <div class="label">Reading cue</div>
+          <p>把格式當成介面設計問題，不是 IT 額外工作。格式正確，後續自動化才有機會成立。</p>
+        </aside>
+      </div>
+      <div class="matrix">
+        <table>
+          <thead>
+            <tr>
+              <th>格式</th>
+              <th>人類閱讀</th>
+              <th>AI 處理</th>
+              <th>版本控管</th>
+              <th>適合情境</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Markdown</strong></td><td><span class="heat good">高</span></td><td><span class="heat good">高</span></td><td><span class="heat good">高</span></td><td>簡報、SOP、知識庫、提示詞</td></tr>
+            <tr><td><strong>JSON</strong></td><td><span class="heat mid">中</span></td><td><span class="heat good">高</span></td><td><span class="heat good">高</span></td><td>結構化輸出、agent payload、設定檔</td></tr>
+            <tr><td><strong>CSV</strong></td><td><span class="heat mid">中</span></td><td><span class="heat good">高</span></td><td><span class="heat good">高</span></td><td>表格、清單、分析輸入</td></tr>
+            <tr><td><strong>YAML</strong></td><td><span class="heat good">中高</span></td><td><span class="heat good">高</span></td><td><span class="heat good">高</span></td><td>frontmatter、流程定義、部署設定</td></tr>
+            <tr><td><strong>DOCX</strong></td><td><span class="heat good">高</span></td><td><span class="heat bad">低</span></td><td><span class="heat bad">低</span></td><td>最終交付，不適合當中間格式</td></tr>
+            <tr><td><strong>PPTX</strong></td><td><span class="heat good">高</span></td><td><span class="heat bad">低</span></td><td><span class="heat bad">低</span></td><td>最終簡報，不適合當主知識來源</td></tr>
+            <tr><td><strong>PDF</strong></td><td><span class="heat mid">中</span></td><td><span class="heat bad">低</span></td><td><span class="heat bad">低</span></td><td>封存、對外發送</td></tr>
+            <tr><td><strong>圖片</strong></td><td><span class="heat bad">低</span></td><td><span class="heat bad">低</span></td><td><span class="heat bad">低</span></td><td>只適合作為輔助素材</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <button class="note-trigger" type="button" aria-label="開啟講者稿">備</button>
+      <aside class="speaker-popover" data-hover="true">
+        <h4>Speaker Notes</h4>
+        <p>這一頁要讓商學背景也能聽懂，所以不要講太多 parser 細節。只要讓大家記住：Markdown、JSON、CSV、YAML 是中間格式；DOCX、PPTX、PDF 是交付格式。</p>
+      </aside>
+    </section>
+
+    <section class="story-section" id="section-06" data-title="AI 文件化流程" data-screen-label="06 AI 文件化流程">
+      <div class="section-meta">
+        <div class="group"><span class="dot"></span><span>P06 / 18</span></div>
+        <span>解構 → 處理 → 重組</span>
+      </div>
+      <div class="section-head">
+        <div>
+          <h2>未來的文件不是「寫出來」，而是「組裝出來」</h2>
+          <h3>把文件工作流從一個大檔案，改造成多個可處理模組，再回組成最終交付物。</h3>
+        </div>
+        <aside class="section-summary">
+          <div class="label">Tool detail</div>
+          <p>這一節連到下方可點擊的轉檔工具卡。點開後可看工具用途、輸入輸出與適用情境。</p>
+        </aside>
+      </div>
+      <div class="visual-frame">
+        <div class="visual-label">DIA-03 · Document assembly pipeline</div>
+        <div class="diagram-flow">
+          <div class="diagram-node"><strong>Raw Files</strong><span>DOCX · PPTX · PDF · Image</span></div>
+          <div class="diagram-node"><strong>Decompose</strong><span>Pandoc · MarkItDown · OCR</span></div>
+          <div class="diagram-node"><strong>AI Processing</strong><span>摘要 · 萃取 · 改寫 · 驗證</span></div>
+          <div class="diagram-node"><strong>Review Layer</strong><span>人工審核 · 版本控管</span></div>
+          <div class="diagram-node tint-mint"><strong>Assembly</strong><span>DOCX · PPTX · Notion · ERP</span></div>
+        </div>
+      </div>
+      <div class="flow-steps">
+        <div class="flow-step"><div class="label">Step 1</div><h4>解構</h4><p>把 DOCX / PPTX / PDF 轉成 Markdown、JSON、CSV 等可讀格式。</p></div>
+        <div class="flow-step"><div class="label">Step 2</div><h4>處理</h4><p>用正確模型做摘要、重寫、分類、表格化、關聯抽取。</p></div>
+        <div class="flow-step"><div class="label">Step 3</div><h4>審核</h4><p>人工確認內容邊界、品牌語氣、法務與數字正確性。</p></div>
+        <div class="flow-step"><div class="label">Step 4</div><h4>重組</h4><p>回到 DOCX、PPTX、Notion 頁面、知識庫或系統 API。</p></div>
+      </div>
+      <div class="tool-grid">
+        <button class="tool-card" type="button" data-tool="pandoc">
+          <div class="label">diagram / tool</div>
+          <h4>Pandoc</h4>
+          <p>DOCX ↔ Markdown 的穩定主工具，適合作為大型文件雙向轉換核心。</p>
+          <div class="meta">docx · markdown · final assembly</div>
+        </button>
+        <button class="tool-card" type="button" data-tool="markitdown">
+          <div class="label">diagram / tool</div>
+          <h4>MarkItDown</h4>
+          <p>PPTX、PDF 轉 Markdown，方便投影片、報告、文字型 PDF 拆解。</p>
+          <div class="meta">pptx · pdf · markdown</div>
+        </button>
+        <button class="tool-card" type="button" data-tool="tesseract">
+          <div class="label">diagram / tool</div>
+          <h4>Tesseract OCR</h4>
+          <p>掃描 PDF 與圖片文字辨識，把不可讀素材先變成可處理文字。</p>
+          <div class="meta">ocr · chi_tra · image/pdf</div>
+        </button>
+      </div>
+      <button class="note-trigger" type="button" aria-label="開啟講者稿">備</button>
+      <aside class="speaker-popover" data-hover="true">
+        <h4>Speaker Notes</h4>
+        <p>這頁的關鍵是讓大家理解「大檔案不能直接餵到最後」，而是先轉成適合中間處理的格式。工具只是幫你完成解構與重組，不是工作流本身。</p>
+      </aside>
+    </section>
+
+    <section class="story-section" id="section-07" data-title="模型選型矩陣" data-screen-label="07 模型選型矩陣">
+      <div class="section-meta">
+        <div class="group"><span class="dot"></span><span>P07 / 18</span></div>
+        <span>七大情境對照</span>
+      </div>
+      <div class="section-head">
+        <div>
+          <h2>為什麼最強的模型，常常是最浪費成本的選擇？</h2>
+          <h3>模型選型不是戰力排行，而是任務分配。錯用模型，成本與速度都會失控。</h3>
+        </div>
+        <aside class="section-summary">
+          <div class="label">Decision rule</div>
+          <p>先分辨任務是理解、轉換、生成、檢索還是審核，再決定模型層級。</p>
+        </aside>
+      </div>
+      <div class="grid-3">
+        <div class="card tint-yellow"><h4>高階推理模型</h4><p>適合規劃、複雜重寫、策略推演、長鏈推理，但不應拿來做大量格式轉換。</p></div>
+        <div class="card tint-sky"><h4>便宜快速模型</h4><p>適合分類、初步摘要、批次格式化、簡單標記工作，是大規模日常處理主力。</p></div>
+        <div class="card tint-lavender"><h4>Vision / OCR / Embedding</h4><p>當資料是圖片、掃描文件或要做語意搜尋時，應改用專門能力而非強行純文字理解。</p></div>
+      </div>
+      <div class="visual-frame">
+        <div class="visual-label">DIA-04 · Model routing map</div>
+        <svg class="svg-board" viewBox="0 0 1080 420" role="img" aria-label="model routing scatter plot">
+          <line x1="90" y1="340" x2="990" y2="340" stroke="#c8c4be" stroke-width="2"/><line x1="90" y1="340" x2="90" y2="64" stroke="#c8c4be" stroke-width="2"/>
+          <text x="465" y="388" font-size="18" fill="#5d5b54">任務複雜度 · Task Complexity →</text><text x="20" y="58" font-size="18" fill="#5d5b54" transform="rotate(-90 20 58)">成本 / 風險 ↑</text>
+          <circle cx="220" cy="290" r="42" fill="#dcecfa" stroke="#5645d4"/><text x="180" y="296" font-size="17" fill="#1a1a1a">快速模型</text>
+          <circle cx="410" cy="250" r="46" fill="#f9e79f" stroke="#5645d4"/><text x="368" y="256" font-size="17" fill="#1a1a1a">Python/SQL</text>
+          <circle cx="590" cy="210" r="44" fill="#e6e0f5" stroke="#5645d4"/><text x="554" y="216" font-size="17" fill="#1a1a1a">Vision/OCR</text>
+          <circle cx="760" cy="156" r="52" fill="#d9f3e1" stroke="#5645d4"/><text x="724" y="162" font-size="17" fill="#1a1a1a">RAG</text>
+          <circle cx="900" cy="104" r="58" fill="#ffe8d4" stroke="#5645d4"/><text x="852" y="110" font-size="17" fill="#1a1a1a">高階推理</text>
+        </svg>
+        <p class="mini-caption">模型選型用 SVG 圖表表達即可；不建議用 Image2，避免圖中文字不可控。</p>
+      </div>
+      <div class="matrix">
+        <table>
+          <thead>
+            <tr><th>任務</th><th>模型層級</th><th>為什麼</th><th>常見錯誤</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>章節規劃 / 大綱重構</td><td>高階推理</td><td>需要理解結構與優先順序</td><td>直接交給便宜模型造成層次混亂</td></tr>
+            <tr><td>批次改寫 / 格式統一</td><td>快速模型</td><td>任務規則明確，重點是吞吐量</td><td>浪費高階模型做重複勞動</td></tr>
+            <tr><td>圖片 / 掃描理解</td><td>Vision / OCR</td><td>先做感知，再做文字處理</td><td>把圖片直接當純文字任務</td></tr>
+            <tr><td>知識搜尋 / 問答</td><td>Embedding + RAG</td><td>資料要先檢索，再生成回答</td><td>把整個知識庫一次貼進 prompt</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <button class="note-trigger" type="button" aria-label="開啟講者稿">備</button>
+      <aside class="speaker-popover" data-hover="true">
+        <h4>Speaker Notes</h4>
+        <p>要把「最強模型」這個迷思拉回來。企業用 AI 不是拼 benchmark，而是讓每種任務找到成本與品質都合理的配置。</p>
+      </aside>
+    </section>
+
+    <section class="story-section" id="section-08" data-title="Token 成本控制" data-screen-label="08 Token 成本控制">
+      <div class="section-meta">
+        <div class="group"><span class="dot"></span><span>P08 / 18</span></div>
+        <span>先拆、先 OCR、先結構化</span>
+      </div>
+      <div class="section-head">
+        <div>
+          <h2>Token 消耗高手與七大壞習慣</h2>
+          <h3>成本失控不是因為模型太貴，而是因為輸入太亂、流程太粗、重複工作太多。</h3>
+        </div>
+        <aside class="section-summary">
+          <div class="label">Memorable line</div>
+          <p>口訣只有三個：先拆、先 OCR、先結構化。不要把髒資料直接丟給最貴模型。</p>
+        </aside>
+      </div>
+      <div class="grid-2">
+        <div class="card tint-peach">
+          <h4>七大壞習慣</h4>
+          <ul>
+            <li>把整包簡報或長合約一次貼進去。</li>
+            <li>圖片 PDF 未 OCR 就直接要求摘要。</li>
+            <li>每輪都重新餵一遍相同背景資料。</li>
+            <li>不用資料表與 JSON，反而讓模型自己猜結構。</li>
+            <li>把最終交付格式當成中間處理格式。</li>
+            <li>同一工作不切批次、不做模板。</li>
+            <li>沒有知識庫，導致每次都重新解釋。</li>
+          </ul>
+        </div>
+        <div class="compare">
+          <div class="compare-panel raw">
+            <div class="compare-tag raw">High cost</div>
+            <pre>input:
+- 150 頁 PDF
+- 20 張截圖
+- 雜亂 Word 附件
+- 每次重新貼背景</pre>
+          </div>
+          <div class="compare-arrow">→</div>
+          <div class="compare-panel rendered">
+            <div class="compare-tag rendered">Lower cost</div>
+            <pre>pipeline:
+1. OCR / extract
+2. split by chapter
+3. structure to JSON
+4. select right model
+5. cache shared context</pre>
+          </div>
+        </div>
+      </div>
+      <div class="asset-plan">
+        <div class="visual-label">CMP-03 · 建議製作成 Raw vs Rendered 對比圖</div>
+        <div class="asset-plan-grid">
+          <div class="asset-pill"><strong>SVG / HTML</strong><span>Token 流程、拆檔 pipeline、成本節點。</span></div>
+          <div class="asset-pill"><strong>Screenshot</strong><span>Usage dashboard 需用真實截圖或 mock screenshot。</span></div>
+          <div class="asset-pill"><strong>Image2</strong><span>只用於「整份 PDF 拖入對話框」情境插畫，不負責文字。</span></div>
+        </div>
+      </div>
+      <button class="note-trigger" type="button" aria-label="開啟講者稿">備</button>
+      <aside class="speaker-popover" data-hover="true">
+        <h4>Speaker Notes</h4>
+        <p>這頁的目標不是精算 token，而是建立節省成本的習慣。先拆、先 OCR、先結構化，這三件事通常比換模型還有效。</p>
+      </aside>
+    </section>
+
+    <section class="story-section" id="section-09" data-title="Notion 線上化" data-screen-label="09 Notion 線上化">
+      <div class="section-meta">
+        <div class="group"><span class="dot"></span><span>P09 / 18</span></div>
+        <span>從資料夾變成作業系統</span>
+      </div>
+      <div class="section-head">
+        <div>
+          <h2>為什麼專案管理不線上化，AI 導入只會放大混亂？</h2>
+          <h3>AI 會加速所有流程，也會加速所有混亂。線上化不是好看，而是讓任務、版本與責任可被 AI 讀懂。</h3>
+        </div>
+        <aside class="section-summary">
+          <div class="label">Key move</div>
+          <p>把 Notion 視為 workflow hub，而不是漂亮筆記本。每個頁面都應該對應到一個作業節點。</p>
+        </aside>
+      </div>
+      <div class="grid-3">
+        <div class="card tint-lavender"><h4>線上化的價值</h4><p>權限、狀態、版本、評論、連結關係都能被保留並共享。</p></div>
+        <div class="card tint-sky"><h4>AI 的接點</h4><p>任務、專案、提示詞、SOP 若能標準化，就能變成穩定輸入源。</p></div>
+        <div class="card tint-peach"><h4>未線上化的代價</h4><p>知識只留在附件與聊天室，AI 只能反覆處理混亂快照。</p></div>
+      </div>
+      <div class="image-slot">
+        <div class="label">Image 2 placeholder · IMG-02</div>
+        <p>建議放一張「散亂資料夾轉變成有關聯資料庫控制台」的視覺示意。</p>
+        <div class="prompt">Modern light UI scene, chaotic folders and files transforming into a structured knowledge hub dashboard, Vercel plus Notion aesthetic, no text inside image, clean neutral workspace, subtle violet and blue accents, isometric perspective.</div>
+      </div>
+      <button class="note-trigger" type="button" aria-label="開啟講者稿">備</button>
+      <aside class="speaker-popover" data-hover="true">
+        <h4>Speaker Notes</h4>
+        <p>這裡要把 Notion 的角色講清楚：它不是為了取代所有工具，而是讓專案、任務、文件與 SOP 變成 AI 可連結的工作層。</p>
+      </aside>
+    </section>
+
+    <section class="story-section" id="section-10" data-title="Notion 架構建議" data-screen-label="10 Notion 架構建議">
+      <div class="section-meta">
+        <div class="group"><span class="dot"></span><span>P10 / 18</span></div>
+        <span>AI Workflow Hub 9 大資料庫</span>
+      </div>
+      <div class="section-head">
+        <div>
+          <h2>瑄燁 AI Workflow Hub 的 9 大資料庫</h2>
+          <h3>Project、Task、SOP、Prompt Library、Meeting、Knowledge、Assets、Clients、Issues 形成基本操作中樞。</h3>
+        </div>
+        <aside class="section-summary">
+          <div class="label">Hub logic</div>
+          <p>不是做一個全能頁面，而是把關聯設計好，讓任務可以追到專案、素材、SOP 與問題單。</p>
+        </aside>
+      </div>
+      <div class="grid-3">
+        <div class="card"><h4>Project</h4><p>管理商業目標、時間、負責人與交付範圍。</p></div>
+        <div class="card"><h4>Task</h4><p>拆解實際行動與狀態，是 AI 協作最常對接的資料庫。</p></div>
+        <div class="card"><h4>SOP / Prompt Library</h4><p>沉澱標準工作流、可重用提示詞與範本。</p></div>
+        <div class="card"><h4>Knowledge</h4><p>保存研究、會議結論與可查詢的背景資料。</p></div>
+        <div class="card"><h4>Assets</h4><p>管理簡報圖、錄影、轉檔後檔案與命名規則。</p></div>
+        <div class="card"><h4>Issues / Decisions</h4><p>記錄阻塞、風險與決策依據，避免 AI 一直重複犯錯。</p></div>
+      </div>
+      <div class="visual-frame">
+        <div class="visual-label">DIA-05 · Notion relation graph</div>
+        <svg class="svg-board" viewBox="0 0 1080 430" role="img" aria-label="Notion AI Workflow Hub relation graph">
+          <rect x="450" y="170" width="180" height="74" rx="10" fill="#e6e0f5" stroke="#5645d4"/><text x="488" y="214" font-size="24" fill="#1a1a1a">Project</text>
+          <g fill="#fff" stroke="#c8c4be"><rect x="80" y="62" width="150" height="58" rx="8"/><rect x="320" y="42" width="150" height="58" rx="8"/><rect x="620" y="42" width="150" height="58" rx="8"/><rect x="850" y="62" width="150" height="58" rx="8"/><rect x="92" y="298" width="150" height="58" rx="8"/><rect x="320" y="326" width="150" height="58" rx="8"/><rect x="620" y="326" width="150" height="58" rx="8"/><rect x="850" y="298" width="150" height="58" rx="8"/></g>
+          <g stroke="#37352f" stroke-width="1.5" opacity=".55"><line x1="450" y1="190" x2="230" y2="91"/><line x1="486" y1="170" x2="395" y2="100"/><line x1="595" y1="170" x2="690" y2="100"/><line x1="630" y1="190" x2="850" y2="91"/><line x1="450" y1="230" x2="242" y2="327"/><line x1="486" y1="244" x2="395" y2="326"/><line x1="595" y1="244" x2="690" y2="326"/><line x1="630" y1="230" x2="850" y2="327"/></g>
+          <g font-size="18" fill="#1a1a1a"><text x="124" y="98">Client</text><text x="362" y="78">Task</text><text x="654" y="78">Meeting</text><text x="890" y="98">SOP</text><text x="125" y="334">Prompt</text><text x="358" y="362">Assets</text><text x="650" y="362">Issues</text><text x="888" y="334">Knowledge</text></g>
+        </svg>
+      </div>
+      <button class="note-trigger" type="button" aria-label="開啟講者稿">備</button>
+      <aside class="speaker-popover" data-hover="true">
+        <h4>Speaker Notes</h4>
+        <p>不需要死背 9 個資料庫名稱，只要讓大家理解 Hub 架構是在把企業日常工作拆成可以互相引用的單位。這樣 AI 才能接上。</p>
+      </aside>
+    </section>
+
+    <section class="story-section" id="section-11" data-title="Obsidian 本地知識庫" data-screen-label="11 Obsidian 本地知識庫">
+      <div class="section-meta">
+        <div class="group"><span class="dot"></span><span>P11 / 18</span></div>
+        <span>企業知識的本地大腦</span>
+      </div>
+      <div class="section-head">
+        <div>
+          <h2>企業知識到底該放雲端，還是先變成可控的本地大腦？</h2>
+          <h3>Notion 負責協作節點，Obsidian 負責長期沉澱、版本化與自由組裝的知識內容。</h3>
+        </div>
+        <aside class="section-summary">
+          <div class="label">Boundary</div>
+          <p>Notion 與 Obsidian 不是互斥。前者偏工作流與權限，後者偏知識結構與長文累積。</p>
+        </aside>
+      </div>
+      <div class="grid-2">
+        <div class="card tint-sky">
+          <h4>推薦 Vault 結構</h4>
+          <ul>
+            <li>`00-inbox/`：原始資料與暫存摘錄</li>
+            <li>`10-projects/`：專案章節與輸出草稿</li>
+            <li>`20-sop/`：標準流程與模板</li>
+            <li>`30-knowledge/`：主題知識卡與概念網</li>
+            <li>`40-assets/`：附圖、diagram、圖像提示詞</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4>YAML Frontmatter 為什麼重要</h4>
+          <ul>
+            <li>讓每篇筆記有標籤、狀態、來源與關聯。</li>
+            <li>方便 AI 先讀 metadata，再決定是否深入正文。</li>
+            <li>後續轉成 LLM-WIKI、靜態站或 Git 倉庫都更穩定。</li>
+          </ul>
+        </div>
+      </div>
+      <div class="visual-frame">
+        <div class="visual-label">CMP / Screenshot candidate · Obsidian Vault</div>
+        <div class="code-tree">xuan-ai-knowledge/
+├── 00-inbox/
+├── 10-projects/
+├── 20-sop/
+├── 30-prompts/
+├── 40-model-selection/
+├── 50-erp-ai-sop/
+├── 90-assets/
+└── README.md</div>
+        <p class="mini-caption">建議搭配 Obsidian Graph View 實機截圖；目錄樹本身以 HTML code block 保持可讀性。</p>
+      </div>
+      <button class="note-trigger" type="button" aria-label="開啟講者稿">備</button>
+      <aside class="speaker-popover" data-hover="true">
+        <h4>Speaker Notes</h4>
+        <p>這頁不要把 Obsidian 講成筆記軟體比較。重點是它能讓企業知識維持 Markdown-first，方便長期管理與後續 Git 化。</p>
+      </aside>
+    </section>
+
+    <section class="story-section" id="section-12" data-title="LLM-WIKI" data-screen-label="12 LLM-WIKI">
+      <div class="section-meta">
+        <div class="group"><span class="dot"></span><span>P12 / 18</span></div>
+        <span>GitHub-style knowledge repo</span>
+      </div>
+      <div class="section-head">
+        <div>
+          <h2>把企業知識變成 LLM 友善的 GitHub Repository</h2>
+          <h3>知識不只要能被看見，還要能被檢索、引用、更新與重組。</h3>
+        </div>
+        <aside class="section-summary">
+          <div class="label">Repository mindset</div>
+          <p>當知識像程式碼一樣有結構、有目錄、有版本，AI 才能成為穩定的工作夥伴。</p>
+        </aside>
+      </div>
+      <div class="compare">
+        <div class="compare-panel raw">
+          <div class="compare-tag raw">Shared folder</div>
+          <pre>final-v7.docx
+notes-new-2.pdf
+strategy-latest-FINAL.pptx
+meeting-copy-copy.md</pre>
+        </div>
+        <div class="compare-arrow">⇄</div>
+        <div class="compare-panel rendered">
+          <div class="compare-tag rendered">LLM-WIKI Repo</div>
+          <pre>/projects
+/sop
+/knowledge
+/prompts
+/assets
+/decisions
+README.md
+index.yaml</pre>
+        </div>
+      </div>
+      <button class="note-trigger" type="button" aria-label="開啟講者稿">備</button>
+      <aside class="speaker-popover" data-hover="true">
+        <h4>Speaker Notes</h4>
+        <p>這一頁是幫大家從檔案思維切到倉庫思維。不是每個人都要用 GitHub，但知識結構最好能長得像 repository，AI 才容易工作。</p>
+      </aside>
+    </section>
+
+    <section class="story-section" id="section-13" data-title="Context Engineering" data-screen-label="13 Context Engineering">
+      <div class="section-meta">
+        <div class="group"><span class="dot"></span><span>P13 / 18</span></div>
+        <span>餵什麼 / 何時餵 / 餵多少</span>
+      </div>
+      <div class="section-head">
+        <div>
+          <h2>Prompt 寫得好就夠了嗎？真正決定成敗的是 Context</h2>
+          <h3>Context Engineering 處理的是輸入邊界與時機，而不是只追求一句更厲害的 prompt。</h3>
+        </div>
+        <aside class="section-summary">
+          <div class="label">Core framing</div>
+          <p>好 prompt 是句子；好 context 是系統。企業要的是後者。</p>
+        </aside>
+      </div>
+      <div class="grid-3">
+        <div class="card tint-rose"><h4>餵什麼</h4><p>只給任務需要的章節、欄位、規格與先決條件。</p></div>
+        <div class="card tint-yellow"><h4>何時餵</h4><p>把共享背景抽成固定前置層，而不是每輪重新複製一遍。</p></div>
+        <div class="card tint-mint"><h4>餵多少</h4><p>讓模型剛好有足夠脈絡，不讓無關資訊稀釋重點。</p></div>
+      </div>
+      <div class="compare">
+        <div class="compare-panel raw"><div class="compare-tag raw">Prompt only</div><pre>幫我看這整份 80 頁計畫書，整理重點。
+
++ full_pdf.pdf
++ all screenshots
++ repeated background</pre></div>
+        <div class="compare-arrow">→</div>
+        <div class="compare-panel rendered"><div class="compare-tag rendered">Context engineered</div><pre>1. split chapters
+2. summarize to JSON
+3. merge structured findings
+4. generate final brief
+5. human review</pre></div>
+      </div>
+      <button class="note-trigger" type="button" aria-label="開啟講者稿">備</button>
+      <aside class="speaker-popover" data-hover="true">
+        <h4>Speaker Notes</h4>
+        <p>這一頁的作用是把大家從「prompt 神句」拉回流程管理。Context Engineering 是企業 AI 穩定性的真正基礎。</p>
+      </aside>
+    </section>
+
+    <section class="story-section" id="section-14" data-title="RAG / Harness / Agentic" data-screen-label="14 RAG / Harness / Agentic">
+      <div class="section-meta">
+        <div class="group"><span class="dot"></span><span>P14 / 18</span></div>
+        <span>三個必須認識的 AI 工程概念</span>
+      </div>
+      <div class="section-head">
+        <div>
+          <h2>RAG、Harness、Agentic Workflow 各自解決什麼問題？</h2>
+          <h3>檢索增強解決找資料，Harness 解決可重跑，Agentic 解決多步驟協作。</h3>
+        </div>
+        <aside class="section-summary">
+          <div class="label">Interpretation</div>
+          <p>不是先決定名詞，而是先決定企業的痛點在哪：找不到、重跑不了、還是交接不了。</p>
+        </aside>
+      </div>
+      <div class="grid-3">
+        <div class="card"><h4>RAG</h4><p>先檢索，再回答。適合知識庫查詢、政策比對、文件問答。</p></div>
+        <div class="card"><h4>Harness</h4><p>把 prompt、資料、模型與輸出包成可重跑外殼，適合 SOP 化流程。</p></div>
+        <div class="card"><h4>Agentic</h4><p>讓一個流程能拆成多步驟與角色分工，適合複雜任務協作。</p></div>
+      </div>
+      <div class="visual-frame">
+        <div class="visual-label">DIA-06 · Enterprise AI engineering pyramid</div>
+        <div class="pyramid">
+          <div class="pyramid-tier top"><strong>Agentic Workflow</strong><br><span>多步驟代理與工具調用</span></div>
+          <div class="pyramid-tier mid"><strong>Harness</strong><br><span>可重跑、可驗證、可監控的流程外殼</span></div>
+          <div class="pyramid-tier base"><strong>RAG</strong><br><span>檢索正確資料，再生成回答</span></div>
+        </div>
+      </div>
+      <button class="note-trigger" type="button" aria-label="開啟講者稿">備</button>
+      <aside class="speaker-popover" data-hover="true">
+        <h4>Speaker Notes</h4>
+        <p>這頁只講功能，不陷入技術宗教戰。讓決策者知道投資方向，讓技術人員知道該拆哪一層先做。</p>
+      </aside>
+    </section>
+
+    <section class="story-section" id="section-15" data-title="ERP / AI SOP 路線圖" data-screen-label="15 ERP / AI SOP 路線圖">
+      <div class="section-meta">
+        <div class="group"><span class="dot"></span><span>P15 / 18</span></div>
+        <span>L2 → L3 → L5</span>
+      </div>
+      <div class="section-head">
+        <div>
+          <h2>下一代 ERP，應該是企業的 AI 操作中樞</h2>
+          <h3>不是把聊天機器人貼到舊系統上，而是讓資料、知識與流程能相互驅動。</h3>
+        </div>
+        <aside class="section-summary">
+          <div class="label">Roadmap</div>
+          <p>先做可視化與透明化，再做半自動與自適化。不要一開始就追求 fully autonomous。</p>
+        </aside>
+      </div>
+      <div class="grid-3">
+        <div class="card tint-sky"><h4>L2 可視化</h4><p>把專案、任務、成本、資產與流程都看得見。</p></div>
+        <div class="card tint-lavender"><h4>L3 透明化</h4><p>知道每次輸出用了哪些資料、哪個模型、誰審過。</p></div>
+        <div class="card tint-mint"><h4>L5 自適化</h4><p>在清楚規則與審核前提下，讓系統自行串接流程並持續學習。</p></div>
+      </div>
+      <div class="visual-frame">
+        <div class="visual-label">DIA-07 · ERP / AI SOP maturity roadmap</div>
+        <div class="roadmap">
+          <div class="roadmap-step"><h4>L2 可視化</h4><p>專案、任務、文件、成本與風險全部上線。</p></div>
+          <div class="roadmap-step"><h4>L3 透明化</h4><p>每次 AI 執行都有來源、模型、審核與成本紀錄。</p></div>
+          <div class="roadmap-step"><h4>L5 自適化</h4><p>在權限與審核框架內，系統能建議流程與自動調整。</p></div>
+        </div>
+      </div>
+      <button class="note-trigger" type="button" aria-label="開啟講者稿">備</button>
+      <aside class="speaker-popover" data-hover="true">
+        <h4>Speaker Notes</h4>
+        <p>要讓決策者聽懂：AI 不是一個新模組，而是未來 ERP / SOP 的操作邏輯。先把透明度與資料流做對，後面才談自動化深度。</p>
+      </aside>
+    </section>
+
+    <section class="story-section" id="section-16" data-title="實操與 Q&A" data-screen-label="16 實操與 Q&A">
+      <div class="section-meta">
+        <div class="group"><span class="dot"></span><span>P16 / 18</span></div>
+        <span>現場三題練習</span>
+      </div>
+      <div class="section-head">
+        <div>
+          <h2>三題現場練習，驗證今天的觀念是否真的能操作</h2>
+          <h3>不是考大家會不會下 prompt，而是能不能把工作重新整理成 AI 友善的方式。</h3>
+        </div>
+        <aside class="section-summary">
+          <div class="label">Practice design</div>
+          <p>每一題都對應前面一個核心概念：格式、模型、工作平台。</p>
+        </aside>
+      </div>
+      <div class="grid-3">
+        <div class="card"><h4>練習 1</h4><p>把一份原始文件拆成適合 AI 處理的結構。</p></div>
+        <div class="card"><h4>練習 2</h4><p>為不同任務配對正確模型與成本策略。</p></div>
+        <div class="card"><h4>練習 3</h4><p>設計一個最小可用的 Notion Hub 首頁。</p></div>
+      </div>
+      <button class="note-trigger" type="button" aria-label="開啟講者稿">備</button>
+      <aside class="speaker-popover" data-hover="true">
+        <h4>Speaker Notes</h4>
+        <p>這裡是把整場 workshop 從理解拉回行動。實操設計要讓不同背景都能參與，不用追求技術深度，而是追求方法感。</p>
+      </aside>
+    </section>
+
+    <section class="story-section" id="section-17" data-title="三大落地結論" data-screen-label="17 三大落地結論">
+      <div class="section-meta">
+        <div class="group"><span class="dot"></span><span>P17 / 18</span></div>
+        <span>格式 → 協作 → 知識庫</span>
+      </div>
+      <div class="section-head">
+        <div>
+          <h2>如果只記住三件事，請記住這三件事</h2>
+          <h3>AI 導入的成功，不取決於誰最會問，而取決於組織的格式、協作與知識結構是否升級。</h3>
+        </div>
+        <aside class="section-summary">
+          <div class="label">Closing rhythm</div>
+          <p>最後一頁前先把概念收斂到三句可被帶走的話，降低資訊疲勞。</p>
+        </aside>
+      </div>
+      <div class="grid-3">
+        <div class="card tint-yellow"><h4>格式先升級</h4><p>先把中間格式改對，AI 才有好資料可用。</p></div>
+        <div class="card tint-lavender"><h4>協作先線上化</h4><p>沒有共享工作層，AI 只會放大原本混亂。</p></div>
+        <div class="card tint-mint"><h4>知識要可沉澱</h4><p>知識若不能版本化與檢索，導入成本會一直重來。</p></div>
+      </div>
+      <button class="note-trigger" type="button" aria-label="開啟講者稿">備</button>
+      <aside class="speaker-popover" data-hover="true">
+        <h4>Speaker Notes</h4>
+        <p>這頁不用再加新資訊，只做收斂。讓大家帶走的是三個原則，而不是一堆工具名字。</p>
+      </aside>
+    </section>
+
+    <section class="story-section" id="section-18" data-title="致謝與後續服務" data-screen-label="18 致謝 / 後續">
+      <div class="section-meta">
+        <div class="group"><span class="dot"></span><span>P18 / 18</span></div>
+        <span>後續行動與交付邊界</span>
+      </div>
+      <div class="section-head">
+        <div>
+          <h2>後續可交付項目與下一步</h2>
+          <h3>從工作坊共識，延伸到 SOP、Hub、知識庫與轉檔工具鏈的最小落地方案。</h3>
+        </div>
+        <aside class="section-summary">
+          <div class="label">Next actions</div>
+          <p>這裡可接續聯絡方式、顧問範圍、內部試點與下一場實作工作坊規劃。</p>
+        </aside>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <h4>建議後續</h4>
+          <ul>
+            <li>選一個真實文件流程做 2 週試點。</li>
+            <li>先建最小 Notion Hub，不求一次做完。</li>
+            <li>挑 1 套轉檔工具鏈先標準化。</li>
+            <li>同步建立 Obsidian / knowledge repo 節點。</li>
+          </ul>
+        </div>
+        <div class="image-slot">
+          <div class="label">Image2 required · IMG-15 / Closing visual</div>
+          <p>結尾建議使用 Image2 生成情境圖：團隊共同觀看透明 workflow dashboard。圖內不放文字，文字由 HTML slide 層覆蓋。</p>
+          <div class="prompt">Collaborative team standing around a transparent workflow dashboard, light neutral office, modern minimal product design atmosphere, subtle blue and violet accents, optimistic but professional, no text inside image, wide composition for presentation closing.</div>
+        </div>
+      </div>
+      <button class="note-trigger" type="button" aria-label="開啟講者稿">備</button>
+      <aside class="speaker-popover" data-hover="true">
+        <h4>Speaker Notes</h4>
+        <p>結尾只做兩件事：收斂成下一步，並明確講出哪些可以做成顧問 / 內部專案 / 第二階段工作坊。保持簡潔，不再擴展新議題。</p>
+      </aside>
+    </section>
+
+
+    <section class="story-section" id="section-assets" data-title="視覺資產製作清單" data-screen-label="Asset Checklist">
+      <div class="section-meta">
+        <div class="group"><span class="dot"></span><span>ASSET / ROUTING</span></div>
+        <span>SVG / Image2 / Screenshot Decision</span>
+      </div>
+      <div class="section-head">
+        <div>
+          <h2>視覺資產製作路由</h2>
+          <h3>可控文字與流程邏輯採 SVG / HTML diagram；情境隱喻與空間氛圍採 Image2；真實操作與成本數據採 screenshot / screen recording。</h3>
+        </div>
+        <aside class="section-summary">
+          <div class="label">Production rule</div>
+          <p>凡含大量中文標籤、矩陣、流程節點者，不建議交給 Image2 直接產圖；改用 HTML/SVG 保持可編輯。</p>
+        </aside>
+      </div>
+      <div class="matrix">
+        <table>
+          <thead><tr><th>頁次</th><th>建議製作方式</th><th>資產代號</th><th>理由</th></tr></thead>
+          <tbody>
+            <tr><td>P1</td><td>Image2 + HTML title overlay</td><td>IMG-01</td><td>封面需建立氛圍與企業級空間感，文字不進圖。</td></tr>
+            <tr><td>P2</td><td>SVG / HTML</td><td>DIA-01</td><td>時間軸與比例圖需文字精準。</td></tr>
+            <tr><td>P3</td><td>SVG + optional Image2</td><td>DIA-02 / IMG-03</td><td>概念框架用 SVG；個人 vs 組織情境可生成插畫。</td></tr>
+            <tr><td>P4</td><td>Raw vs Rendered HTML / Screenshot</td><td>CMP-01</td><td>DOCX XML vs Markdown 需要可讀程式碼與標籤。</td></tr>
+            <tr><td>P6</td><td>SVG / HTML pipeline</td><td>DIA-03</td><td>文件組裝流程為核心教學圖，需可編輯。</td></tr>
+            <tr><td>P9</td><td>Image2 + Dashboard mockup</td><td>IMG-09</td><td>散亂資料夾轉為知識 Hub 適合情境隱喻。</td></tr>
+            <tr><td>P10 / P14 / P15</td><td>SVG / HTML</td><td>DIA-05 / DIA-06 / DIA-07</td><td>關聯圖、金字塔、路線圖應保留文字精度。</td></tr>
+            <tr><td>P11 / P12 / P13</td><td>Code-vs-Render / Screenshot</td><td>CMP-04 / CMP-05</td><td>目錄樹、repo、context 對比需像工程文件。</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal" id="toolModal" aria-hidden="true">
+    <div class="modal-card">
+      <header>
+        <div>
+          <div class="label">Tool Detail</div>
+          <h3 id="modalTitle">Tool</h3>
+        </div>
+        <button class="close-button" type="button" id="closeModal" aria-label="關閉">×</button>
+      </header>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <script>
+    const toolDetails = {
+      pandoc: {
+        title: "Pandoc · DOCX / Markdown 雙向轉換",
+        html: `
+          <div class="grid-2">
+            <div class="card">
+              <h4>用途</h4>
+              <p>把 DOCX 轉成 GFM Markdown，或把 Markdown 重組回 DOCX，適合正式文件工作流。</p>
+              <ul>
+                <li>輸入：DOCX / Markdown</li>
+                <li>輸出：Markdown / DOCX</li>
+                <li>強項：樣式保留度、CLI 穩定性、雙向性</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h4>示意腳本</h4>
+              <pre class="mini-code">pandoc input.docx \\
+  -f docx -t gfm \\
+  --extract-media=assets \\
+  -o output.md</pre>
+            </div>
+          </div>`
+      },
+      markitdown: {
+        title: "MarkItDown · PPTX / PDF 轉 Markdown",
+        html: `
+          <div class="grid-2">
+            <div class="card">
+              <h4>用途</h4>
+              <p>把投影片與文字型 PDF 轉成可拆分的 Markdown，適合作為簡報內容的前處理層。</p>
+              <ul>
+                <li>輸入：PPTX / PDF</li>
+                <li>輸出：Markdown</li>
+                <li>強項：投影片結構、圖片擷取、Microsoft 生態友善</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h4>示意腳本</h4>
+              <pre class="mini-code">from markitdown import MarkItDown
+result = MarkItDown().convert("slides.pptx")
+content = result.text_content.replace("\\f", "\\n\\n---\\n\\n")</pre>
+            </div>
+          </div>`
+      },
+      tesseract: {
+        title: "Tesseract OCR · 掃描 PDF / 圖片文字辨識",
+        html: `
+          <div class="grid-2">
+            <div class="card">
+              <h4>用途</h4>
+              <p>先把掃描型文件或圖片變成文字，再交給 AI 摘要、分類或重組。這是降低成本的前置工序。</p>
+              <ul>
+                <li>輸入：PNG / JPG / 掃描 PDF</li>
+                <li>輸出：純文字 / Markdown</li>
+                <li>強項：本地離線、多語言、便宜穩定</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h4>示意腳本</h4>
+              <pre class="mini-code">tesseract page.png - -l chi_tra+eng
+pdftoppm -r 300 input.pdf page -png
+# 合併每頁 OCR 結果到 markdown</pre>
+            </div>
+          </div>`
+      }
+    };
+
+    const sections = [...document.querySelectorAll(".story-section, .hero")];
+    const progressBar = document.getElementById("progressBar");
+    const navCurrent = document.getElementById("navCurrent");
+    const prevButton = document.getElementById("prevSection");
+    const nextButton = document.getElementById("nextSection");
+    const toolModal = document.getElementById("toolModal");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalBody = document.getElementById("modalBody");
+    const closeModal = document.getElementById("closeModal");
+    let currentIndex = 0;
+
+    function scrollToSection(index) {
+      const bounded = Math.max(0, Math.min(index, sections.length - 1));
+      sections[bounded].scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function updateCurrentSection() {
+      const threshold = window.scrollY + window.innerHeight * 0.35;
+      let active = 0;
+      sections.forEach((section, index) => {
+        if (section.offsetTop <= threshold) active = index;
+      });
+      currentIndex = active;
+      navCurrent.textContent = `${String(active + 1).padStart(2, "0")} / ${String(sections.length).padStart(2, "0")}`;
+      prevButton.disabled = active === 0;
+      nextButton.disabled = active === sections.length - 1;
+
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      const ratio = maxScroll <= 0 ? 0 : (window.scrollY / maxScroll) * 100;
+      progressBar.style.width = `${Math.min(100, Math.max(0, ratio))}%`;
+    }
+
+    prevButton.addEventListener("click", () => scrollToSection(currentIndex - 1));
+    nextButton.addEventListener("click", () => scrollToSection(currentIndex + 1));
+
+    document.addEventListener("keydown", (event) => {
+      if (toolModal.classList.contains("open")) {
+        if (event.key === "Escape") closeToolModal();
+        return;
+      }
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        scrollToSection(currentIndex - 1);
+      }
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        scrollToSection(currentIndex + 1);
+      }
+    });
+
+    document.querySelectorAll(".note-trigger").forEach((button) => {
+      button.addEventListener("click", () => {
+        const section = button.closest(".story-section");
+        document.querySelectorAll(".story-section.note-open").forEach((node) => {
+          if (node !== section) node.classList.remove("note-open");
+        });
+        section.classList.toggle("note-open");
+      });
+    });
+
+    document.querySelectorAll(".tool-card").forEach((card) => {
+      card.addEventListener("click", () => {
+        const key = card.dataset.tool;
+        const detail = toolDetails[key];
+        if (!detail) return;
+        modalTitle.textContent = detail.title;
+        modalBody.innerHTML = detail.html;
+        toolModal.classList.add("open");
+        toolModal.setAttribute("aria-hidden", "false");
+      });
+    });
+
+    function closeToolModal() {
+      toolModal.classList.remove("open");
+      toolModal.setAttribute("aria-hidden", "true");
+    }
+
+    closeModal.addEventListener("click", closeToolModal);
+    toolModal.addEventListener("click", (event) => {
+      if (event.target === toolModal) closeToolModal();
+    });
+
+    window.addEventListener("scroll", updateCurrentSection, { passive: true });
+    window.addEventListener("resize", updateCurrentSection);
+    updateCurrentSection();
+  </script>
+</body>
+</html>

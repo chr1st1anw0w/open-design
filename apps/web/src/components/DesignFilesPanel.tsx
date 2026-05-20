@@ -3,6 +3,12 @@ import { useT } from '../i18n';
 import type { Dict } from '../i18n/types';
 import { projectFileUrl } from '../providers/registry';
 import type { LiveArtifactWorkspaceEntry, ProjectFile, ProjectFileKind } from '../types';
+
+export interface ProjectFolderEntry {
+  name: string;
+  path: string;
+  type: 'folder';
+}
 import { Icon } from './Icon';
 import { LiveArtifactBadges } from './LiveArtifactBadges';
 
@@ -24,7 +30,13 @@ interface Props {
   onNewSketch: () => void;
   uploadError?: string | null;
   onClearUploadError?: () => void;
+  folders?: ProjectFolderEntry[];
+  onCreateFolder?: (name: string) => Promise<void> | void;
+  onRenameFolder?: (from: string, to: string) => Promise<void> | void;
+  onDeleteFolder?: (name: string) => Promise<void> | void;
 }
+
+const DRAG_FILE_MIME = 'application/x-od-file-names';
 
 type DesignFilesGroupMode = 'kind' | 'modified';
 type ModifiedSection = 'today' | 'yesterday' | 'previous7Days' | 'previous30Days' | 'older';
@@ -68,6 +80,10 @@ export function DesignFilesPanel({
   onNewSketch,
   uploadError = null,
   onClearUploadError,
+  folders = [],
+  onCreateFolder,
+  onRenameFolder,
+  onDeleteFolder,
 }: Props) {
   const t = useT();
   const [refreshing, setRefreshing] = useState(false);
@@ -89,6 +105,9 @@ export function DesignFilesPanel({
   >(new Set());
   const [renaming, setRenaming] = useState<{ name: string; draft: string; saving: boolean } | null>(null);
   const [dayBoundary, setDayBoundary] = useState(() => Date.now());
+  const [renamingFolder, setRenamingFolder] = useState<{ name: string; draft: string; saving: boolean } | null>(null);
+  const [folderDropTarget, setFolderDropTarget] = useState<string | null>(null);
+  const [creatingFolder, setCreatingFolder] = useState<{ draft: string; saving: boolean } | null>(null);
 
   const sortedFiles = useMemo(() => {
     return [...files].sort((a, b) => {
@@ -339,6 +358,13 @@ export function DesignFilesPanel({
         key={f.name}
         data-testid={`design-file-row-${f.name}`}
         className={`df-file-row ${active ? 'active' : ''} ${selected.has(f.name) ? 'selected' : ''}`}
+        draggable={folders.length > 0 && !renameState}
+        onDragStart={(ev) => {
+          const names = selected.has(f.name) && selected.size > 0 ? [...selected] : [f.name];
+          ev.dataTransfer.setData(DRAG_FILE_MIME, JSON.stringify(names));
+          ev.dataTransfer.setData('text/plain', names.join('\n'));
+          ev.dataTransfer.effectAllowed = 'move';
+        }}
         onMouseEnter={() => setHover(f.name)}
         onMouseLeave={() => setHover((c) => (c === f.name ? null : c))}
       >
@@ -537,6 +563,66 @@ export function DesignFilesPanel({
     }
   }
 
+  async function commitCreateFolder() {
+    if (!creatingFolder || !onCreateFolder) {
+      setCreatingFolder(null);
+      return;
+    }
+    const name = creatingFolder.draft.trim();
+    if (!name) {
+      setCreatingFolder(null);
+      return;
+    }
+    setCreatingFolder({ ...creatingFolder, saving: true });
+    try {
+      await onCreateFolder(name);
+      setCreatingFolder(null);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : String(err));
+      setCreatingFolder({ draft: creatingFolder.draft, saving: false });
+    }
+  }
+
+  async function commitFolderRename(from: string, draft: string) {
+    if (!onRenameFolder) {
+      setRenamingFolder(null);
+      return;
+    }
+    const to = draft.trim();
+    if (!to || to === from) {
+      setRenamingFolder(null);
+      return;
+    }
+    setRenamingFolder({ name: from, draft, saving: true });
+    try {
+      await onRenameFolder(from, to);
+      setRenamingFolder(null);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : String(err));
+      setRenamingFolder({ name: from, draft, saving: false });
+    }
+  }
+
+  async function handleFolderDrop(folderName: string, ev: React.DragEvent) {
+    ev.preventDefault();
+    ev.stopPropagation();
+    setFolderDropTarget(null);
+    const raw = ev.dataTransfer.getData(DRAG_FILE_MIME);
+    if (!raw) return;
+    let names: string[] = [];
+    try { names = JSON.parse(raw); } catch { return; }
+    if (!Array.isArray(names) || names.length === 0) return;
+    for (const n of names) {
+      // Skip files already inside this folder or any subpath.
+      if (n.includes('/')) continue;
+      try {
+        await onRenameFile(n, `${folderName}/${n}`);
+      } catch (err) {
+        console.warn('[move-to-folder] failed:', err);
+      }
+    }
+  }
+
   function handleDrop(ev: React.DragEvent<HTMLDivElement>) {
     ev.preventDefault();
     dragDepthRef.current = 0;
@@ -600,6 +686,17 @@ export function DesignFilesPanel({
               <Icon name="upload" size={13} />
               <span>{t('designFiles.upload.label')}</span>
             </button>
+            {onCreateFolder ? (
+              <button
+                type="button"
+                data-testid="design-files-new-folder"
+                onClick={() => setCreatingFolder({ draft: '', saving: false })}
+                title="新增資料夾"
+              >
+                <Icon name="folder" size={13} />
+                <span>新增資料夾</span>
+              </button>
+            ) : null}
           </div>
           )}
         </div>
@@ -678,6 +775,135 @@ export function DesignFilesPanel({
                       </span>
                     </button>
                   ))}
+                </div>
+              ) : null}
+              {folders.length > 0 || creatingFolder ? (
+                <div className="df-folders" data-testid="design-folders">
+                  <div className="df-folders-label">資料夾</div>
+                  <div className="df-folders-grid">
+                    {folders.map((folder) => {
+                      const isRenaming = renamingFolder?.name === folder.name;
+                      const isDropTarget = folderDropTarget === folder.name;
+                      return (
+                        <div
+                          key={folder.name}
+                          className={`df-folder-card ${isDropTarget ? 'drop-target' : ''}`}
+                          data-testid={`design-folder-${folder.name}`}
+                          onDragOver={(ev) => {
+                            if (ev.dataTransfer.types.includes(DRAG_FILE_MIME)) {
+                              ev.preventDefault();
+                              ev.dataTransfer.dropEffect = 'move';
+                              setFolderDropTarget(folder.name);
+                            }
+                          }}
+                          onDragLeave={() => {
+                            setFolderDropTarget((c) => (c === folder.name ? null : c));
+                          }}
+                          onDrop={(ev) => void handleFolderDrop(folder.name, ev)}
+                        >
+                          <span className="df-folder-glyph" aria-hidden>📁</span>
+                          {isRenaming ? (
+                            <input
+                              autoFocus
+                              className="df-rename-input"
+                              value={renamingFolder!.draft}
+                              disabled={renamingFolder!.saving}
+                              onChange={(e) => setRenamingFolder({ ...renamingFolder!, draft: e.target.value })}
+                              onBlur={(e) => {
+                                if (e.currentTarget.dataset.skipRenameCommit === '1') return;
+                                void commitFolderRename(folder.name, renamingFolder!.draft);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  e.currentTarget.dataset.skipRenameCommit = '1';
+                                  void commitFolderRename(folder.name, renamingFolder!.draft);
+                                } else if (e.key === 'Escape') {
+                                  e.preventDefault();
+                                  e.currentTarget.dataset.skipRenameCommit = '1';
+                                  setRenamingFolder(null);
+                                }
+                              }}
+                            />
+                          ) : (
+                            <button
+                              type="button"
+                              className="df-folder-name"
+                              onDoubleClick={() => {
+                                if (onRenameFolder) {
+                                  setRenamingFolder({ name: folder.name, draft: folder.name, saving: false });
+                                }
+                              }}
+                              title={folder.name}
+                            >
+                              {folder.name}
+                            </button>
+                          )}
+                          <div className="df-folder-actions">
+                            {onRenameFolder ? (
+                              <button
+                                type="button"
+                                className="icon-only"
+                                title="重新命名"
+                                aria-label="重新命名"
+                                onClick={() =>
+                                  setRenamingFolder({ name: folder.name, draft: folder.name, saving: false })
+                                }
+                              >
+                                <Icon name="edit" size={12} />
+                              </button>
+                            ) : null}
+                            {onDeleteFolder ? (
+                              <button
+                                type="button"
+                                className="icon-only danger"
+                                title="刪除資料夾"
+                                aria-label="刪除資料夾"
+                                onClick={async () => {
+                                  if (!confirm(`刪除資料夾「${folder.name}」與其中所有檔案？`)) return;
+                                  try {
+                                    await onDeleteFolder(folder.name);
+                                  } catch (err) {
+                                    alert(err instanceof Error ? err.message : String(err));
+                                  }
+                                }}
+                              >
+                                <Icon name="trash" size={12} />
+                              </button>
+                            ) : null}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {creatingFolder ? (
+                      <div className="df-folder-card creating">
+                        <span className="df-folder-glyph" aria-hidden>📁</span>
+                        <input
+                          autoFocus
+                          className="df-rename-input"
+                          value={creatingFolder.draft}
+                          disabled={creatingFolder.saving}
+                          placeholder="資料夾名稱"
+                          onChange={(e) => setCreatingFolder({ ...creatingFolder, draft: e.target.value })}
+                          onBlur={(e) => {
+                            if (e.currentTarget.dataset.skipRenameCommit === '1') return;
+                            void commitCreateFolder();
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              e.currentTarget.dataset.skipRenameCommit = '1';
+                              void commitCreateFolder();
+                            } else if (e.key === 'Escape') {
+                              e.preventDefault();
+                              e.currentTarget.dataset.skipRenameCommit = '1';
+                              setCreatingFolder(null);
+                            }
+                          }}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
               ) : null}
               {sortedFiles.length > 0 ? (

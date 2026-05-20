@@ -1,23 +1,29 @@
 // @ts-nocheck
-import type { DesktopExportPdfInput, DesktopExportPdfResult } from '@open-design/sidecar-proto';
-import express from 'express';
-import multer from 'multer';
-import { execFile, spawn } from 'node:child_process';
-import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
-import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
-import path from 'node:path';
-import fs from 'node:fs';
-import os from 'node:os';
-import net from 'node:net';
+import type {
+  DesktopExportPdfInput,
+  DesktopExportPdfResult,
+} from "@open-design/sidecar-proto";
+import express from "express";
+import multer from "multer";
+import { execFile, spawn } from "node:child_process";
+import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
+import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+import fs from "node:fs";
+import os from "node:os";
+import net from "node:net";
 import {
   composeSystemPrompt,
   renderCodexImagegenOverride,
   shouldRenderCodexImagegenOverride,
-} from './prompts/system.js';
-import { expandHomePrefix, resolveProjectRelativePath } from './home-expansion.js';
-import { createCommandInvocation } from '@open-design/platform';
-import { SIDECAR_DEFAULTS, SIDECAR_ENV } from '@open-design/sidecar-proto';
+} from "./prompts/system.js";
+import {
+  expandHomePrefix,
+  resolveProjectRelativePath,
+} from "./home-expansion.js";
+import { createCommandInvocation } from "@open-design/platform";
+import { SIDECAR_DEFAULTS, SIDECAR_ENV } from "@open-design/sidecar-proto";
 import {
   buildLiveArtifactsMcpServersForAgent,
   checkPromptArgvBudget,
@@ -29,54 +35,61 @@ import {
   resolveAgentBin,
   sanitizeCustomModel,
   spawnEnvForAgent,
-} from './agents.js';
-import { migrateLegacyDataDirSync } from './legacy-data-migrator.js';
-import { findSkillById, listSkills, splitDerivedSkillId } from './skills.js';
-import { validateLinkedDirs } from './linked-dirs.js';
-import { installFromTarget, uninstallById, sanitizeRepoName } from './library-install.js';
-import { buildWindowsFolderDialogCommand, parseFolderDialogStdout } from './native-folder-dialog.js';
-import { listCodexPets, readCodexPetSpritesheet } from './codex-pets.js';
-import { syncCommunityPets } from './community-pets-sync.js';
-import { listDesignSystems, readDesignSystem } from './design-systems.js';
-import { attachAcpSession } from './acp.js';
-import { attachPiRpcSession } from './pi-rpc.js';
-import { createClaudeStreamHandler } from './claude-stream.js';
-import { loadCritiqueConfigFromEnv } from './critique/config.js';
-import { reconcileStaleRuns } from './critique/persistence.js';
-import { runOrchestrator } from './critique/orchestrator.js';
-import { createRunRegistry } from './critique/run-registry.js';
-import { handleCritiqueInterrupt } from './critique/interrupt-handler.js';
-import { handleCritiqueArtifact } from './critique/artifact-handler.js';
-import { createCopilotStreamHandler } from './copilot-stream.js';
-import { createJsonEventStreamHandler } from './json-event-stream.js';
-import { createQoderStreamHandler } from './qoder-stream.js';
-import { subscribe as subscribeFileEvents } from './project-watchers.js';
-import { renderDesignSystemPreview } from './design-system-preview.js';
-import { renderDesignSystemShowcase } from './design-system-showcase.js';
-import { createChatRunService } from './runs.js';
-import { reportRunCompletedFromDaemon } from './langfuse-bridge.js';
+} from "./agents.js";
+import { migrateLegacyDataDirSync } from "./legacy-data-migrator.js";
+import { findSkillById, listSkills, splitDerivedSkillId } from "./skills.js";
+import { validateLinkedDirs } from "./linked-dirs.js";
+import {
+  installFromTarget,
+  uninstallById,
+  sanitizeRepoName,
+} from "./library-install.js";
+import {
+  buildWindowsFolderDialogCommand,
+  parseFolderDialogStdout,
+} from "./native-folder-dialog.js";
+import { listCodexPets, readCodexPetSpritesheet } from "./codex-pets.js";
+import { syncCommunityPets } from "./community-pets-sync.js";
+import { listDesignSystems, readDesignSystem } from "./design-systems.js";
+import { attachAcpSession } from "./acp.js";
+import { attachPiRpcSession } from "./pi-rpc.js";
+import { createClaudeStreamHandler } from "./claude-stream.js";
+import { loadCritiqueConfigFromEnv } from "./critique/config.js";
+import { reconcileStaleRuns } from "./critique/persistence.js";
+import { runOrchestrator } from "./critique/orchestrator.js";
+import { createRunRegistry } from "./critique/run-registry.js";
+import { handleCritiqueInterrupt } from "./critique/interrupt-handler.js";
+import { handleCritiqueArtifact } from "./critique/artifact-handler.js";
+import { createCopilotStreamHandler } from "./copilot-stream.js";
+import { createJsonEventStreamHandler } from "./json-event-stream.js";
+import { createQoderStreamHandler } from "./qoder-stream.js";
+import { subscribe as subscribeFileEvents } from "./project-watchers.js";
+import { renderDesignSystemPreview } from "./design-system-preview.js";
+import { renderDesignSystemShowcase } from "./design-system-showcase.js";
+import { createChatRunService } from "./runs.js";
+import { reportRunCompletedFromDaemon } from "./langfuse-bridge.js";
 import {
   redactSecrets,
   testAgentConnection,
   testProviderConnection,
   validateBaseUrl,
-} from './connectionTest.js';
-import { listProviderModels } from './providerModels.js';
-import { importClaudeDesignZip } from './claude-design-import.js';
+} from "./connectionTest.js";
+import { listProviderModels } from "./providerModels.js";
+import { importClaudeDesignZip } from "./claude-design-import.js";
 import {
   finalizeDesignPackage,
   FinalizePackageLockedError,
   FinalizeUpstreamError,
-} from './finalize-design.js';
-import { listPromptTemplates, readPromptTemplate } from './prompt-templates.js';
-import { buildDocumentPreview } from './document-preview.js';
-import { lintArtifact, renderFindingsForAgent } from './lint-artifact.js';
-import { loadCraftSections } from './craft.js';
-import { stageActiveSkill } from './cwd-aliases.js';
-import { buildDesktopPdfExportInput } from './pdf-export.js';
-import { generateMedia } from './media.js';
-import { searchResearch, ResearchError } from './research/index.js';
-import { renderResearchCommandContract } from './prompts/research-contract.js';
+} from "./finalize-design.js";
+import { listPromptTemplates, readPromptTemplate } from "./prompt-templates.js";
+import { buildDocumentPreview } from "./document-preview.js";
+import { lintArtifact, renderFindingsForAgent } from "./lint-artifact.js";
+import { loadCraftSections } from "./craft.js";
+import { stageActiveSkill } from "./cwd-aliases.js";
+import { buildDesktopPdfExportInput } from "./pdf-export.js";
+import { generateMedia } from "./media.js";
+import { searchResearch, ResearchError } from "./research/index.js";
+import { renderResearchCommandContract } from "./prompts/research-contract.js";
 import {
   AUDIO_DURATIONS_SEC,
   AUDIO_MODELS_BY_KIND,
@@ -85,8 +98,12 @@ import {
   MEDIA_PROVIDERS,
   VIDEO_LENGTHS_SEC,
   VIDEO_MODELS,
-} from './media-models.js';
-import { readMaskedConfig, writeConfig } from './media-config.js';
+} from "./media-models.js";
+import {
+  readMaskedConfig,
+  writeConfig,
+  resolveProviderConfig,
+} from "./media-config.js";
 import {
   deleteMediaTask,
   getMediaTask,
@@ -95,7 +112,7 @@ import {
   listRecentMediaTasks,
   reconcileMediaTasksOnBoot,
   updateMediaTask,
-} from './media-tasks.js';
+} from "./media-tasks.js";
 import {
   MCP_TEMPLATES,
   buildAcpMcpServers,
@@ -103,51 +120,63 @@ import {
   isManagedProjectCwd,
   readMcpConfig,
   writeMcpConfig,
-} from './mcp-config.js';
+} from "./mcp-config.js";
 import {
   beginAuth,
   exchangeCodeForToken,
   PendingAuthCache,
   refreshAccessToken,
-} from './mcp-oauth.js';
+} from "./mcp-oauth.js";
 import {
   clearToken,
   getToken,
   isTokenExpired,
   readAllTokens,
   setToken,
-} from './mcp-tokens.js';
-import { agentCliEnvForAgent, readAppConfig, writeAppConfig } from './app-config.js';
-import { OrbitService, formatLocalProjectTimestamp, renderOrbitTemplateSystemPrompt } from './orbit.js';
+} from "./mcp-tokens.js";
+import {
+  agentCliEnvForAgent,
+  readAppConfig,
+  writeAppConfig,
+} from "./app-config.js";
+import {
+  OrbitService,
+  formatLocalProjectTimestamp,
+  renderOrbitTemplateSystemPrompt,
+} from "./orbit.js";
 import {
   RoutineService,
   validateSchedule as validateRoutineSchedule,
   validateTarget as validateRoutineTarget,
-} from './routines.js';
-import { buildMcpInstallPayload } from './mcp-install-info.js';
+} from "./routines.js";
+import { buildMcpInstallPayload } from "./mcp-install-info.js";
 import {
   buildProjectArchive,
   buildBatchArchive,
+  createProjectFolder,
   decodeMultipartFilename,
   deleteProjectFile,
+  deleteProjectFolder,
   detectEntryFile,
   ensureProject,
   isSafeId,
   listFiles,
+  listFolders,
   mimeFor,
   parseByteRange,
   projectDir,
   readProjectFile,
   renameProjectFile,
+  renameProjectFolder,
   removeProjectDir,
   resolveProjectDir,
   resolveProjectFilePath,
   sanitizeName,
   searchProjectFiles,
   writeProjectFile,
-} from './projects.js';
-import { validateArtifactManifestInput } from './artifact-manifest.js';
-import { readCurrentAppVersionInfo } from './app-version.js';
+} from "./projects.js";
+import { validateArtifactManifestInput } from "./artifact-manifest.js";
+import { readCurrentAppVersionInfo } from "./app-version.js";
 import {
   deleteConversation,
   deletePreviewComment,
@@ -187,7 +216,7 @@ import {
   upsertDeployment,
   upsertMessage,
   upsertPreviewComment,
-} from './db.js';
+} from "./db.js";
 import {
   createLiveArtifact,
   deleteLiveArtifact,
@@ -200,14 +229,31 @@ import {
   readLiveArtifactCode,
   recoverStaleLiveArtifactRefreshes,
   updateLiveArtifact,
-} from './live-artifacts/store.js';
-import { LiveArtifactRefreshUnavailableError, refreshLiveArtifact } from './live-artifacts/refresh-service.js';
-import { LiveArtifactRefreshAbortError } from './live-artifacts/refresh.js';
-import { registerConnectorRoutes } from './connectors/routes.js';
-import { configureConnectorCredentialStore, ConnectorServiceError, deleteConnectorCredentialsByProvider, FileConnectorCredentialStore } from './connectors/service.js';
-import { composioConnectorProvider } from './connectors/composio.js';
-import { configureComposioConfigStore, readComposioConfig, readPublicComposioConfig, writeComposioConfig } from './connectors/composio-config.js';
-import { CHAT_TOOL_ENDPOINTS, CHAT_TOOL_OPERATIONS, toolTokenRegistry } from './tool-tokens.js';
+} from "./live-artifacts/store.js";
+import {
+  LiveArtifactRefreshUnavailableError,
+  refreshLiveArtifact,
+} from "./live-artifacts/refresh-service.js";
+import { LiveArtifactRefreshAbortError } from "./live-artifacts/refresh.js";
+import { registerConnectorRoutes } from "./connectors/routes.js";
+import {
+  configureConnectorCredentialStore,
+  ConnectorServiceError,
+  deleteConnectorCredentialsByProvider,
+  FileConnectorCredentialStore,
+} from "./connectors/service.js";
+import { composioConnectorProvider } from "./connectors/composio.js";
+import {
+  configureComposioConfigStore,
+  readComposioConfig,
+  readPublicComposioConfig,
+  writeComposioConfig,
+} from "./connectors/composio-config.js";
+import {
+  CHAT_TOOL_ENDPOINTS,
+  CHAT_TOOL_OPERATIONS,
+  toolTokenRegistry,
+} from "./tool-tokens.js";
 import {
   aggregateCloudflarePagesStatus,
   buildDeployFileSet,
@@ -225,13 +271,13 @@ import {
   readCloudflarePagesDomain,
   VERCEL_PROVIDER_ID,
   writeDeployConfig,
-} from './deploy.js';
+} from "./deploy.js";
 import {
   allowedBrowserPorts,
   configuredAllowedOrigins,
   isAllowedBrowserOrigin,
   isLocalSameOrigin,
-} from './origin-validation.js';
+} from "./origin-validation.js";
 
 /** @typedef {import('@open-design/contracts').ApiErrorCode} ApiErrorCode */
 /** @typedef {import('@open-design/contracts').ApiError} ApiError */
@@ -244,30 +290,34 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const require = createRequire(import.meta.url);
-const DAEMON_CLI_PATH_ENV = 'OD_DAEMON_CLI_PATH';
+const DAEMON_CLI_PATH_ENV = "OD_DAEMON_CLI_PATH";
 export function resolveProjectRoot(moduleDir: string): string {
   const base = path.basename(moduleDir);
   const daemonDir =
-    base === 'dist' || base === 'src' ? path.dirname(moduleDir) : moduleDir;
-  return path.resolve(daemonDir, '../..');
+    base === "dist" || base === "src" ? path.dirname(moduleDir) : moduleDir;
+  return path.resolve(daemonDir, "../..");
 }
 
 function cleanOptionalPath(value: string | undefined): string | null {
-  return typeof value === 'string' && value.trim().length > 0
+  return typeof value === "string" && value.trim().length > 0
     ? path.resolve(value)
     : null;
 }
 
-export function resolveDaemonCliPath(env: NodeJS.ProcessEnv = process.env): string {
-  const configured = cleanOptionalPath(env[DAEMON_CLI_PATH_ENV]) ?? cleanOptionalPath(env.OD_BIN);
+export function resolveDaemonCliPath(
+  env: NodeJS.ProcessEnv = process.env,
+): string {
+  const configured =
+    cleanOptionalPath(env[DAEMON_CLI_PATH_ENV]) ??
+    cleanOptionalPath(env.OD_BIN);
   if (configured) return configured;
 
-  const packageJsonPath = require.resolve('@open-design/daemon/package.json');
-  return path.join(path.dirname(packageJsonPath), 'dist', 'cli.js');
+  const packageJsonPath = require.resolve("@open-design/daemon/package.json");
+  return path.join(path.dirname(packageJsonPath), "dist", "cli.js");
 }
 
 const PROJECT_ROOT = resolveProjectRoot(__dirname);
-const RESOURCE_ROOT_ENV = 'OD_RESOURCE_ROOT';
+const RESOURCE_ROOT_ENV = "OD_RESOURCE_ROOT";
 
 // Desktop-import auth state (PR #974 — closes the renderer→arbitrary
 // baseDir→shell.openPath bypass chain).
@@ -307,7 +357,7 @@ const RESOURCE_ROOT_ENV = 'OD_RESOURCE_ROOT';
 // fires, the gate stays dormant and /api/import/folder behaves exactly
 // as before.
 let desktopAuthSecret: Buffer | null = null;
-let desktopAuthEverRegistered = process.env.OD_REQUIRE_DESKTOP_AUTH === '1';
+let desktopAuthEverRegistered = process.env.OD_REQUIRE_DESKTOP_AUTH === "1";
 
 // Replay protection. Each successful import token consumes its nonce; the
 // nonce stays in this map until its expiry passes, at which point the next
@@ -315,7 +365,7 @@ let desktopAuthEverRegistered = process.env.OD_REQUIRE_DESKTOP_AUTH === '1';
 const consumedImportNonces = new Map<string, number>();
 
 const DESKTOP_IMPORT_TOKEN_TTL_MS = 60_000;
-const DESKTOP_IMPORT_TOKEN_HEADER = 'x-od-desktop-import-token';
+const DESKTOP_IMPORT_TOKEN_HEADER = "x-od-desktop-import-token";
 
 export function setDesktopAuthSecret(secret: Buffer | null): void {
   desktopAuthSecret = secret;
@@ -343,7 +393,7 @@ export function isDesktopAuthGateActive(): boolean {
  */
 export function resetDesktopAuthForTests(): void {
   desktopAuthSecret = null;
-  desktopAuthEverRegistered = process.env.OD_REQUIRE_DESKTOP_AUTH === '1';
+  desktopAuthEverRegistered = process.env.OD_REQUIRE_DESKTOP_AUTH === "1";
   consumedImportNonces.clear();
 }
 
@@ -354,8 +404,8 @@ function pruneExpiredImportNonces(now: number): void {
 }
 
 function timingSafeStringEquals(a: string, b: string): boolean {
-  const bufA = Buffer.from(a, 'utf8');
-  const bufB = Buffer.from(b, 'utf8');
+  const bufA = Buffer.from(a, "utf8");
+  const bufB = Buffer.from(b, "utf8");
   if (bufA.length !== bufB.length) return false;
   return timingSafeEqual(bufA, bufB);
 }
@@ -365,7 +415,7 @@ function timingSafeStringEquals(a: string, b: string): boolean {
 // would split into four parts and break a fixed-shape parser. `~` is
 // not part of base64url or ISO 8601 character sets, so the three
 // fields stay unambiguous and round-trip safe through the HTTP header.
-const DESKTOP_IMPORT_TOKEN_FIELD_SEP = '~';
+const DESKTOP_IMPORT_TOKEN_FIELD_SEP = "~";
 
 /**
  * Pure-function HMAC mint helper. Exported for unit tests and for the
@@ -379,10 +429,12 @@ export function signDesktopImportToken(
   baseDir: string,
   options: { nonce: string; exp: string },
 ): string {
-  const signature = createHmac('sha256', secret)
+  const signature = createHmac("sha256", secret)
     .update(`${baseDir}\n${options.nonce}\n${options.exp}`)
-    .digest('base64url');
-  return [options.nonce, options.exp, signature].join(DESKTOP_IMPORT_TOKEN_FIELD_SEP);
+    .digest("base64url");
+  return [options.nonce, options.exp, signature].join(
+    DESKTOP_IMPORT_TOKEN_FIELD_SEP,
+  );
 }
 
 type DesktopImportTokenVerification =
@@ -402,37 +454,37 @@ export function verifyDesktopImportToken(
   now: number,
   consumedNonces: Map<string, number>,
 ): DesktopImportTokenVerification {
-  if (typeof token !== 'string' || token.length === 0) {
-    return { ok: false, reason: 'token missing' };
+  if (typeof token !== "string" || token.length === 0) {
+    return { ok: false, reason: "token missing" };
   }
   const parts = token.split(DESKTOP_IMPORT_TOKEN_FIELD_SEP);
   if (parts.length !== 3) {
-    return { ok: false, reason: 'token shape invalid' };
+    return { ok: false, reason: "token shape invalid" };
   }
   const [nonce, expISO, signature] = parts;
   if (nonce.length === 0 || expISO.length === 0 || signature.length === 0) {
-    return { ok: false, reason: 'token shape invalid' };
+    return { ok: false, reason: "token shape invalid" };
   }
   const expMs = Date.parse(expISO);
   if (!Number.isFinite(expMs)) {
-    return { ok: false, reason: 'token expiry invalid' };
+    return { ok: false, reason: "token expiry invalid" };
   }
   if (expMs <= now) {
-    return { ok: false, reason: 'token expired' };
+    return { ok: false, reason: "token expired" };
   }
   // Reject obviously oversized expiry windows so a compromised desktop
   // cannot mint long-lived tokens against a small TTL contract.
   if (expMs - now > DESKTOP_IMPORT_TOKEN_TTL_MS * 2) {
-    return { ok: false, reason: 'token expiry exceeds permitted window' };
+    return { ok: false, reason: "token expiry exceeds permitted window" };
   }
-  const expected = createHmac('sha256', secret)
+  const expected = createHmac("sha256", secret)
     .update(`${baseDir}\n${nonce}\n${expISO}`)
-    .digest('base64url');
+    .digest("base64url");
   if (!timingSafeStringEquals(expected, signature)) {
-    return { ok: false, reason: 'token signature invalid' };
+    return { ok: false, reason: "token signature invalid" };
   }
   if (consumedNonces.has(nonce)) {
-    return { ok: false, reason: 'token nonce already used' };
+    return { ok: false, reason: "token nonce already used" };
   }
   return { ok: true, nonce, exp: expMs };
 }
@@ -444,33 +496,31 @@ export function composeLiveInstructionPrompt({
   finalPromptOverride,
 }) {
   const override =
-    typeof finalPromptOverride === 'string'
-      ? finalPromptOverride.trim()
-      : '';
+    typeof finalPromptOverride === "string" ? finalPromptOverride.trim() : "";
   const parts = [daemonSystemPrompt, runtimeToolPrompt, clientSystemPrompt]
-    .map((part) => (typeof part === 'string' ? part.trim() : ''))
+    .map((part) => (typeof part === "string" ? part.trim() : ""))
     .map((part) =>
       override && part.includes(override)
-        ? part.split(override).join('').trim()
+        ? part.split(override).join("").trim()
         : part,
     )
     .filter(Boolean);
   if (override) {
     parts.push(override);
   }
-  return parts.join('\n\n---\n\n');
+  return parts.join("\n\n---\n\n");
 }
 
 export function resolveResearchCommandContract(research, message) {
-  if (!research || !research.enabled) return '';
+  if (!research || !research.enabled) return "";
   const researchQuery =
-    typeof research.query === 'string' && research.query.trim()
+    typeof research.query === "string" && research.query.trim()
       ? research.query
       : message;
   return renderResearchCommandContract({
     query: researchQuery,
     maxSources:
-      typeof research.maxSources === 'number' ? research.maxSources : undefined,
+      typeof research.maxSources === "number" ? research.maxSources : undefined,
   });
 }
 
@@ -482,13 +532,13 @@ export function resolveCodexGeneratedImagesDir(
 ) {
   if (!shouldRenderCodexImagegenOverride(agentId, metadata)) return null;
   const rawCodexHome =
-    typeof env?.CODEX_HOME === 'string' && env.CODEX_HOME.trim().length > 0
+    typeof env?.CODEX_HOME === "string" && env.CODEX_HOME.trim().length > 0
       ? env.CODEX_HOME.trim()
-      : path.join(homeDir, '.codex');
-  const codexHome = rawCodexHome.startsWith('~/')
+      : path.join(homeDir, ".codex");
+  const codexHome = rawCodexHome.startsWith("~/")
     ? path.join(homeDir, rawCodexHome.slice(2))
     : rawCodexHome;
-  return path.resolve(codexHome, 'generated_images');
+  return path.resolve(codexHome, "generated_images");
 }
 
 type DirectoryStat = {
@@ -507,10 +557,7 @@ type CodexGeneratedImagesDirValidationOptions = {
 
 function isMissingPathError(err: unknown): boolean {
   return (
-    err &&
-    typeof err === 'object' &&
-    'code' in err &&
-    err.code === 'ENOENT'
+    err && typeof err === "object" && "code" in err && err.code === "ENOENT"
   );
 }
 
@@ -526,7 +573,7 @@ function collectProtectedDirRoots(
 ): string[] {
   const roots = [];
   for (const raw of Array.isArray(protectedDirs) ? protectedDirs : []) {
-    if (typeof raw !== 'string' || raw.trim().length === 0) continue;
+    if (typeof raw !== "string" || raw.trim().length === 0) continue;
     const resolved = path.resolve(raw);
     roots.push(resolved);
     try {
@@ -562,7 +609,7 @@ export function validateCodexGeneratedImagesDir(
   }: CodexGeneratedImagesDirValidationOptions = {},
 ): string | null {
   if (
-    typeof codexGeneratedImagesDir !== 'string' ||
+    typeof codexGeneratedImagesDir !== "string" ||
     codexGeneratedImagesDir.trim().length === 0
   ) {
     return null;
@@ -649,7 +696,7 @@ export function validateCodexGeneratedImagesDir(
     return canonicalDir;
   } catch (err) {
     const message =
-      err instanceof Error ? err.message : String(err ?? 'unknown error');
+      err instanceof Error ? err.message : String(err ?? "unknown error");
     warn(`[od] codex generated_images allowlist mkdir failed: ${message}`);
     return null;
   }
@@ -671,7 +718,7 @@ export function resolveChatExtraAllowedDirs({
   existsSync?: (path: string) => boolean;
 }): string[] {
   const isCodex =
-    typeof agentId === 'string' && agentId.trim().toLowerCase() === 'codex';
+    typeof agentId === "string" && agentId.trim().toLowerCase() === "codex";
   const candidates = isCodex
     ? [codexGeneratedImagesDir]
     : [
@@ -682,8 +729,7 @@ export function resolveChatExtraAllowedDirs({
   return Array.from(
     new Set(
       candidates.filter(
-        (d) =>
-          typeof d === 'string' && d.length > 0 && existsSync(d),
+        (d) => typeof d === "string" && d.length > 0 && existsSync(d),
       ),
     ),
   );
@@ -701,7 +747,7 @@ export function resolveGrantedCodexImagegenOverride({
   extraAllowedDirs?: string[];
 }): string | null {
   if (
-    typeof codexGeneratedImagesDir !== 'string' ||
+    typeof codexGeneratedImagesDir !== "string" ||
     codexGeneratedImagesDir.length === 0 ||
     !Array.isArray(extraAllowedDirs) ||
     !extraAllowedDirs.includes(codexGeneratedImagesDir)
@@ -715,22 +761,30 @@ export function normalizeCommentAttachments(input) {
   if (!Array.isArray(input)) return [];
   return input
     .map((raw, index) => {
-      if (!raw || typeof raw !== 'object') return null;
+      if (!raw || typeof raw !== "object") return null;
       const filePath = cleanString(raw.filePath);
       const elementId = cleanString(raw.elementId);
       const selector = cleanString(raw.selector);
       const label = cleanString(raw.label);
       const comment = cleanString(raw.comment);
       if (!filePath || !elementId || !selector || !comment) return null;
-      const selectionKind = raw.selectionKind === 'pod' ? 'pod' : 'element';
-      const podMembers = selectionKind === 'pod' ? normalizeAttachmentPodMembers(raw.podMembers) : [];
+      const selectionKind =
+        raw.selectionKind === "visual"
+          ? "visual"
+          : raw.selectionKind === "pod"
+            ? "pod"
+            : "element";
+      const podMembers =
+        selectionKind === "pod"
+          ? normalizeAttachmentPodMembers(raw.podMembers)
+          : [];
       const memberCount =
-        selectionKind === 'pod'
-          ? (podMembers.length > 0
-              ? podMembers.length
-              : Number.isFinite(raw.memberCount)
-                ? Math.max(0, Math.round(raw.memberCount))
-                : 0)
+        selectionKind === "pod"
+          ? podMembers.length > 0
+            ? podMembers.length
+            : Number.isFinite(raw.memberCount)
+              ? Math.max(0, Math.round(raw.memberCount))
+              : 0
           : 0;
       return {
         id: cleanString(raw.id) || `comment-${index + 1}`,
@@ -748,7 +802,19 @@ export function normalizeCommentAttachments(input) {
         selectionKind,
         memberCount,
         podMembers,
-        source: raw.source === 'board-batch' ? 'board-batch' : 'saved-comment',
+        screenshotPath:
+          selectionKind === "visual" ? cleanString(raw.screenshotPath) : "",
+        markKind:
+          selectionKind === "visual" && (
+            raw.markKind === "click" ||
+            raw.markKind === "stroke" ||
+            raw.markKind === "click+stroke"
+          )
+            ? raw.markKind
+            : undefined,
+        intent:
+          selectionKind === "visual" ? compactString(raw.intent, 240) : "",
+        source: raw.source === "board-batch" ? "board-batch" : "saved-comment",
       };
     })
     .filter(Boolean)
@@ -756,51 +822,65 @@ export function normalizeCommentAttachments(input) {
 }
 
 export function renderCommentAttachmentHint(commentAttachments) {
-  if (!commentAttachments.length) return '';
+  if (!commentAttachments.length) return "";
   const lines = [
-    '',
-    '',
-    '<attached-preview-comments>',
-    'Scope: treat each attachment as the default refinement target. For single elements, edit the target element first. For pods, coordinate the captured group as one design region and preserve unrelated areas.',
+    "",
+    "",
+    "<attached-preview-comments>",
+    "Scope: treat each attachment as the default refinement target. For single elements, edit the target element first. For pods, coordinate the captured group as one design region. For visual attachments, inspect the screenshot/image reference and modify the marked or selected region first. Preserve unrelated areas.",
   ];
   for (const item of commentAttachments) {
-    const targetKind = item.selectionKind === 'pod' ? 'pod' : 'element';
+    const targetKind =
+      item.selectionKind === "visual"
+        ? "visual"
+        : item.selectionKind === "pod"
+          ? "pod"
+          : "element";
     lines.push(
-      '',
+      "",
       `${item.order}. ${item.elementId}`,
       `targetKind: ${targetKind}`,
       `file: ${item.filePath}`,
       `selector: ${item.selector}`,
-      `label: ${item.label || '(unlabeled)'}`,
+      `label: ${item.label || "(unlabeled)"}`,
       `position: ${formatAttachmentPosition(item.pagePosition)}`,
-      `currentText: ${item.currentText || '(empty)'}`,
-      `htmlHint: ${item.htmlHint || '(none)'}`,
+      `currentText: ${item.currentText || "(empty)"}`,
+      `htmlHint: ${item.htmlHint || "(none)"}`,
       `comment: ${item.comment}`,
     );
-    if (targetKind === 'pod') {
-      lines.push(`memberCount: ${item.memberCount || item.podMembers.length || 0}`);
+    if (targetKind === "visual") {
+      lines.push(
+        `screenshot: ${item.screenshotPath || "(missing)"}`,
+        `markKind: ${item.markKind || "click"}`,
+        `intent: ${item.intent || "Use the attached image as visual context for this target."}`,
+      );
+    }
+    if (targetKind === "pod") {
+      lines.push(
+        `memberCount: ${item.memberCount || item.podMembers.length || 0}`,
+      );
       item.podMembers.slice(0, 8).forEach((member, memberIndex) => {
         lines.push(
-          `member.${memberIndex + 1}: ${member.elementId} | ${member.label || '(unlabeled)'} | ${member.selector}`,
+          `member.${memberIndex + 1}: ${member.elementId} | ${member.label || "(unlabeled)"} | ${member.selector}`,
         );
       });
     }
   }
-  lines.push('</attached-preview-comments>');
-  return lines.join('\n');
+  lines.push("</attached-preview-comments>");
+  return lines.join("\n");
 }
 
 function cleanString(value) {
-  return typeof value === 'string' ? value.trim() : '';
+  return typeof value === "string" ? value.trim() : "";
 }
 
 function compactString(value, max) {
-  const text = cleanString(value).replace(/\s+/g, ' ');
+  const text = cleanString(value).replace(/\s+/g, " ");
   return text.length > max ? `${text.slice(0, max - 3)}...` : text;
 }
 
 function normalizeAttachmentPosition(input) {
-  const value = input && typeof input === 'object' ? input : {};
+  const value = input && typeof input === "object" ? input : {};
   return {
     x: finiteAttachmentNumber(value.x),
     y: finiteAttachmentNumber(value.y),
@@ -813,7 +893,7 @@ function normalizeAttachmentPodMembers(input) {
   if (!Array.isArray(input)) return [];
   return input
     .map((member) => {
-      if (!member || typeof member !== 'object') return null;
+      if (!member || typeof member !== "object") return null;
       const elementId = cleanString(member.elementId);
       const selector = cleanString(member.selector);
       const label = cleanString(member.label);
@@ -841,16 +921,16 @@ function formatAttachmentPosition(position) {
 function isPathWithin(base, target) {
   const relativePath = path.relative(path.resolve(base), path.resolve(target));
   return (
-    relativePath === '' ||
+    relativePath === "" ||
     (relativePath.length > 0 &&
-      !relativePath.startsWith('..') &&
+      !relativePath.startsWith("..") &&
       !path.isAbsolute(relativePath))
   );
 }
 
 function resolveProcessResourcesPath() {
   if (
-    typeof process.resourcesPath === 'string' &&
+    typeof process.resourcesPath === "string" &&
     process.resourcesPath.length > 0
   ) {
     return process.resourcesPath;
@@ -889,7 +969,7 @@ export function resolveDaemonResourceRoot({
 
   const resolved = path.resolve(configured);
   const normalizedSafeBases = safeBases
-    .filter((base) => typeof base === 'string' && base.length > 0)
+    .filter((base) => typeof base === "string" && base.length > 0)
     .map((base) => path.resolve(base));
 
   if (!normalizedSafeBases.some((base) => isPathWithin(base, resolved))) {
@@ -910,31 +990,31 @@ const DAEMON_RESOURCE_ROOT = resolveDaemonResourceRoot();
 // export configured in next.config.ts. The folder name used to be `dist/`
 // when this project shipped with Vite; the daemon serves whatever the
 // frontend toolchain emits, no further config needed.
-const STATIC_DIR = path.join(PROJECT_ROOT, 'apps', 'web', 'out');
+const STATIC_DIR = path.join(PROJECT_ROOT, "apps", "web", "out");
 const OD_BIN = resolveDaemonCliPath();
 const OD_NODE_BIN = process.execPath;
 const SKILLS_DIR = resolveDaemonResourceDir(
   DAEMON_RESOURCE_ROOT,
-  'skills',
-  path.join(PROJECT_ROOT, 'skills'),
+  "skills",
+  path.join(PROJECT_ROOT, "skills"),
 );
 const DESIGN_SYSTEMS_DIR = resolveDaemonResourceDir(
   DAEMON_RESOURCE_ROOT,
-  'design-systems',
-  path.join(PROJECT_ROOT, 'design-systems'),
+  "design-systems",
+  path.join(PROJECT_ROOT, "design-systems"),
 );
 const CRAFT_DIR = resolveDaemonResourceDir(
   DAEMON_RESOURCE_ROOT,
-  'craft',
-  path.join(PROJECT_ROOT, 'craft'),
+  "craft",
+  path.join(PROJECT_ROOT, "craft"),
 );
 // User-installed skills and design systems live under the runtime data dir
 // so they respect OD_DATA_DIR overrides (test isolation, packaged runs).
 // Defined after RUNTIME_DATA_DIR is resolved below.
 const FRAMES_DIR = resolveDaemonResourceDir(
   DAEMON_RESOURCE_ROOT,
-  'frames',
-  path.join(PROJECT_ROOT, 'assets', 'frames'),
+  "frames",
+  path.join(PROJECT_ROOT, "assets", "frames"),
 );
 // Curated pets baked into the repo via `scripts/bake-community-pets.ts`.
 // `listCodexPets` scans this in addition to `~/.codex/pets/` so the
@@ -942,16 +1022,16 @@ const FRAMES_DIR = resolveDaemonResourceDir(
 // need to hit the "Download community pets" button to try a few pets.
 const BUNDLED_PETS_DIR = resolveDaemonResourceDir(
   DAEMON_RESOURCE_ROOT,
-  'community-pets',
-  path.join(PROJECT_ROOT, 'assets', 'community-pets'),
+  "community-pets",
+  path.join(PROJECT_ROOT, "assets", "community-pets"),
 );
 const PROMPT_TEMPLATES_DIR = resolveDaemonResourceDir(
   DAEMON_RESOURCE_ROOT,
-  'prompt-templates',
-  path.join(PROJECT_ROOT, 'prompt-templates'),
+  "prompt-templates",
+  path.join(PROJECT_ROOT, "prompt-templates"),
 );
 export function resolveDataDir(raw, projectRoot) {
-  if (!raw) return path.join(projectRoot, '.od');
+  if (!raw) return path.join(projectRoot, ".od");
   // expandHomePrefix is shared with media-config.ts so OD_DATA_DIR and
   // OD_MEDIA_CONFIG_DIR can never split state under a $HOME-style value.
   // Some launchers (systemd unit files, NixOS modules, certain Docker
@@ -970,7 +1050,7 @@ export function resolveDataDir(raw, projectRoot) {
       try {
         return os.userInfo().username;
       } catch {
-        return process.env.USER ?? process.env.LOGNAME ?? 'unknown';
+        return process.env.USER ?? process.env.LOGNAME ?? "unknown";
       }
     })();
     const parentDir = path.dirname(resolved);
@@ -981,12 +1061,25 @@ export function resolveDataDir(raw, projectRoot) {
         `Check whether the folder or one of its parents is owned by another user, is a symlink to a protected location, or was previously created with sudo.`,
         `Try: ls -ld "${parentDir}" "${resolved}"`,
         `If the folder should belong to you, fix ownership/permissions, for example: sudo chown -R "${currentUser}":staff "${parentDir}" && chmod -R u+rwX "${parentDir}"`,
-      ].join(' '),
+      ].join(" "),
     );
   }
   return resolved;
 }
 const RUNTIME_DATA_DIR = resolveDataDir(process.env.OD_DATA_DIR, PROJECT_ROOT);
+const DESKTOP_NAMESPACE =
+  process.env.OD_DESKTOP_NAMESPACE || "release-stable-intel";
+const DESKTOP_DATA_DIR = process.env.OD_DESKTOP_DATA_DIR
+  ? resolveProjectRelativePath(process.env.OD_DESKTOP_DATA_DIR, PROJECT_ROOT)
+  : path.join(
+      os.homedir(),
+      "Library",
+      "Application Support",
+      "Open Design",
+      "namespaces",
+      DESKTOP_NAMESPACE,
+      "data",
+    );
 // Canonical (realpath-resolved) form of RUNTIME_DATA_DIR for the few callers
 // that compare it against a user-supplied realpath() result. On macOS, /var
 // is a symlink to /private/var, so an import realpath lands in /private/var
@@ -1009,20 +1102,89 @@ migrateLegacyDataDirSync({
   legacyDir: process.env.OD_LEGACY_DATA_DIR,
   dataDir: RUNTIME_DATA_DIR,
 });
-const ARTIFACTS_DIR = path.join(RUNTIME_DATA_DIR, 'artifacts');
+const ARTIFACTS_DIR = path.join(RUNTIME_DATA_DIR, "artifacts");
 // Critique Theater artifacts intentionally live OUTSIDE the static
 // `/artifacts` tree (which is mounted via express.static below). The
 // per-run artifact endpoint is the only sanctioned read path so the
 // project-membership / cross-project leak / size / CSP guards in
 // handleCritiqueArtifact cannot be bypassed by a caller that guesses
 // `/artifacts/<projectId>/<runId>/artifact.html`. Codex P1 on PR #1085.
-const CRITIQUE_ARTIFACTS_DIR = path.join(RUNTIME_DATA_DIR, 'critique-artifacts');
-const PROJECTS_DIR = path.join(RUNTIME_DATA_DIR, 'projects');
-const USER_SKILLS_DIR = path.join(RUNTIME_DATA_DIR, 'skills');
-const USER_DESIGN_SYSTEMS_DIR = path.join(RUNTIME_DATA_DIR, 'design-systems');
+const CRITIQUE_ARTIFACTS_DIR = path.join(
+  RUNTIME_DATA_DIR,
+  "critique-artifacts",
+);
+const PROJECTS_DIR = path.join(RUNTIME_DATA_DIR, "projects");
+const USER_SKILLS_DIR = path.join(RUNTIME_DATA_DIR, "skills");
+const USER_DESIGN_SYSTEMS_DIR = path.join(RUNTIME_DATA_DIR, "design-systems");
 fs.mkdirSync(PROJECTS_DIR, { recursive: true });
 for (const dir of [USER_SKILLS_DIR, USER_DESIGN_SYSTEMS_DIR]) {
   fs.mkdirSync(dir, { recursive: true });
+}
+
+// Extra project-local dirs forwarded via env or persisted in project-dirs.json.
+// Colon-separated on POSIX, semicolon on Windows — path.delimiter handles both.
+const EXTRA_SKILLS_DIRS_ENV: string[] = (process.env.OD_EXTRA_SKILLS_DIRS ?? "")
+  .split(path.delimiter)
+  .map((d) => d.trim())
+  .filter(Boolean)
+  .map((d) => path.resolve(d));
+const EXTRA_DESIGN_SYSTEMS_DIRS_ENV: string[] = (
+  process.env.OD_EXTRA_DESIGN_SYSTEMS_DIRS ?? ""
+)
+  .split(path.delimiter)
+  .map((d) => d.trim())
+  .filter(Boolean)
+  .map((d) => path.resolve(d));
+
+const PROJECT_DIRS_CONFIG_PATH = path.join(
+  RUNTIME_DATA_DIR,
+  "project-dirs.json",
+);
+
+interface ProjectDirsConfig {
+  skillsDirs: string[];
+  designSystemsDirs: string[];
+}
+
+function readProjectDirsConfig(): ProjectDirsConfig {
+  try {
+    const raw = fs.readFileSync(PROJECT_DIRS_CONFIG_PATH, "utf8");
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    return {
+      skillsDirs: Array.isArray(parsed.skillsDirs)
+        ? (parsed.skillsDirs as unknown[]).filter(
+            (d): d is string => typeof d === "string",
+          )
+        : [],
+      designSystemsDirs: Array.isArray(parsed.designSystemsDirs)
+        ? (parsed.designSystemsDirs as unknown[]).filter(
+            (d): d is string => typeof d === "string",
+          )
+        : [],
+    };
+  } catch {
+    return { skillsDirs: [], designSystemsDirs: [] };
+  }
+}
+
+function writeProjectDirsConfig(cfg: ProjectDirsConfig): void {
+  fs.writeFileSync(
+    PROJECT_DIRS_CONFIG_PATH,
+    JSON.stringify(cfg, null, 2),
+    "utf8",
+  );
+}
+
+function resolveExtraSkillsDirs(): string[] {
+  const fromConfig = readProjectDirsConfig().skillsDirs;
+  const merged = [...EXTRA_SKILLS_DIRS_ENV, ...fromConfig];
+  return [...new Set(merged)];
+}
+
+function resolveExtraDesignSystemsDirs(): string[] {
+  const fromConfig = readProjectDirsConfig().designSystemsDirs;
+  const merged = [...EXTRA_DESIGN_SYSTEMS_DIRS_ENV, ...fromConfig];
+  return [...new Set(merged)];
 }
 fs.mkdirSync(CRITIQUE_ARTIFACTS_DIR, { recursive: true });
 const orbitService = new OrbitService(RUNTIME_DATA_DIR);
@@ -1052,11 +1214,11 @@ const mcpPendingAuth = new PendingAuthCache();
 function getPublicBaseUrl(req) {
   const env = process.env.OD_PUBLIC_BASE_URL;
   if (env && /^https?:\/\//i.test(env)) {
-    return env.replace(/\/+$/u, '');
+    return env.replace(/\/+$/u, "");
   }
-  const proto = req.protocol || 'http';
-  const host = req.get('host');
-  if (!host) return `http://localhost:${process.env.OD_PORT ?? '7456'}`;
+  const proto = req.protocol || "http";
+  const host = req.get("host");
+  if (!host) return `http://localhost:${process.env.OD_PORT ?? "7456"}`;
   return `${proto}://${host}`;
 }
 
@@ -1088,10 +1250,10 @@ async function refreshAndPersistToken(dataDir, serverId, current) {
   const next = {
     accessToken: tokenResp.access_token,
     refreshToken: tokenResp.refresh_token ?? current.refreshToken,
-    tokenType: tokenResp.token_type ?? 'Bearer',
+    tokenType: tokenResp.token_type ?? "Bearer",
     scope: tokenResp.scope ?? current.scope,
     expiresAt:
-      typeof tokenResp.expires_in === 'number'
+      typeof tokenResp.expires_in === "number"
         ? Date.now() + tokenResp.expires_in * 1000
         : undefined,
     savedAt: Date.now(),
@@ -1118,7 +1280,7 @@ function emitChatAgentEvent(runId, payload) {
 function emitLiveArtifactEvent(grant, action, artifact) {
   if (!artifact?.id) return false;
   const payload = {
-    type: 'live_artifact',
+    type: "live_artifact",
     action,
     projectId: artifact.projectId ?? grant.projectId,
     artifactId: artifact.id,
@@ -1126,14 +1288,15 @@ function emitLiveArtifactEvent(grant, action, artifact) {
     refreshStatus: artifact.refreshStatus,
   };
   let emitted = emitProjectLiveArtifactEvent(payload.projectId, payload);
-  if (grant?.runId) emitted = emitChatAgentEvent(grant.runId, payload) || emitted;
+  if (grant?.runId)
+    emitted = emitChatAgentEvent(grant.runId, payload) || emitted;
   return emitted;
 }
 
 function emitLiveArtifactRefreshEvent(grant, payload) {
   if (!payload?.artifactId) return false;
   const event = {
-    type: 'live_artifact_refresh',
+    type: "live_artifact_refresh",
     projectId: grant.projectId,
     ...payload,
   };
@@ -1159,12 +1322,16 @@ function emitProjectLiveArtifactEvent(projectId, payload) {
 // Windows ENAMETOOLONG mitigation constants
 const CMD_BAT_RE = /\.(cmd|bat)$/i;
 const PROMPT_TEMP_FILE = () =>
-  '.od-prompt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.md';
+  ".od-prompt-" +
+  Date.now() +
+  "-" +
+  Math.random().toString(36).slice(2, 8) +
+  ".md";
 const promptFileBootstrap = (fp) =>
-  `Your full instructions are stored in the file: ${fp.replace(/\\/g, '/')}. ` +
-  'Open that file first and follow every instruction in it exactly — ' +
-  'it contains the system prompt, design system, skill workflow, and user request. ' +
-  'Do not begin your response until you have read the entire file.';
+  `Your full instructions are stored in the file: ${fp.replace(/\\/g, "/")}. ` +
+  "Open that file first and follow every instruction in it exactly — " +
+  "it contains the system prompt, design system, skill workflow, and user request. " +
+  "Do not begin your response until you have read the entire file.";
 
 // Load Critique Theater config once at startup so a bad OD_CRITIQUE_* value
 // surfaces immediately as a boot-time RangeError instead of silently at
@@ -1208,23 +1375,23 @@ export function createAgentRuntimeToolPrompt(
   toolTokenGrant: { token?: string } | null = null,
 ): string {
   const tokenLine = toolTokenGrant?.token
-    ? '- `OD_TOOL_TOKEN` is available in your environment for this run. Use it only through project wrapper commands; do not print, persist, or override it.'
-    : '- `OD_TOOL_TOKEN` is not available for this run, so `/api/tools/*` wrapper commands may be unavailable.';
+    ? "- `OD_TOOL_TOKEN` is available in your environment for this run. Use it only through project wrapper commands; do not print, persist, or override it."
+    : "- `OD_TOOL_TOKEN` is not available for this run, so `/api/tools/*` wrapper commands may be unavailable.";
 
   return [
-    '## Runtime tool environment',
-    '',
+    "## Runtime tool environment",
+    "",
     `- Daemon URL: \`${daemonUrl}\` (also available as \`OD_DAEMON_URL\`).`,
-    '- `OD_NODE_BIN` is the absolute path to the Node-compatible runtime that started the daemon; packaged desktop installs provide this even when the user has no system `node` on PATH.',
+    "- `OD_NODE_BIN` is the absolute path to the Node-compatible runtime that started the daemon; packaged desktop installs provide this even when the user has no system `node` on PATH.",
     '- `OD_BIN` is the absolute path to the Open Design CLI script. On POSIX shells run wrappers with `"$OD_NODE_BIN" "$OD_BIN" tools ...`; do not call bare `od`, which may resolve to the system octal-dump command on Unix-like systems.',
     '- On PowerShell use `& $env:OD_NODE_BIN $env:OD_BIN tools ...`; on cmd.exe use `"%OD_NODE_BIN%" "%OD_BIN%" tools ...`.',
     tokenLine,
-    '- Prefer project wrapper commands through `OD_NODE_BIN` + `OD_BIN` over raw HTTP. The wrappers read these environment values automatically.',
-  ].join('\n');
+    "- Prefer project wrapper commands through `OD_NODE_BIN` + `OD_BIN` over raw HTTP. The wrappers read these environment values automatically.",
+  ].join("\n");
 }
 
 export function normalizeProjectDisplayStatus(status) {
-  return status === 'starting' || status === 'queued' ? 'running' : status;
+  return status === "starting" || status === "queued" ? "running" : status;
 }
 
 export function composeProjectDisplayStatus(
@@ -1233,10 +1400,10 @@ export function composeProjectDisplayStatus(
   projectId,
 ) {
   if (
-    baseStatus.value === 'succeeded' &&
+    baseStatus.value === "succeeded" &&
     awaitingInputProjects.has(projectId)
   ) {
-    return { ...baseStatus, value: 'awaiting_input' };
+    return { ...baseStatus, value: "awaiting_input" };
   }
   return {
     ...baseStatus,
@@ -1277,50 +1444,522 @@ function sendApiError(res, status, code, message, init = {}) {
     .json(createCompatApiErrorResponse(code, message, init));
 }
 
-const TERMINAL_RUN_STATUSES = new Set(['succeeded', 'failed', 'canceled']);
+function summarizeResourceScan(kind, sourceDir, items, errors = []) {
+  return {
+    kind,
+    sourceDir,
+    count: Array.isArray(items) ? items.length : 0,
+    errors,
+    scannedAt: Date.now(),
+  };
+}
+
+function buildSourceReadabilitySummary(sourceDir) {
+  const errors = [];
+  if (!fs.existsSync(sourceDir)) {
+    errors.push(`Source directory not found: ${sourceDir}`);
+    return { sourceExists: false, errors };
+  }
+  try {
+    const stats = fs.statSync(sourceDir);
+    if (!stats.isDirectory()) {
+      errors.push(`Source path is not a directory: ${sourceDir}`);
+    }
+  } catch (error) {
+    errors.push(
+      `Cannot stat source directory ${sourceDir}: ${String(error && error.message ? error.message : error)}`,
+    );
+  }
+  return { sourceExists: true, errors };
+}
+
+function buildDesignSystemSourceDiagnostics(sourceDir) {
+  const base = buildSourceReadabilitySummary(sourceDir);
+  if (!base.sourceExists || base.errors.length > 0) return base;
+
+  const errors = [...base.errors];
+  let entries = [];
+  try {
+    entries = fs.readdirSync(sourceDir, { withFileTypes: true });
+  } catch (error) {
+    errors.push(
+      `Cannot read source directory ${sourceDir}: ${String(error && error.message ? error.message : error)}`,
+    );
+    return { sourceExists: true, errors };
+  }
+
+  for (const entry of entries) {
+    if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
+    const designPath = path.join(sourceDir, entry.name, "DESIGN.md");
+    try {
+      if (!fs.existsSync(designPath)) {
+        errors.push(`${entry.name}: missing DESIGN.md`);
+        continue;
+      }
+      const stats = fs.statSync(designPath);
+      if (!stats.isFile()) {
+        errors.push(`${entry.name}: DESIGN.md is not a regular file`);
+        continue;
+      }
+      const raw = fs.readFileSync(designPath, "utf8");
+      if (!/^#\s+.+\s*$/m.test(raw)) {
+        errors.push(`${entry.name}: DESIGN.md missing H1 title`);
+      }
+    } catch (error) {
+      errors.push(
+        `${entry.name}: cannot read DESIGN.md (${String(error && error.message ? error.message : error)})`,
+      );
+    }
+  }
+  return { sourceExists: true, errors };
+}
+
+function stableJson(value) {
+  return JSON.stringify(value, Object.keys(value || {}).sort());
+}
+
+function desktopProfileSummary() {
+  const runtimeDataDir = path.resolve(RUNTIME_DATA_DIR);
+  const desktopDataDir = path.resolve(DESKTOP_DATA_DIR);
+  const isRuntimeUsingDesktopProfile = runtimeDataDir === desktopDataDir;
+  return {
+    namespace: DESKTOP_NAMESPACE,
+    dataDir: DESKTOP_DATA_DIR,
+    exists: fs.existsSync(DESKTOP_DATA_DIR),
+    skillsDir: path.join(DESKTOP_DATA_DIR, "skills"),
+    designSystemsDir: path.join(DESKTOP_DATA_DIR, "design-systems"),
+    mcpConfigPath: path.join(DESKTOP_DATA_DIR, "mcp-config.json"),
+    composioConfigPath: path.join(
+      DESKTOP_DATA_DIR,
+      "connectors",
+      "composio-config.json",
+    ),
+    runtimeDataDir,
+    isRuntimeUsingDesktopProfile,
+    runtimeSqlitePath: path.join(runtimeDataDir, "app.sqlite"),
+    desktopSqlitePath: path.join(desktopDataDir, "app.sqlite"),
+  };
+}
+
+async function syncMcpConfigFromDesktop({
+  dryRun = false,
+  conflictPolicy = "skip",
+} = {}) {
+  const current = await readMcpConfig(RUNTIME_DATA_DIR);
+  const desktop = await readMcpConfig(DESKTOP_DATA_DIR);
+  const currentById = new Map(
+    current.servers.map((server) => [server.id, server]),
+  );
+  const nextById = new Map(currentById);
+  const summary = {
+    sourceDir: DESKTOP_DATA_DIR,
+    targetDir: RUNTIME_DATA_DIR,
+    dryRun: Boolean(dryRun),
+    added: 0,
+    updated: 0,
+    unchanged: 0,
+    conflicts: 0,
+    skipped: 0,
+    errors: [],
+  };
+
+  for (const server of desktop.servers) {
+    const existing = currentById.get(server.id);
+    if (!existing) {
+      summary.added += 1;
+      nextById.set(server.id, server);
+      continue;
+    }
+    if (stableJson(existing) === stableJson(server)) {
+      summary.unchanged += 1;
+      continue;
+    }
+    if (conflictPolicy === "overwrite") {
+      summary.updated += 1;
+      nextById.set(server.id, server);
+    } else {
+      summary.conflicts += 1;
+    }
+  }
+
+  if (!dryRun) {
+    const nextServers = Array.from(nextById.values());
+    await writeMcpConfig(RUNTIME_DATA_DIR, { servers: nextServers });
+  }
+  return summary;
+}
+
+function readComposioConfigAt(dataDir) {
+  const file = path.join(dataDir, "connectors", "composio-config.json");
+  try {
+    const raw = JSON.parse(fs.readFileSync(file, "utf8"));
+    const record =
+      raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+    const authConfigIds = {};
+    if (
+      record.authConfigIds &&
+      typeof record.authConfigIds === "object" &&
+      !Array.isArray(record.authConfigIds)
+    ) {
+      for (const [key, value] of Object.entries(record.authConfigIds)) {
+        if (
+          typeof key === "string" &&
+          key.trim() &&
+          typeof value === "string" &&
+          value.trim()
+        ) {
+          authConfigIds[key.trim()] = value.trim();
+        }
+      }
+    }
+    return {
+      apiKey: typeof record.apiKey === "string" ? record.apiKey.trim() : "",
+      authConfigIds,
+    };
+  } catch (error) {
+    if (error && error.code === "ENOENT")
+      return { apiKey: "", authConfigIds: {} };
+    throw error;
+  }
+}
+
+function syncComposioConfigFromDesktop({
+  dryRun = false,
+  conflictPolicy = "skip",
+} = {}) {
+  const current = readComposioConfig();
+  const desktop = readComposioConfigAt(DESKTOP_DATA_DIR);
+  const hasDesktopAuthConfigIds = Object.keys(desktop.authConfigIds).length > 0;
+  let nextApiKey = current.apiKey;
+  let apiKey = "missing";
+  if (desktop.apiKey) {
+    if (!current.apiKey) {
+      apiKey = "added";
+      nextApiKey = desktop.apiKey;
+    } else if (current.apiKey === desktop.apiKey) {
+      apiKey = "unchanged";
+    } else if (conflictPolicy === "overwrite") {
+      apiKey = "updated";
+      nextApiKey = desktop.apiKey;
+    } else {
+      apiKey = "conflict";
+    }
+  }
+
+  const nextAuthConfigIds = { ...current.authConfigIds };
+  const authConfigIds = { added: 0, updated: 0, unchanged: 0, conflicts: 0 };
+  for (const [connectorId, authConfigId] of Object.entries(
+    desktop.authConfigIds,
+  )) {
+    const existing = current.authConfigIds[connectorId];
+    if (!existing) {
+      authConfigIds.added += 1;
+      nextAuthConfigIds[connectorId] = authConfigId;
+    } else if (existing === authConfigId) {
+      authConfigIds.unchanged += 1;
+    } else if (conflictPolicy === "overwrite") {
+      authConfigIds.updated += 1;
+      nextAuthConfigIds[connectorId] = authConfigId;
+    } else {
+      authConfigIds.conflicts += 1;
+    }
+  }
+
+  if (!dryRun) {
+    writeComposioConfig({
+      apiKey: nextApiKey,
+      authConfigIds: nextAuthConfigIds,
+    });
+  }
+  const effectiveApiConfigured = Boolean(nextApiKey);
+  const apiKeyImportBlocked =
+    apiKey === "conflict" || (desktop.apiKey && !effectiveApiConfigured);
+  const requiresReauth =
+    apiKeyImportBlocked ||
+    authConfigIds.conflicts > 0 ||
+    (hasDesktopAuthConfigIds && !effectiveApiConfigured);
+  const publicConfig = dryRun
+    ? {
+        configured: Boolean(nextApiKey),
+        apiKeyTail: nextApiKey ? nextApiKey.slice(-4) : "",
+      }
+    : readPublicComposioConfig();
+  return {
+    sourceDir: DESKTOP_DATA_DIR,
+    targetDir: RUNTIME_DATA_DIR,
+    dryRun: Boolean(dryRun),
+    apiKey,
+    authConfigIds,
+    requiresReauth,
+    errors: [],
+    publicConfig,
+  };
+}
+
+async function resolveAndValidateProjectBaseDir(baseDirInput, options = {}) {
+  const { allowCreateIfMissing = false } = options;
+  if (typeof baseDirInput !== "string" || !baseDirInput.trim()) {
+    throw new Error("baseDir required");
+  }
+  const trimmedInput = baseDirInput.trim();
+  if (!path.isAbsolute(path.normalize(trimmedInput))) {
+    throw new Error("baseDir must be absolute");
+  }
+
+  let normalizedPath = "";
+  try {
+    normalizedPath = await fs.promises.realpath(trimmedInput);
+  } catch (error) {
+    if (!allowCreateIfMissing || !error || error.code !== "ENOENT") {
+      throw new Error("folder not found");
+    }
+    await fs.promises.mkdir(trimmedInput, { recursive: true });
+    normalizedPath = await fs.promises.realpath(trimmedInput);
+  }
+
+  let dirStat;
+  try {
+    dirStat = await fs.promises.lstat(normalizedPath);
+  } catch {
+    throw new Error("folder not found");
+  }
+  if (!dirStat.isDirectory()) {
+    throw new Error("path must be a directory");
+  }
+  if (
+    normalizedPath === RUNTIME_DATA_DIR_CANONICAL ||
+    normalizedPath.startsWith(RUNTIME_DATA_DIR_CANONICAL + path.sep)
+  ) {
+    throw new Error("cannot import the data directory");
+  }
+  return normalizedPath;
+}
+
+const SKILL_SYNC_MANIFEST = ".open-design-skill-sync.json";
+const SKILL_SYNC_MANAGED_BY = "open-design-tools-dev";
+
+function shouldSkipSkillPath(relPath) {
+  const unixPath = relPath.split(path.sep).join("/");
+  if (!unixPath || unixPath === ".") return false;
+  if (unixPath.startsWith(".git/") || unixPath === ".git") return true;
+  if (unixPath.startsWith("node_modules/") || unixPath === "node_modules")
+    return true;
+  if (unixPath.includes("/.DS_Store") || unixPath === ".DS_Store") return true;
+  if (unixPath.startsWith("dist/") || unixPath === "dist") return true;
+  return false;
+}
+
+async function walkSkillFiles(rootDir, relDir = "") {
+  const absDir = relDir ? path.join(rootDir, relDir) : rootDir;
+  const entries = await fs.promises.readdir(absDir, { withFileTypes: true });
+  const out = [];
+  for (const entry of entries) {
+    const relPath = relDir ? path.join(relDir, entry.name) : entry.name;
+    if (shouldSkipSkillPath(relPath)) continue;
+    if (entry.isDirectory()) {
+      out.push(...(await walkSkillFiles(rootDir, relPath)));
+      continue;
+    }
+    if (!entry.isFile() && !entry.isSymbolicLink()) continue;
+    out.push(relPath);
+  }
+  return out.sort((a, b) => a.localeCompare(b));
+}
+
+async function computeSkillHash(skillDir) {
+  const fileList = await walkSkillFiles(skillDir);
+  const hash = createHmac("sha256", "od-skill-sync-hash-v1");
+  for (const relPath of fileList) {
+    const data = await fs.promises.readFile(path.join(skillDir, relPath));
+    hash.update(relPath.split(path.sep).join("/"));
+    hash.update("\n");
+    hash.update(data);
+    hash.update("\n");
+  }
+  return hash.digest("hex");
+}
+
+async function copySkillFolderAtomic(sourceDir, targetDir) {
+  const parent = path.dirname(targetDir);
+  await fs.promises.mkdir(parent, { recursive: true });
+  const tmpDir = path.join(
+    parent,
+    `.${path.basename(targetDir)}.tmp-${process.pid}-${Date.now()}`,
+  );
+  await fs.promises.rm(tmpDir, { recursive: true, force: true });
+  await fs.promises.mkdir(tmpDir, { recursive: true });
+  const fileList = await walkSkillFiles(sourceDir);
+  for (const relPath of fileList) {
+    const from = path.join(sourceDir, relPath);
+    const to = path.join(tmpDir, relPath);
+    await fs.promises.mkdir(path.dirname(to), { recursive: true });
+    await fs.promises.copyFile(from, to);
+  }
+  await fs.promises.rm(targetDir, { recursive: true, force: true });
+  await fs.promises.rename(tmpDir, targetDir);
+}
+
+async function readSkillSyncManifest(targetRoot) {
+  const manifestPath = path.join(targetRoot, SKILL_SYNC_MANIFEST);
+  try {
+    const raw = JSON.parse(await fs.promises.readFile(manifestPath, "utf8"));
+    const skills =
+      raw && typeof raw.skills === "object" && !Array.isArray(raw.skills)
+        ? raw.skills
+        : {};
+    return { manifestPath, skills };
+  } catch (error) {
+    if (error && error.code === "ENOENT") return { manifestPath, skills: {} };
+    throw error;
+  }
+}
+
+async function writeSkillSyncManifestAtomic(manifestPath, payload) {
+  await fs.promises.mkdir(path.dirname(manifestPath), { recursive: true });
+  const tmp = `${manifestPath}.${process.pid}.${Date.now()}.tmp`;
+  await fs.promises.writeFile(
+    tmp,
+    `${JSON.stringify(payload, null, 2)}\n`,
+    "utf8",
+  );
+  await fs.promises.rename(tmp, manifestPath);
+}
+
+async function syncSkillsToDesktop(options = {}) {
+  const sourceDir = options.sourceDir
+    ? resolveProjectRelativePath(options.sourceDir, PROJECT_ROOT)
+    : SKILLS_DIR;
+  const targetDir = options.targetDir
+    ? resolveProjectRelativePath(options.targetDir, PROJECT_ROOT)
+    : path.join(DESKTOP_DATA_DIR, "skills");
+  const dryRun = options.dryRun !== false;
+
+  const summary = {
+    sourceDir,
+    targetDir,
+    dryRun: Boolean(dryRun),
+    added: 0,
+    updated: 0,
+    unchanged: 0,
+    deleted: 0,
+    skipped: 0,
+    errors: [],
+  };
+
+  const { manifestPath, skills: oldSkills } =
+    await readSkillSyncManifest(targetDir);
+  const nextSkills = {};
+  const sourceEntries = await fs.promises
+    .readdir(sourceDir, { withFileTypes: true })
+    .catch(() => []);
+  const sourceSkillDirs = sourceEntries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort((a, b) => a.localeCompare(b));
+
+  for (const skillId of sourceSkillDirs) {
+    const sourceSkillDir = path.join(sourceDir, skillId);
+    const skillMd = path.join(sourceSkillDir, "SKILL.md");
+    if (!fs.existsSync(skillMd)) {
+      summary.skipped += 1;
+      continue;
+    }
+    const hash = await computeSkillHash(sourceSkillDir);
+    const prev = oldSkills[skillId];
+    const targetSkillDir = path.join(targetDir, skillId);
+    if (!prev) summary.added += 1;
+    else if (prev.hash !== hash) summary.updated += 1;
+    else summary.unchanged += 1;
+
+    nextSkills[skillId] = {
+      sourcePath: sourceSkillDir,
+      targetPath: targetSkillDir,
+      hash,
+      managedBy: SKILL_SYNC_MANAGED_BY,
+      updatedAt: Date.now(),
+    };
+    if (!dryRun && (!prev || prev.hash !== hash)) {
+      await copySkillFolderAtomic(sourceSkillDir, targetSkillDir);
+    }
+  }
+
+  for (const [skillId, entry] of Object.entries(oldSkills)) {
+    if (nextSkills[skillId]) continue;
+    if (!entry || entry.managedBy !== SKILL_SYNC_MANAGED_BY) continue;
+    summary.deleted += 1;
+    if (!dryRun) {
+      await fs.promises.rm(path.join(targetDir, skillId), {
+        recursive: true,
+        force: true,
+      });
+    }
+  }
+
+  if (!dryRun) {
+    await writeSkillSyncManifestAtomic(manifestPath, {
+      sourceDir,
+      targetDir,
+      managedBy: SKILL_SYNC_MANAGED_BY,
+      updatedAt: Date.now(),
+      skills: nextSkills,
+    });
+  }
+  return summary;
+}
+
+const TERMINAL_RUN_STATUSES = new Set(["succeeded", "failed", "canceled"]);
 
 export function shouldReportRunCompletedFromMessage(saved, body = {}) {
   return Boolean(
     saved &&
-      saved.runId &&
-      typeof saved.runStatus === 'string' &&
-      TERMINAL_RUN_STATUSES.has(saved.runStatus) &&
-      body?.telemetryFinalized === true,
+    saved.runId &&
+    typeof saved.runStatus === "string" &&
+    TERMINAL_RUN_STATUSES.has(saved.runStatus) &&
+    body?.telemetryFinalized === true,
   );
 }
 
 export function telemetryPromptFromRunRequest(message, currentPrompt) {
-  return typeof currentPrompt === 'string' ? currentPrompt : message;
+  return typeof currentPrompt === "string" ? currentPrompt : message;
 }
 
-const CLOUDFLARE_PAGES_PROJECT_METADATA_KEY = 'cloudflarePagesProjectName';
+const CLOUDFLARE_PAGES_PROJECT_METADATA_KEY = "cloudflarePagesProjectName";
 
 function cloudflarePagesDeploymentMetadata(projectName) {
-  const normalized = typeof projectName === 'string' ? projectName.trim() : '';
+  const normalized = typeof projectName === "string" ? projectName.trim() : "";
   return normalized
     ? { [CLOUDFLARE_PAGES_PROJECT_METADATA_KEY]: normalized }
     : undefined;
 }
 
 function cloudflarePagesProjectNameFromDeployment(deployment) {
-  const value = deployment?.providerMetadata?.[CLOUDFLARE_PAGES_PROJECT_METADATA_KEY];
-  if (typeof value === 'string' && value.trim()) return value.trim();
+  const value =
+    deployment?.providerMetadata?.[CLOUDFLARE_PAGES_PROJECT_METADATA_KEY];
+  if (typeof value === "string" && value.trim()) return value.trim();
   return cloudflarePagesProjectNameFromUrl(deployment?.url);
 }
 
 function cloudflarePagesProjectNameFromUrl(rawUrl) {
-  if (typeof rawUrl !== 'string' || !rawUrl.trim()) return '';
+  if (typeof rawUrl !== "string" || !rawUrl.trim()) return "";
   try {
     const host = new URL(rawUrl).hostname.toLowerCase();
-    if (!host.endsWith('.pages.dev')) return '';
-    const labels = host.slice(0, -'.pages.dev'.length).split('.').filter(Boolean);
-    return labels.at(-1) || '';
+    if (!host.endsWith(".pages.dev")) return "";
+    const labels = host
+      .slice(0, -".pages.dev".length)
+      .split(".")
+      .filter(Boolean);
+    return labels.at(-1) || "";
   } catch {
-    return '';
+    return "";
   }
 }
 
-function cloudflarePagesProjectNameForDeploy(db, projectId, projectName, prior) {
+function cloudflarePagesProjectNameForDeploy(
+  db,
+  projectId,
+  projectName,
+  prior,
+) {
   const priorName = cloudflarePagesProjectNameFromDeployment(prior);
   if (priorName) return priorName;
 
@@ -1334,7 +1973,7 @@ function cloudflarePagesProjectNameForDeploy(db, projectId, projectName, prior) 
 }
 
 function publicDeployment(deployment) {
-  if (!deployment || typeof deployment !== 'object') return deployment;
+  if (!deployment || typeof deployment !== "object") return deployment;
   const { providerMetadata: _providerMetadata, ...publicShape } = deployment;
   return publicShape;
 }
@@ -1345,56 +1984,74 @@ function publicDeployments(deployments) {
 
 async function checkCloudflarePagesDeploymentLinks(existing) {
   const current = existing.cloudflarePages || {};
-  const projectName = current.projectName || cloudflarePagesProjectNameFromDeployment(existing);
+  const projectName =
+    current.projectName || cloudflarePagesProjectNameFromDeployment(existing);
   const config = await readDeployConfig(CLOUDFLARE_PAGES_PROVIDER_ID);
   const pagesDevUrl = current.pagesDev?.url || existing.url;
   const pagesDevResult = await checkDeploymentUrl(pagesDevUrl);
   const pagesDev = {
     ...(current.pagesDev || {}),
     url: pagesDevUrl,
-    status: pagesDevResult.reachable ? 'ready' : pagesDevResult.status || 'link-delayed',
+    status: pagesDevResult.reachable
+      ? "ready"
+      : pagesDevResult.status || "link-delayed",
     statusMessage: pagesDevResult.reachable
-      ? 'Public link is ready.'
-      : pagesDevResult.statusMessage || current.pagesDev?.statusMessage || 'Cloudflare Pages is still preparing the pages.dev link.',
-    reachableAt: pagesDevResult.reachable ? Date.now() : current.pagesDev?.reachableAt,
+      ? "Public link is ready."
+      : pagesDevResult.statusMessage ||
+        current.pagesDev?.statusMessage ||
+        "Cloudflare Pages is still preparing the pages.dev link.",
+    reachableAt: pagesDevResult.reachable
+      ? Date.now()
+      : current.pagesDev?.reachableAt,
   };
   let customDomain = current.customDomain;
-  if (customDomain?.url && customDomain.status !== 'conflict') {
+  if (customDomain?.url && customDomain.status !== "conflict") {
     let pagesDomain = null;
     if (config?.token && config?.accountId && projectName) {
       try {
-        pagesDomain = await readCloudflarePagesDomain({ ...config, projectName }, customDomain.hostname);
+        pagesDomain = await readCloudflarePagesDomain(
+          { ...config, projectName },
+          customDomain.hostname,
+        );
       } catch {
         pagesDomain = null;
       }
     }
     const customResult = await checkDeploymentUrl(customDomain.url);
-    const pagesDomainStatus = pagesDomain?.status || customDomain.pagesDomainStatus;
-    const failedByApi = ['error', 'blocked', 'deactivated'].includes(String(pagesDomainStatus || '').toLowerCase());
-    const activeByApi = String(pagesDomainStatus || '').toLowerCase() === 'active';
+    const pagesDomainStatus =
+      pagesDomain?.status || customDomain.pagesDomainStatus;
+    const failedByApi = ["error", "blocked", "deactivated"].includes(
+      String(pagesDomainStatus || "").toLowerCase(),
+    );
+    const activeByApi =
+      String(pagesDomainStatus || "").toLowerCase() === "active";
     const readyByReachability = customResult.reachable && activeByApi;
     customDomain = {
       ...customDomain,
       domainStatus: pagesDomain
-        ? pagesDomain.status === 'active'
-          ? 'active'
+        ? pagesDomain.status === "active"
+          ? "active"
           : failedByApi
-            ? 'failed'
-            : 'pending'
+            ? "failed"
+            : "pending"
         : customDomain.domainStatus,
       pagesDomainStatus,
-      validationData: pagesDomain?.validation_data ?? customDomain.validationData,
-      verificationData: pagesDomain?.verification_data ?? customDomain.verificationData,
+      validationData:
+        pagesDomain?.validation_data ?? customDomain.validationData,
+      verificationData:
+        pagesDomain?.verification_data ?? customDomain.verificationData,
       status: readyByReachability
-        ? 'ready'
-        : customDomain.status === 'failed' || failedByApi
-          ? 'failed'
-          : 'pending',
+        ? "ready"
+        : customDomain.status === "failed" || failedByApi
+          ? "failed"
+          : "pending",
       statusMessage: readyByReachability
-        ? 'Custom domain is ready.'
+        ? "Custom domain is ready."
         : failedByApi
-          ? 'Cloudflare Pages reported a custom-domain error.'
-        : customResult.statusMessage || customDomain.statusMessage || 'Custom domain is still being prepared.',
+          ? "Cloudflare Pages reported a custom-domain error."
+          : customResult.statusMessage ||
+            customDomain.statusMessage ||
+            "Custom domain is still being prepared.",
     };
   }
   const cloudflarePages = {
@@ -1421,52 +2078,89 @@ async function checkCloudflarePagesDeploymentLinks(existing) {
 // so a project name with non-ASCII characters (e.g. "café-design")
 // survives instead of becoming a row of underscores.
 function sanitizeArchiveFilename(raw) {
-  const cleaned = String(raw ?? '')
-    .replace(/[\\/:*?"<>|]/g, '_')
-    .replace(/[\u0000-\u001f\u007f]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/^-+|-+$/g, '')
+  const cleaned = String(raw ?? "")
+    .replace(/[\\/:*?"<>|]/g, "_")
+    .replace(/[\u0000-\u001f\u007f]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/^-+|-+$/g, "")
     .slice(0, 80);
   return cleaned;
 }
 
 function sendLiveArtifactRouteError(res, err) {
   if (err instanceof LiveArtifactStoreValidationError) {
-    return sendApiError(res, 400, 'LIVE_ARTIFACT_INVALID', err.message, {
-      details: { kind: 'validation', issues: err.issues },
+    return sendApiError(res, 400, "LIVE_ARTIFACT_INVALID", err.message, {
+      details: { kind: "validation", issues: err.issues },
     });
   }
   if (err instanceof LiveArtifactRefreshLockError) {
-    return sendApiError(res, 409, 'REFRESH_LOCKED', err.message, {
+    return sendApiError(res, 409, "REFRESH_LOCKED", err.message, {
       details: { artifactId: err.artifactId },
     });
   }
   if (err instanceof LiveArtifactRefreshUnavailableError) {
-    return sendApiError(res, 400, 'LIVE_ARTIFACT_REFRESH_UNAVAILABLE', err.message);
+    return sendApiError(
+      res,
+      400,
+      "LIVE_ARTIFACT_REFRESH_UNAVAILABLE",
+      err.message,
+    );
   }
   if (err instanceof LiveArtifactRefreshAbortError) {
-    return sendApiError(res, err.kind === 'cancelled' ? 499 : 504, 'LIVE_ARTIFACT_REFRESH_TIMEOUT', err.message, {
-      details: { kind: err.kind, timeoutMs: err.timeoutMs ?? null, step: err.step ?? null },
-    });
+    return sendApiError(
+      res,
+      err.kind === "cancelled" ? 499 : 504,
+      "LIVE_ARTIFACT_REFRESH_TIMEOUT",
+      err.message,
+      {
+        details: {
+          kind: err.kind,
+          timeoutMs: err.timeoutMs ?? null,
+          step: err.step ?? null,
+        },
+      },
+    );
   }
   if (err instanceof ConnectorServiceError) {
-    return sendApiError(res, err.status, err.code, err.message, err.details === undefined ? {} : { details: err.details });
+    return sendApiError(
+      res,
+      err.status,
+      err.code,
+      err.message,
+      err.details === undefined ? {} : { details: err.details },
+    );
   }
-  if (err && typeof err === 'object' && 'code' in err && err.code === 'ENOENT') {
-    return sendApiError(res, 404, 'LIVE_ARTIFACT_NOT_FOUND', 'live artifact not found');
+  if (
+    err &&
+    typeof err === "object" &&
+    "code" in err &&
+    err.code === "ENOENT"
+  ) {
+    return sendApiError(
+      res,
+      404,
+      "LIVE_ARTIFACT_NOT_FOUND",
+      "live artifact not found",
+    );
   }
-  return sendApiError(res, 500, 'LIVE_ARTIFACT_STORAGE_FAILED', String(err));
+  return sendApiError(res, 500, "LIVE_ARTIFACT_STORAGE_FAILED", String(err));
 }
 
 function normalizeLocalAuthority(value) {
-  if (typeof value !== 'string') return null;
+  if (typeof value !== "string") return null;
   const trimmed = value.trim();
-  if (!trimmed || /[\s/@]/.test(trimmed) || trimmed.includes(',')) return null;
+  if (!trimmed || /[\s/@]/.test(trimmed) || trimmed.includes(",")) return null;
 
   try {
     const parsed = new URL(`http://${trimmed}`);
-    const hostname = parsed.hostname.toLowerCase().replace(/\.$/, '');
-    if (!hostname || parsed.username || parsed.password || parsed.pathname !== '/') return null;
+    const hostname = parsed.hostname.toLowerCase().replace(/\.$/, "");
+    if (
+      !hostname ||
+      parsed.username ||
+      parsed.password ||
+      parsed.pathname !== "/"
+    )
+      return null;
     return { hostname, port: parsed.port };
   } catch {
     return null;
@@ -1474,32 +2168,49 @@ function normalizeLocalAuthority(value) {
 }
 
 function isLoopbackHostname(hostname) {
-  const normalized = String(hostname || '').toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
-  if (normalized === 'localhost') return true;
-  if (normalized === '::1' || normalized === '0:0:0:0:0:0:0:1') return true;
-  if (net.isIP(normalized) === 4) return normalized === '127.0.0.1' || normalized.startsWith('127.');
+  const normalized = String(hostname || "")
+    .toLowerCase()
+    .replace(/^\[|\]$/g, "")
+    .replace(/\.$/, "");
+  if (normalized === "localhost") return true;
+  if (normalized === "::1" || normalized === "0:0:0:0:0:0:0:1") return true;
+  if (net.isIP(normalized) === 4)
+    return normalized === "127.0.0.1" || normalized.startsWith("127.");
   return false;
 }
 
 function isLoopbackPeerAddress(address) {
-  if (typeof address !== 'string') return false;
-  const normalized = address.trim().toLowerCase().replace(/^\[|\]$/g, '');
+  if (typeof address !== "string") return false;
+  const normalized = address
+    .trim()
+    .toLowerCase()
+    .replace(/^\[|\]$/g, "");
   if (!normalized) return false;
-  if (normalized.startsWith('::ffff:')) return isLoopbackPeerAddress(normalized.slice('::ffff:'.length));
-  if (normalized === '::1' || normalized === '0:0:0:0:0:0:0:1') return true;
-  if (net.isIP(normalized) === 4) return normalized === '127.0.0.1' || normalized.startsWith('127.');
+  if (normalized.startsWith("::ffff:"))
+    return isLoopbackPeerAddress(normalized.slice("::ffff:".length));
+  if (normalized === "::1" || normalized === "0:0:0:0:0:0:0:1") return true;
+  if (net.isIP(normalized) === 4)
+    return normalized === "127.0.0.1" || normalized.startsWith("127.");
   return false;
 }
 
 function localOriginFromHeader(value) {
-  if (typeof value !== 'string') return null;
+  if (typeof value !== "string") return null;
   const trimmed = value.trim();
-  if (!trimmed || trimmed === 'null' || trimmed.includes(',')) return null;
+  if (!trimmed || trimmed === "null" || trimmed.includes(",")) return null;
 
   try {
     const parsed = new URL(trimmed);
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
-    if (parsed.pathname !== '/' || parsed.search || parsed.hash || parsed.username || parsed.password) return null;
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:")
+      return null;
+    if (
+      parsed.pathname !== "/" ||
+      parsed.search ||
+      parsed.hash ||
+      parsed.username ||
+      parsed.password
+    )
+      return null;
     if (!isLoopbackHostname(parsed.hostname)) return null;
     return parsed.origin;
   } catch {
@@ -1511,26 +2222,26 @@ function validateLocalDaemonRequest(req) {
   if (!isLoopbackPeerAddress(req.socket?.remoteAddress)) {
     return {
       ok: false,
-      message: 'request peer must be a loopback address',
-      details: { peer: 'remoteAddress' },
+      message: "request peer must be a loopback address",
+      details: { peer: "remoteAddress" },
     };
   }
 
-  const host = normalizeLocalAuthority(req.get('host'));
+  const host = normalizeLocalAuthority(req.get("host"));
   if (!host || !isLoopbackHostname(host.hostname)) {
     return {
       ok: false,
-      message: 'request host must be a loopback daemon address',
-      details: { header: 'host' },
+      message: "request host must be a loopback daemon address",
+      details: { header: "host" },
     };
   }
 
-  const originHeader = req.get('origin');
+  const originHeader = req.get("origin");
   if (originHeader !== undefined && !localOriginFromHeader(originHeader)) {
     return {
       ok: false,
-      message: 'request origin must be a loopback daemon origin',
-      details: { header: 'origin' },
+      message: "request origin must be a loopback daemon origin",
+      details: { header: "origin" },
     };
   }
 
@@ -1540,16 +2251,22 @@ function validateLocalDaemonRequest(req) {
 function requireLocalDaemonRequest(req, res, next) {
   const validation = validateLocalDaemonRequest(req);
   if (!validation.ok) {
-    return sendApiError(res, 403, 'FORBIDDEN', validation.message, validation.details ? { details: validation.details } : {});
+    return sendApiError(
+      res,
+      403,
+      "FORBIDDEN",
+      validation.message,
+      validation.details ? { details: validation.details } : {},
+    );
   }
 
-  res.setHeader('Vary', 'Origin');
+  res.setHeader("Vary", "Origin");
   if (validation.origin) {
-    res.setHeader('Access-Control-Allow-Origin', validation.origin);
+    res.setHeader("Access-Control-Allow-Origin", validation.origin);
   }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Access-Control-Max-Age', '600');
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Max-Age", "600");
   next();
 }
 
@@ -1563,15 +2280,15 @@ function requireLocalDaemonRequest(req, res, next) {
  */
 function renderOAuthResultPage(opts) {
   const ok = Boolean(opts.ok);
-  const title = ok ? 'Connected' : 'Authorization failed';
-  const heading = ok ? '✅ Connected' : '⚠️ Authorization failed';
+  const title = ok ? "Connected" : "Authorization failed";
+  const heading = ok ? "✅ Connected" : "⚠️ Authorization failed";
   const body = ok
-    ? `Your MCP server <code>${escapeHtml(opts.serverId ?? '')}</code> is now connected. You can close this tab and return to Open Design.`
-    : escapeHtml(opts.message ?? 'Authorization could not be completed.');
-  const accent = ok ? '#1a7f37' : '#cf222e';
+    ? `Your MCP server <code>${escapeHtml(opts.serverId ?? "")}</code> is now connected. You can close this tab and return to Open Design.`
+    : escapeHtml(opts.message ?? "Authorization could not be completed.");
+  const accent = ok ? "#1a7f37" : "#cf222e";
   const payload = ok
-    ? { type: 'mcp-oauth', ok: true, serverId: opts.serverId ?? null }
-    : { type: 'mcp-oauth', ok: false, message: opts.message ?? null };
+    ? { type: "mcp-oauth", ok: true, serverId: opts.serverId ?? null }
+    : { type: "mcp-oauth", ok: false, message: opts.message ?? null };
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -1634,21 +2351,21 @@ function renderOAuthResultPage(opts) {
 }
 
 function escapeHtml(s) {
-  return String(s ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function setLiveArtifactPreviewHeaders(res) {
-  res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-store');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "no-referrer");
   res.setHeader(
-    'Content-Security-Policy',
+    "Content-Security-Policy",
     [
       "default-src 'none'",
       "base-uri 'none'",
@@ -1660,30 +2377,37 @@ function setLiveArtifactPreviewHeaders(res) {
       "img-src 'self' data: blob:",
       "font-src 'self' data:",
       "style-src 'unsafe-inline'",
-      'sandbox allow-same-origin',
-    ].join('; '),
+      "sandbox allow-same-origin",
+    ].join("; "),
   );
 }
 
 function setLiveArtifactCodeHeaders(res) {
-  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-store');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader("Content-Type", "text/plain; charset=utf-8");
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "no-referrer");
 }
 
 function bearerTokenFromRequest(req) {
-  const header = req.get('authorization');
-  if (typeof header !== 'string') return undefined;
+  const header = req.get("authorization");
+  if (typeof header !== "string") return undefined;
   const match = /^Bearer\s+(.+)$/i.exec(header.trim());
   return match?.[1];
 }
 
 function authorizeToolRequest(req, res, operation) {
   const endpoint = req.path;
-  const validation = toolTokenRegistry.validate(bearerTokenFromRequest(req), { endpoint, operation });
+  const validation = toolTokenRegistry.validate(bearerTokenFromRequest(req), {
+    endpoint,
+    operation,
+  });
   if (!validation.ok) {
-    const status = validation.code === 'TOOL_ENDPOINT_DENIED' || validation.code === 'TOOL_OPERATION_DENIED' ? 403 : 401;
+    const status =
+      validation.code === "TOOL_ENDPOINT_DENIED" ||
+      validation.code === "TOOL_OPERATION_DENIED"
+        ? 403
+        : 401;
     sendApiError(res, status, validation.code, validation.message, {
       details: { endpoint, operation },
     });
@@ -1693,31 +2417,42 @@ function authorizeToolRequest(req, res, operation) {
 }
 
 function requestProjectOverride(projectId, tokenProjectId) {
-  return typeof projectId === 'string' && projectId.length > 0 && projectId !== tokenProjectId;
+  return (
+    typeof projectId === "string" &&
+    projectId.length > 0 &&
+    projectId !== tokenProjectId
+  );
 }
 
 function requestRunOverride(runId, tokenRunId) {
-  return typeof runId === 'string' && runId.length > 0 && runId !== tokenRunId;
+  return typeof runId === "string" && runId.length > 0 && runId !== tokenRunId;
 }
 
 function openNativeFolderDialog() {
   return new Promise((resolve) => {
     const platform = process.platform;
-    if (platform === 'darwin') {
+    if (platform === "darwin") {
       execFile(
-        'osascript',
-        ['-e', 'POSIX path of (choose folder with prompt "Select a code folder to link")'],
+        "osascript",
+        [
+          "-e",
+          'POSIX path of (choose folder with prompt "Select a code folder to link")',
+        ],
         { timeout: 120_000 },
         (err, stdout) => {
           if (err) return resolve(null);
-          const p = stdout.trim().replace(/\/$/, '');
+          const p = stdout.trim().replace(/\/$/, "");
           resolve(p || null);
         },
       );
-    } else if (platform === 'linux') {
+    } else if (platform === "linux") {
       execFile(
-        'zenity',
-        ['--file-selection', '--directory', '--title=Select a code folder to link'],
+        "zenity",
+        [
+          "--file-selection",
+          "--directory",
+          "--title=Select a code folder to link",
+        ],
         { timeout: 120_000 },
         (err, stdout) => {
           if (err) return resolve(null);
@@ -1725,11 +2460,16 @@ function openNativeFolderDialog() {
           resolve(p || null);
         },
       );
-    } else if (platform === 'win32') {
+    } else if (platform === "win32") {
       const command = buildWindowsFolderDialogCommand();
-      execFile(command.command, command.args, { timeout: 120_000 }, (err, stdout) => {
-        resolve(parseFolderDialogStdout(err, stdout));
-      });
+      execFile(
+        command.command,
+        command.args,
+        { timeout: 120_000 },
+        (err, stdout) => {
+          resolve(parseFolderDialogStdout(err, stdout));
+        },
+      );
     } else {
       resolve(null);
     }
@@ -1745,7 +2485,7 @@ function createSseErrorPayload(code, message, init = {}) {
   return { message, error: createCompatApiError(code, message, init) };
 }
 
-const UPLOAD_DIR = path.join(os.tmpdir(), 'od-uploads');
+const UPLOAD_DIR = path.join(os.tmpdir(), "od-uploads");
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 fs.mkdirSync(ARTIFACTS_DIR, { recursive: true });
 
@@ -1788,7 +2528,9 @@ const importUpload = multer({
 // startServer() sets this so the upload destination can route attachments
 // into the right project root, including folder-imported projects whose
 // files live under metadata.baseDir.
-let projectMetadataLookup: ((id: string) => Record<string, unknown> | null) | null = null;
+let projectMetadataLookup:
+  | ((id: string) => Record<string, unknown> | null)
+  | null = null;
 
 const projectUpload = multer({
   storage: multer.diskStorage({
@@ -1804,25 +2546,40 @@ const projectUpload = multer({
         const dir = await ensureProject(PROJECTS_DIR, req.params.id, meta);
         cb(null, dir);
       } catch (err) {
-        cb(err, '');
+        cb(err, "");
       }
     },
-    filename: (_req, file, cb) => {
+    filename: (req, file, cb) => {
       // multer@1 hands us latin1-decoded multipart filenames; restore the
-      // original UTF-8 so the response (and the on-disk name) preserves
-      // non-ASCII characters instead of mangling them. Then run the
-      // shared sanitiser and prepend a base36 timestamp so multiple
-      // uploads with the same original name don't clobber each other.
+      // original UTF-8 so the on-disk name preserves non-ASCII characters.
+      // Keep the user's original name verbatim (sanitised). On collision,
+      // append " (1)", " (2)", ... before the extension instead of
+      // prefixing a timestamp — readability over uniqueness-by-default.
       file.originalname = decodeMultipartFilename(file.originalname);
       const safe = sanitizeName(file.originalname);
-      cb(null, `${Date.now().toString(36)}-${safe}`);
+      try {
+        const meta = projectMetadataLookup?.(req.params.id) ?? null;
+        const dir = resolveProjectDir(PROJECTS_DIR, req.params.id, meta);
+        if (!fs.existsSync(path.join(dir, safe))) return cb(null, safe);
+        const dot = safe.lastIndexOf(".");
+        const stem = dot > 0 ? safe.slice(0, dot) : safe;
+        const ext = dot > 0 ? safe.slice(dot) : "";
+        for (let i = 1; i < 1000; i++) {
+          const candidate = `${stem} (${i})${ext}`;
+          if (!fs.existsSync(path.join(dir, candidate)))
+            return cb(null, candidate);
+        }
+        cb(null, `${stem}-${Date.now().toString(36)}${ext}`);
+      } catch (err) {
+        cb(err as Error, "");
+      }
     },
   }),
-  limits: { fileSize: 200 * 1024 * 1024 },  // 200MB — covers the largest design assets we expect (PPTX/PDF/raw images)
+  limits: { fileSize: 200 * 1024 * 1024 }, // 200MB — covers the largest design assets we expect (PPTX/PDF/raw images)
 });
 
 function handleProjectUpload(req, res, next) {
-  projectUpload.array('files', 12)(req, res, (err) => {
+  projectUpload.array("files", 12)(req, res, (err) => {
     if (err) {
       return sendMulterError(res, err);
     }
@@ -1832,7 +2589,7 @@ function handleProjectUpload(req, res, next) {
 
 function sendMulterError(res, err) {
   if (err instanceof multer.MulterError) {
-    const code = err.code || 'UPLOAD_ERROR';
+    const code = err.code || "UPLOAD_ERROR";
     const statusByCode = {
       LIMIT_FILE_SIZE: 413,
       LIMIT_FILE_COUNT: 400,
@@ -1844,36 +2601,36 @@ function sendMulterError(res, err) {
       MISSING_FIELD_NAME: 400,
     };
     const errorByCode = {
-      LIMIT_FILE_SIZE: 'file too large',
-      LIMIT_FILE_COUNT: 'too many files',
-      LIMIT_UNEXPECTED_FILE: 'unexpected file field',
-      LIMIT_PART_COUNT: 'too many form parts',
-      LIMIT_FIELD_KEY: 'field name too long',
-      LIMIT_FIELD_VALUE: 'field value too long',
-      LIMIT_FIELD_COUNT: 'too many form fields',
-      MISSING_FIELD_NAME: 'missing field name',
+      LIMIT_FILE_SIZE: "file too large",
+      LIMIT_FILE_COUNT: "too many files",
+      LIMIT_UNEXPECTED_FILE: "unexpected file field",
+      LIMIT_PART_COUNT: "too many form parts",
+      LIMIT_FIELD_KEY: "field name too long",
+      LIMIT_FIELD_VALUE: "field value too long",
+      LIMIT_FIELD_COUNT: "too many form fields",
+      MISSING_FIELD_NAME: "missing field name",
     };
     const status = statusByCode[code] ?? 400;
-    const message = errorByCode[code] ?? 'upload failed';
+    const message = errorByCode[code] ?? "upload failed";
     return sendApiError(
       res,
       status,
-      code === 'LIMIT_FILE_SIZE' ? 'PAYLOAD_TOO_LARGE' : 'BAD_REQUEST',
+      code === "LIMIT_FILE_SIZE" ? "PAYLOAD_TOO_LARGE" : "BAD_REQUEST",
       message,
       { details: { legacyCode: code } },
     );
   }
 
   if (err) {
-    return sendApiError(res, 500, 'INTERNAL_ERROR', 'upload failed');
+    return sendApiError(res, 500, "INTERNAL_ERROR", "upload failed");
   }
 
-  return sendApiError(res, 500, 'INTERNAL_ERROR', 'upload failed');
+  return sendApiError(res, 500, "INTERNAL_ERROR", "upload failed");
 }
 
 const mediaTasks = new Map();
 const TASK_TTL_AFTER_DONE_MS = 10 * 60 * 1000;
-const MEDIA_TERMINAL_STATUSES = new Set(['done', 'failed', 'interrupted']);
+const MEDIA_TERMINAL_STATUSES = new Set(["done", "failed", "interrupted"]);
 
 function hydrateMediaTask(row) {
   const task = {
@@ -1904,7 +2661,7 @@ function createMediaTask(db, taskId, projectId, info = {}) {
   const task = {
     id: taskId,
     projectId,
-    status: 'queued',
+    status: "queued",
     surface: info.surface,
     model: info.model,
     progress: [],
@@ -1958,10 +2715,7 @@ function notifyTaskWaiters(db, task) {
       // Never let one bad waiter block the rest.
     }
   }
-  if (
-    MEDIA_TERMINAL_STATUSES.has(task.status) &&
-    !task._gcScheduled
-  ) {
+  if (MEDIA_TERMINAL_STATUSES.has(task.status) && !task._gcScheduled) {
     task._gcScheduled = true;
     setTimeout(() => {
       if (task.waiters.size === 0) {
@@ -1981,8 +2735,8 @@ function mediaTaskSnapshot(task, since = 0) {
     progress: task.progress.slice(since),
     nextSince: task.progress.length,
   };
-  if (task.status === 'done') snapshot.file = task.file;
-  if (task.status === 'failed' || task.status === 'interrupted') {
+  if (task.status === "done") snapshot.file = task.file;
+  if (task.status === "failed" || task.status === "interrupted") {
     snapshot.error = task.error;
   }
   return snapshot;
@@ -1992,16 +2746,16 @@ export function createSseResponse(
   res,
   { keepAliveIntervalMs = SSE_KEEPALIVE_INTERVAL_MS } = {},
 ) {
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache, no-transform');
-  res.setHeader('Connection', 'keep-alive');
-  res.setHeader('X-Accel-Buffering', 'no');
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
   res.flushHeaders?.();
 
   const canWrite = () => !res.destroyed && !res.writableEnded;
   const writeKeepAlive = () => {
     if (canWrite()) {
-      res.write(': keepalive\n\n');
+      res.write(": keepalive\n\n");
       return true;
     }
     return false;
@@ -2020,8 +2774,8 @@ export function createSseResponse(
     }
   };
 
-  res.on('close', cleanup);
-  res.on('finish', cleanup);
+  res.on("close", cleanup);
+  res.on("finish", cleanup);
 
   return {
     /** @param {ChatSseEvent['event'] | ProxySseEvent['event'] | string} event */
@@ -2032,7 +2786,7 @@ export function createSseResponse(
       // ahead of the `data:` payload, which produces partial events for
       // consumers that read chunk-by-chunk (e.g. tests using a Response body
       // reader with a substring marker).
-      const idLine = id !== null && id !== undefined ? `id: ${id}\n` : '';
+      const idLine = id !== null && id !== undefined ? `id: ${id}\n` : "";
       res.write(`${idLine}event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
       return true;
     },
@@ -2047,7 +2801,9 @@ export function createSseResponse(
   };
 }
 
-export type DesktopPdfExporter = (input: DesktopExportPdfInput) => Promise<DesktopExportPdfResult>;
+export type DesktopPdfExporter = (
+  input: DesktopExportPdfInput,
+) => Promise<DesktopExportPdfResult>;
 
 export interface StartServerOptions {
   desktopPdfExporter?: DesktopPdfExporter | null;
@@ -2068,7 +2824,10 @@ function resolveChatRunInactivityTimeoutMs() {
   // Node clamps delays larger than a signed 32-bit integer down to 1ms, which
   // makes an oversized override fail almost immediately while reporting a huge
   // timeout. Keep explicit overrides bounded to a practical, timer-safe value.
-  return Math.min(MAX_CHAT_RUN_INACTIVITY_TIMEOUT_MS, Math.max(0, Math.floor(raw)));
+  return Math.min(
+    MAX_CHAT_RUN_INACTIVITY_TIMEOUT_MS,
+    Math.max(0, Math.floor(raw)),
+  );
 }
 
 function resolveChatRunShutdownGraceMs() {
@@ -2079,7 +2838,7 @@ function resolveChatRunShutdownGraceMs() {
 
 export async function startServer({
   port = 7456,
-  host = process.env.OD_BIND_HOST || '127.0.0.1',
+  host = process.env.OD_BIND_HOST || "127.0.0.1",
   returnServer = false,
   desktopPdfExporter = null,
 }: StartServerOptions = {}) {
@@ -2087,43 +2846,92 @@ export async function startServer({
   let daemonShuttingDown = false;
   const extraAllowedOrigins = configuredAllowedOrigins();
   const app = express();
-  app.use(express.json({ limit: '4mb' }));
+  app.use(express.json({ limit: "4mb" }));
 
-  // Multi-directory scanning: merge built-in and user-installed skills/DS.
+  // Multi-directory scanning: merge built-in, user-installed, and extra project dirs.
   // Built-in items win on ID collisions (higher priority per skills-protocol.md).
   async function listAllSkills() {
     const builtIn = (await listSkills(SKILLS_DIR)).map((s) => ({
       ...s,
-      source: 'built-in',
+      source: "built-in",
     }));
-    let installed = [];
+    let installed: typeof builtIn = [];
     try {
       installed = (await listSkills(USER_SKILLS_DIR)).map((s) => ({
         ...s,
-        source: 'installed',
+        source: "installed",
       }));
     } catch {
       // User directory may not exist yet or be unreadable.
     }
+    const extraDirs = resolveExtraSkillsDirs();
+    const extraItems: typeof builtIn = [];
+    for (const dir of extraDirs) {
+      try {
+        const items = (await listSkills(dir)).map((s) => ({
+          ...s,
+          source: "project" as const,
+        }));
+        extraItems.push(...items);
+      } catch {
+        // Extra dir may not exist or be unreadable — skip silently.
+      }
+    }
     const seen = new Set(builtIn.map((s) => s.id));
-    return [...builtIn, ...installed.filter((s) => !seen.has(s.id))];
+    const merged = [...installed, ...extraItems].filter((s) => !seen.has(s.id));
+    for (const s of merged) seen.add(s.id);
+    return [...builtIn, ...merged];
   }
 
   async function listAllDesignSystems() {
     const builtIn = (await listDesignSystems(DESIGN_SYSTEMS_DIR)).map((s) => ({
       ...s,
-      source: 'built-in',
+      source: "built-in",
     }));
-    let installed = [];
+    let installed: typeof builtIn = [];
     try {
       installed = (await listDesignSystems(USER_DESIGN_SYSTEMS_DIR)).map(
-        (s) => ({ ...s, source: 'installed' }),
+        (s) => ({ ...s, source: "installed" }),
       );
     } catch {
       // User directory may not exist yet or be unreadable.
     }
+    const extraDirs = resolveExtraDesignSystemsDirs();
+    const extraItems: typeof builtIn = [];
+    for (const dir of extraDirs) {
+      try {
+        const items = (await listDesignSystems(dir)).map((s) => ({
+          ...s,
+          source: "project" as const,
+        }));
+        extraItems.push(...items);
+      } catch {
+        // Extra dir may not exist or be unreadable — skip silently.
+      }
+    }
     const seen = new Set(builtIn.map((s) => s.id));
-    return [...builtIn, ...installed.filter((s) => !seen.has(s.id))];
+    const merged = [...installed, ...extraItems].filter((s) => !seen.has(s.id));
+    for (const s of merged) seen.add(s.id);
+    return [...builtIn, ...merged];
+  }
+
+  // Read design system body from built-in, user, and extra project dirs.
+  async function readDesignSystemFromAllDirs(
+    id: string,
+  ): Promise<string | null> {
+    const body =
+      (await readDesignSystem(DESIGN_SYSTEMS_DIR, id)) ??
+      (await readDesignSystem(USER_DESIGN_SYSTEMS_DIR, id));
+    if (body !== null) return body;
+    for (const dir of resolveExtraDesignSystemsDirs()) {
+      try {
+        const extra = await readDesignSystem(dir, id);
+        if (extra !== null) return extra;
+      } catch {
+        // skip
+      }
+    }
+    return null;
   }
 
   // Chrome may strip the port from the Origin header on same-origin GET
@@ -2141,7 +2949,7 @@ export async function startServer({
   // Reject cross-origin requests to API endpoints.
   // Health/version remain open for monitoring probes.
   // Non-browser clients (no Origin header) are always allowed.
-  app.use('/api', (req, res, next) => {
+  app.use("/api", (req, res, next) => {
     // Live artifact previews have stricter local-daemon validation and
     // loopback CORS handling on the route itself. Let that middleware produce
     // the structured error shape and preflight headers for preview embeds.
@@ -2149,28 +2957,40 @@ export async function startServer({
 
     const origin = req.headers.origin;
     // Non-browser client → allow.
-    if (origin == null || origin === '') return next();
+    if (origin == null || origin === "") return next();
 
     // Origin: null (sandboxed iframes).  Only allowed for safe, read-only
     // routes that set their own CORS headers for canvas drawing.
-    if (origin === 'null') {
+    if (origin === "null") {
       const isSafeReadOnly =
-        req.method === 'GET' && _NULL_ORIGIN_SAFE_GET_RE.test(req.path);
+        req.method === "GET" && _NULL_ORIGIN_SAFE_GET_RE.test(req.path);
       if (!isSafeReadOnly) {
-        return res.status(403).json({ error: 'Origin: null not allowed for this route' });
+        return res
+          .status(403)
+          .json({ error: "Origin: null not allowed for this route" });
       }
       return next();
     }
 
     // Fail-closed: block all browser origins until port is resolved.
     if (!resolvedPort) {
-      return res.status(403).json({ error: 'Server initializing' });
+      return res.status(403).json({ error: "Server initializing" });
     }
 
     const ports = allowedBrowserPorts(resolvedPort);
-    if (!isAllowedBrowserOrigin(origin, req.headers.host, ports, host, extraAllowedOrigins)) {
-      if (req.method !== 'GET' || !isPortlessLoopbackOrigin(String(origin))) {
-        return res.status(403).json({ error: 'Cross-origin requests are not allowed' });
+    if (
+      !isAllowedBrowserOrigin(
+        origin,
+        req.headers.host,
+        ports,
+        host,
+        extraAllowedOrigins,
+      )
+    ) {
+      if (req.method !== "GET" || !isPortlessLoopbackOrigin(String(origin))) {
+        return res
+          .status(403)
+          .json({ error: "Cross-origin requests are not allowed" });
       }
     }
     next();
@@ -2179,9 +2999,15 @@ export async function startServer({
   // Wire the upload-destination bridge to this db so multer can route
   // file uploads into baseDir-rooted projects' actual folders.
   projectMetadataLookup = (id) => {
-    try { return getProject(db, id)?.metadata ?? null; } catch { return null; }
+    try {
+      return getProject(db, id)?.metadata ?? null;
+    } catch {
+      return null;
+    }
   };
-  configureConnectorCredentialStore(new FileConnectorCredentialStore(RUNTIME_DATA_DIR));
+  configureConnectorCredentialStore(
+    new FileConnectorCredentialStore(RUNTIME_DATA_DIR),
+  );
   configureComposioConfigStore(RUNTIME_DATA_DIR);
   composioConnectorProvider.configureCatalogCache(RUNTIME_DATA_DIR);
   composioConnectorProvider.startCatalogRefreshLoop();
@@ -2190,7 +3016,8 @@ export async function startServer({
   // Routines are stored as DB rows; the service holds in-memory timers and
   // delegates "list me everything" / "record a run" back to SQLite.
   routineService = new RoutineService({
-    list: () => listRoutines(db).map((row) => routineDbRowToContract(row, null)),
+    list: () =>
+      listRoutines(db).map((row) => routineDbRowToContract(row, null)),
     insertRun: (run) => {
       insertRoutineRun(db, {
         id: run.id,
@@ -2218,9 +3045,13 @@ export async function startServer({
   // = 'daemon_restart' so the spec's daemon-restart-mid-run failure mode is
   // honored on every boot. staleAfterMs comes from CritiqueConfig, not a
   // hardcoded constant.
-  const reconciledStaleRuns = reconcileStaleRuns(db, { staleAfterMs: critiqueCfg.totalTimeoutMs });
+  const reconciledStaleRuns = reconcileStaleRuns(db, {
+    staleAfterMs: critiqueCfg.totalTimeoutMs,
+  });
   if (reconciledStaleRuns > 0) {
-    console.warn(`[critique] reconcileStaleRuns flipped ${reconciledStaleRuns} stale running row(s) to interrupted`);
+    console.warn(
+      `[critique] reconcileStaleRuns flipped ${reconciledStaleRuns} stale running row(s) to interrupted`,
+    );
   }
   const mediaReconcile = reconcileMediaTasksOnBoot(db, {
     terminalTtlMs: TASK_TTL_AFTER_DONE_MS,
@@ -2232,12 +3063,14 @@ export async function startServer({
     );
   }
   mediaTasks.clear();
-  for (const row of listRecentMediaTasks(db, { terminalTtlMs: TASK_TTL_AFTER_DONE_MS })) {
+  for (const row of listRecentMediaTasks(db, {
+    terminalTtlMs: TASK_TTL_AFTER_DONE_MS,
+  })) {
     hydrateMediaTask(row);
   }
 
-  if (process.env.OD_CODEX_DISABLE_PLUGINS === '1') {
-    console.log('[od] Codex plugins disabled via OD_CODEX_DISABLE_PLUGINS=1');
+  if (process.env.OD_CODEX_DISABLE_PLUGINS === "1") {
+    console.log("[od] Codex plugins disabled via OD_CODEX_DISABLE_PLUGINS=1");
   }
 
   // Warm agent-capability probes (e.g. whether the installed Claude Code
@@ -2252,48 +3085,92 @@ export async function startServer({
 
   routineService.start();
 
-  await recoverStaleLiveArtifactRefreshes({ projectsRoot: PROJECTS_DIR }).catch((error) => {
-    console.warn('[od] Failed to recover stale live artifact refreshes:', error);
-  });
+  await recoverStaleLiveArtifactRefreshes({ projectsRoot: PROJECTS_DIR }).catch(
+    (error) => {
+      console.warn(
+        "[od] Failed to recover stale live artifact refreshes:",
+        error,
+      );
+    },
+  );
 
   if (fs.existsSync(STATIC_DIR)) {
     app.use(express.static(STATIC_DIR));
   }
 
-  app.get('/api/health', async (_req, res) => {
+  app.get("/api/health", async (_req, res) => {
     const versionInfo = await readCurrentAppVersionInfo();
     res.json({ ok: true, version: versionInfo.version });
   });
 
-  app.get('/api/version', async (_req, res) => {
+  app.get("/api/version", async (_req, res) => {
     const version = await readCurrentAppVersionInfo();
     res.json({ version });
   });
 
-  registerConnectorRoutes(app, { sendApiError, authorizeToolRequest, projectsRoot: PROJECTS_DIR, requireLocalDaemonRequest });
+  registerConnectorRoutes(app, {
+    sendApiError,
+    authorizeToolRequest,
+    projectsRoot: PROJECTS_DIR,
+    requireLocalDaemonRequest,
+  });
 
-  app.get('/api/connectors/composio/config', (_req, res) => {
+  app.get("/api/connectors/composio/config", (_req, res) => {
     try {
       res.json(readPublicComposioConfig());
     } catch (err) {
-      res.status(500).json({ error: String(err && err.message ? err.message : err) });
+      res
+        .status(500)
+        .json({ error: String(err && err.message ? err.message : err) });
     }
   });
 
-  app.put('/api/connectors/composio/config', requireLocalDaemonRequest, (req, res) => {
-    try {
-      const before = readComposioConfig();
-      const cfg = writeComposioConfig(req.body);
-      const after = readComposioConfig();
-      composioConnectorProvider.clearDiscoveryCache();
-      if (!cfg.configured || (before.apiKey && before.apiKey !== after.apiKey)) {
-        deleteConnectorCredentialsByProvider('composio');
+  app.put(
+    "/api/connectors/composio/config",
+    requireLocalDaemonRequest,
+    (req, res) => {
+      try {
+        const before = readComposioConfig();
+        const cfg = writeComposioConfig(req.body);
+        const after = readComposioConfig();
+        composioConnectorProvider.clearDiscoveryCache();
+        if (
+          !cfg.configured ||
+          (before.apiKey && before.apiKey !== after.apiKey)
+        ) {
+          deleteConnectorCredentialsByProvider("composio");
+        }
+        res.json(cfg);
+      } catch (err) {
+        res
+          .status(400)
+          .json({ error: String(err && err.message ? err.message : err) });
       }
-      res.json(cfg);
-    } catch (err) {
-      res.status(400).json({ error: String(err && err.message ? err.message : err) });
-    }
-  });
+    },
+  );
+
+  app.post(
+    "/api/connectors/composio/sync-desktop",
+    requireLocalDaemonRequest,
+    (req, res) => {
+      try {
+        const body = req.body && typeof req.body === "object" ? req.body : {};
+        const result = syncComposioConfigFromDesktop({
+          dryRun: body.dryRun !== false,
+          conflictPolicy:
+            body.conflictPolicy === "overwrite" ? "overwrite" : "skip",
+        });
+        if (!result.dryRun) {
+          composioConnectorProvider.clearDiscoveryCache();
+        }
+        res.json(result);
+      } catch (err) {
+        res
+          .status(400)
+          .json({ error: String(err && err.message ? err.message : err) });
+      }
+    },
+  );
 
   // ---- Projects (DB-backed) -------------------------------------------------
 
@@ -2312,9 +3189,9 @@ export async function startServer({
   // it to redirect MCP fallbacks (POST). The web proxies same-origin
   // and the MCP runs in-process via 127.0.0.1, so both legitimate
   // callers pass the check.
-  app.post('/api/active', (req, res) => {
+  app.post("/api/active", (req, res) => {
     if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'cross-origin request rejected' });
+      return res.status(403).json({ error: "cross-origin request rejected" });
     }
     try {
       const body = req.body || {};
@@ -2323,27 +3200,31 @@ export async function startServer({
         res.json({ active: false });
         return;
       }
-      const projectId = typeof body.projectId === 'string' ? body.projectId : '';
+      const projectId =
+        typeof body.projectId === "string" ? body.projectId : "";
       if (!projectId) {
-        sendApiError(res, 400, 'BAD_REQUEST', 'projectId is required');
+        sendApiError(res, 400, "BAD_REQUEST", "projectId is required");
         return;
       }
       const fileName =
-        typeof body.fileName === 'string' && body.fileName.length > 0
+        typeof body.fileName === "string" && body.fileName.length > 0
           ? body.fileName
           : null;
       activeContext = { projectId, fileName, ts: Date.now() };
       res.json({ active: true, ...activeContext });
     } catch (err) {
-      sendApiError(res, 400, 'BAD_REQUEST', String(err));
+      sendApiError(res, 400, "BAD_REQUEST", String(err));
     }
   });
 
-  app.get('/api/active', (req, res) => {
+  app.get("/api/active", (req, res) => {
     if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'cross-origin request rejected' });
+      return res.status(403).json({ error: "cross-origin request rejected" });
     }
-    if (!activeContext || Date.now() - activeContext.ts > ACTIVE_CONTEXT_TTL_MS) {
+    if (
+      !activeContext ||
+      Date.now() - activeContext.ts > ACTIVE_CONTEXT_TTL_MS
+    ) {
       activeContext = null;
       res.json({ active: false });
       return;
@@ -2368,9 +3249,9 @@ export async function startServer({
   const INSTALL_INFO_TTL_MS = 5000;
   let installInfoCache: { t: number; payload: object } | null = null;
 
-  app.get('/api/mcp/install-info', (req, res) => {
+  app.get("/api/mcp/install-info", (req, res) => {
     if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'cross-origin request rejected' });
+      return res.status(403).json({ error: "cross-origin request rejected" });
     }
     const now = Date.now();
     if (installInfoCache && now - installInfoCache.t < INSTALL_INFO_TTL_MS) {
@@ -2416,7 +3297,7 @@ export async function startServer({
       port: resolvedPort,
       platform: process.platform,
       dataDir: RUNTIME_DATA_DIR,
-      electronAsNode: process.env.ELECTRON_RUN_AS_NODE === '1',
+      electronAsNode: process.env.ELECTRON_RUN_AS_NODE === "1",
       isSidecarMode,
       sidecarEnv,
     });
@@ -2428,9 +3309,9 @@ export async function startServer({
   // CLIENT and surfaces their tools to the underlying agent at spawn time.
   // GET returns user-saved entries plus the built-in template list so the UI
   // can render the "Add MCP server" picker without a second round-trip.
-  app.get('/api/mcp/servers', async (req, res) => {
+  app.get("/api/mcp/servers", async (req, res) => {
     if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'cross-origin request rejected' });
+      return res.status(403).json({ error: "cross-origin request rejected" });
     }
     try {
       const cfg = await readMcpConfig(RUNTIME_DATA_DIR);
@@ -2442,13 +3323,40 @@ export async function startServer({
     }
   });
 
-  app.put('/api/mcp/servers', async (req, res) => {
+  app.put("/api/mcp/servers", async (req, res) => {
     if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'cross-origin request rejected' });
+      return res.status(403).json({ error: "cross-origin request rejected" });
     }
     try {
       const cfg = await writeMcpConfig(RUNTIME_DATA_DIR, req.body);
       res.json({ servers: cfg.servers, templates: MCP_TEMPLATES });
+    } catch (err) {
+      res
+        .status(400)
+        .json({ error: String(err && err.message ? err.message : err) });
+    }
+  });
+
+  app.post("/api/mcp/sync-desktop", async (req, res) => {
+    if (!isLocalSameOrigin(req, resolvedPort)) {
+      return res.status(403).json({ error: "cross-origin request rejected" });
+    }
+    try {
+      const body = req.body && typeof req.body === "object" ? req.body : {};
+      const direction =
+        body.direction === undefined ? "desktop-to-runtime" : body.direction;
+      if (direction !== "desktop-to-runtime") {
+        res.status(400).json({
+          error: "Only desktop-to-runtime direction is currently supported.",
+        });
+        return;
+      }
+      const result = await syncMcpConfigFromDesktop({
+        dryRun: body.dryRun !== false,
+        conflictPolicy:
+          body.conflictPolicy === "overwrite" ? "overwrite" : "skip",
+      });
+      res.json({ ...result, templates: MCP_TEMPLATES });
     } catch (err) {
       res
         .status(400)
@@ -2467,14 +3375,14 @@ export async function startServer({
   // where OD_PUBLIC_BASE_URL pins the externally-routable URL.
   // ─────────────────────────────────────────────────────────────────
 
-  app.post('/api/mcp/oauth/start', async (req, res) => {
+  app.post("/api/mcp/oauth/start", async (req, res) => {
     if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'cross-origin request rejected' });
+      return res.status(403).json({ error: "cross-origin request rejected" });
     }
     const serverId =
-      typeof req.body?.serverId === 'string' ? req.body.serverId.trim() : '';
+      typeof req.body?.serverId === "string" ? req.body.serverId.trim() : "";
     if (!serverId) {
-      return res.status(400).json({ error: 'serverId is required' });
+      return res.status(400).json({ error: "serverId is required" });
     }
     try {
       const cfg = await readMcpConfig(RUNTIME_DATA_DIR);
@@ -2482,13 +3390,13 @@ export async function startServer({
       if (!server) {
         return res.status(404).json({ error: `unknown serverId ${serverId}` });
       }
-      if (server.transport !== 'http' && server.transport !== 'sse') {
+      if (server.transport !== "http" && server.transport !== "sse") {
         return res
           .status(400)
-          .json({ error: 'OAuth flow only applies to http/sse transports' });
+          .json({ error: "OAuth flow only applies to http/sse transports" });
       }
       if (!server.url) {
-        return res.status(400).json({ error: 'server has no URL configured' });
+        return res.status(400).json({ error: "server has no URL configured" });
       }
       const redirectUri = mcpOAuthCallbackUrl(req);
       console.log(
@@ -2522,28 +3430,44 @@ export async function startServer({
   // isLocalSameOrigin: in cloud the daemon IS the public origin, and even
   // locally the request comes back from the OAuth provider's redirect
   // (no Origin header at all on a top-level navigation).
-  app.get('/api/mcp/oauth/callback', async (req, res) => {
-    const code = typeof req.query.code === 'string' ? req.query.code : '';
-    const state = typeof req.query.state === 'string' ? req.query.state : '';
-    const error = typeof req.query.error === 'string' ? req.query.error : '';
+  app.get("/api/mcp/oauth/callback", async (req, res) => {
+    const code = typeof req.query.code === "string" ? req.query.code : "";
+    const state = typeof req.query.state === "string" ? req.query.state : "";
+    const error = typeof req.query.error === "string" ? req.query.error : "";
     if (error) {
-      return res.status(400).type('html').send(renderOAuthResultPage({
-        ok: false,
-        message: `Auth provider returned error: ${error}`,
-      }));
+      return res
+        .status(400)
+        .type("html")
+        .send(
+          renderOAuthResultPage({
+            ok: false,
+            message: `Auth provider returned error: ${error}`,
+          }),
+        );
     }
     if (!code || !state) {
-      return res.status(400).type('html').send(renderOAuthResultPage({
-        ok: false,
-        message: 'Missing code or state — open Settings → External MCP servers and click Connect again.',
-      }));
+      return res
+        .status(400)
+        .type("html")
+        .send(
+          renderOAuthResultPage({
+            ok: false,
+            message:
+              "Missing code or state — open Settings → External MCP servers and click Connect again.",
+          }),
+        );
     }
     const pending = mcpPendingAuth.consume(state);
     if (!pending) {
-      return res.status(400).type('html').send(renderOAuthResultPage({
-        ok: false,
-        message: 'Auth state expired or already used. Click Connect again.',
-      }));
+      return res
+        .status(400)
+        .type("html")
+        .send(
+          renderOAuthResultPage({
+            ok: false,
+            message: "Auth state expired or already used. Click Connect again.",
+          }),
+        );
     }
     try {
       const tokenResp = await exchangeCodeForToken({
@@ -2558,10 +3482,10 @@ export async function startServer({
       const stored = {
         accessToken: tokenResp.access_token,
         refreshToken: tokenResp.refresh_token,
-        tokenType: tokenResp.token_type ?? 'Bearer',
+        tokenType: tokenResp.token_type ?? "Bearer",
         scope: tokenResp.scope ?? pending.scope,
         expiresAt:
-          typeof tokenResp.expires_in === 'number'
+          typeof tokenResp.expires_in === "number"
             ? Date.now() + tokenResp.expires_in * 1000
             : undefined,
         savedAt: Date.now(),
@@ -2576,29 +3500,37 @@ export async function startServer({
         resourceUrl: pending.resourceUrl,
       };
       await setToken(RUNTIME_DATA_DIR, pending.serverId, stored);
-      res.type('html').send(renderOAuthResultPage({
-        ok: true,
-        serverId: pending.serverId,
-      }));
+      res.type("html").send(
+        renderOAuthResultPage({
+          ok: true,
+          serverId: pending.serverId,
+        }),
+      );
     } catch (err) {
       console.error(
-        '[mcp-oauth] callback failed:',
+        "[mcp-oauth] callback failed:",
         err && err.message ? err.message : err,
       );
-      res.status(502).type('html').send(renderOAuthResultPage({
-        ok: false,
-        message: String(err && err.message ? err.message : err),
-      }));
+      res
+        .status(502)
+        .type("html")
+        .send(
+          renderOAuthResultPage({
+            ok: false,
+            message: String(err && err.message ? err.message : err),
+          }),
+        );
     }
   });
 
-  app.get('/api/mcp/oauth/status', async (req, res) => {
+  app.get("/api/mcp/oauth/status", async (req, res) => {
     if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'cross-origin request rejected' });
+      return res.status(403).json({ error: "cross-origin request rejected" });
     }
     const serverId =
-      typeof req.query.serverId === 'string' ? req.query.serverId.trim() : '';
-    if (!serverId) return res.status(400).json({ error: 'serverId is required' });
+      typeof req.query.serverId === "string" ? req.query.serverId.trim() : "";
+    if (!serverId)
+      return res.status(400).json({ error: "serverId is required" });
     try {
       const tok = await getToken(RUNTIME_DATA_DIR, serverId);
       if (!tok) return res.json({ connected: false });
@@ -2609,26 +3541,31 @@ export async function startServer({
         savedAt: tok.savedAt,
       });
     } catch (err) {
-      res.status(500).json({ error: String(err && err.message ? err.message : err) });
+      res
+        .status(500)
+        .json({ error: String(err && err.message ? err.message : err) });
     }
   });
 
-  app.post('/api/mcp/oauth/disconnect', async (req, res) => {
+  app.post("/api/mcp/oauth/disconnect", async (req, res) => {
     if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'cross-origin request rejected' });
+      return res.status(403).json({ error: "cross-origin request rejected" });
     }
     const serverId =
-      typeof req.body?.serverId === 'string' ? req.body.serverId.trim() : '';
-    if (!serverId) return res.status(400).json({ error: 'serverId is required' });
+      typeof req.body?.serverId === "string" ? req.body.serverId.trim() : "";
+    if (!serverId)
+      return res.status(400).json({ error: "serverId is required" });
     try {
       await clearToken(RUNTIME_DATA_DIR, serverId);
       res.json({ ok: true });
     } catch (err) {
-      res.status(500).json({ error: String(err && err.message ? err.message : err) });
+      res
+        .status(500)
+        .json({ error: String(err && err.message ? err.message : err) });
     }
   });
 
-  app.get('/api/projects', (_req, res) => {
+  app.get("/api/projects", (_req, res) => {
     try {
       const latestRunStatuses = listLatestProjectRunStatuses(db);
       const awaitingInputProjects = listProjectsAwaitingInput(db);
@@ -2654,7 +3591,7 @@ export async function startServer({
           ...project,
           status: composeProjectDisplayStatus(
             activeRunStatuses.get(project.id) ??
-              latestRunStatuses.get(project.id) ?? { value: 'not_started' },
+              latestRunStatuses.get(project.id) ?? { value: "not_started" },
             awaitingInputProjects,
             project.id,
           ),
@@ -2662,7 +3599,7 @@ export async function startServer({
       };
       res.json(body);
     } catch (err) {
-      sendApiError(res, 500, 'INTERNAL_ERROR', String(err));
+      sendApiError(res, 500, "INTERNAL_ERROR", String(err));
     }
   });
 
@@ -2674,15 +3611,15 @@ export async function startServer({
     };
   }
 
-  app.post('/api/projects', async (req, res) => {
+  app.post("/api/projects", async (req, res) => {
     try {
       const { id, name, skillId, designSystemId, pendingPrompt, metadata } =
         req.body || {};
-      if (typeof id !== 'string' || !/^[A-Za-z0-9._-]{1,128}$/.test(id)) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'invalid project id');
+      if (typeof id !== "string" || !/^[A-Za-z0-9._-]{1,128}$/.test(id)) {
+        return sendApiError(res, 400, "BAD_REQUEST", "invalid project id");
       }
-      if (typeof name !== 'string' || !name.trim()) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'name required');
+      if (typeof name !== "string" || !name.trim()) {
+        return sendApiError(res, 400, "BAD_REQUEST", "name required");
       }
       // baseDir is privileged: it lets a project root directly inside the
       // user's filesystem. The /api/import/folder endpoint is the only
@@ -2698,17 +3635,21 @@ export async function startServer({
       // marker; any other route attempting to set it would let a
       // compromised renderer launder an attacker-controlled baseDir
       // through a future codepath that trusted the flag.
-      if (metadata && typeof metadata === 'object') {
-        if ('baseDir' in metadata) {
+      if (metadata && typeof metadata === "object") {
+        if ("baseDir" in metadata) {
           return sendApiError(
-            res, 400, 'BAD_REQUEST',
-            'baseDir can only be set via POST /api/import/folder',
+            res,
+            400,
+            "BAD_REQUEST",
+            "baseDir can only be set via POST /api/import/folder",
           );
         }
-        if ('fromTrustedPicker' in metadata) {
+        if ("fromTrustedPicker" in metadata) {
           return sendApiError(
-            res, 400, 'BAD_REQUEST',
-            'fromTrustedPicker can only be set via POST /api/import/folder',
+            res,
+            400,
+            "BAD_REQUEST",
+            "fromTrustedPicker can only be set via POST /api/import/folder",
           );
         }
       }
@@ -2720,7 +3661,7 @@ export async function startServer({
         designSystemId: designSystemId ?? null,
         pendingPrompt: pendingPrompt || null,
         metadata:
-          metadata && typeof metadata === 'object'
+          metadata && typeof metadata === "object"
             ? {
                 ...metadata,
                 ...(Array.isArray(metadata.linkedDirs)
@@ -2749,9 +3690,9 @@ export async function startServer({
       // copy lets the agent treat them as the project's working state).
       if (
         metadata &&
-        typeof metadata === 'object' &&
-        metadata.kind === 'template' &&
-        typeof metadata.templateId === 'string'
+        typeof metadata === "object" &&
+        metadata.kind === "template" &&
+        typeof metadata.templateId === "string"
       ) {
         const tpl = getTemplate(db, metadata.templateId);
         if (tpl && Array.isArray(tpl.files) && tpl.files.length > 0) {
@@ -2759,8 +3700,8 @@ export async function startServer({
           for (const f of tpl.files) {
             if (
               !f ||
-              typeof f.name !== 'string' ||
-              typeof f.content !== 'string'
+              typeof f.name !== "string" ||
+              typeof f.content !== "string"
             ) {
               continue;
             }
@@ -2769,7 +3710,7 @@ export async function startServer({
                 PROJECTS_DIR,
                 id,
                 f.name,
-                Buffer.from(f.content, 'utf8'),
+                Buffer.from(f.content, "utf8"),
               );
             } catch {
               // Skip individual file failures — the template snapshot is
@@ -2782,27 +3723,139 @@ export async function startServer({
       const body = { project, conversationId: cid };
       res.json(body);
     } catch (err) {
-      sendApiError(res, 400, 'BAD_REQUEST', String(err));
+      sendApiError(res, 400, "BAD_REQUEST", String(err));
+    }
+  });
+
+  app.post("/api/projects/path-backed", async (req, res) => {
+    try {
+      const {
+        name,
+        baseDir,
+        createMode,
+        skillId,
+        designSystemId,
+        pendingPrompt,
+        metadata,
+      } = req.body || {};
+      if (typeof name !== "string" || !name.trim()) {
+        return sendApiError(res, 400, "BAD_REQUEST", "name required");
+      }
+      if (createMode !== "use-existing" && createMode !== "create-if-empty") {
+        return sendApiError(
+          res,
+          400,
+          "BAD_REQUEST",
+          "createMode must be use-existing or create-if-empty",
+        );
+      }
+      if (metadata && typeof metadata === "object") {
+        if ("baseDir" in metadata) {
+          return sendApiError(
+            res,
+            400,
+            "BAD_REQUEST",
+            "metadata.baseDir is forbidden on path-backed create",
+          );
+        }
+        if ("fromTrustedPicker" in metadata) {
+          return sendApiError(
+            res,
+            400,
+            "BAD_REQUEST",
+            "fromTrustedPicker can only be set via POST /api/import/folder",
+          );
+        }
+      }
+
+      const resolvedDir = await resolveAndValidateProjectBaseDir(baseDir, {
+        allowCreateIfMissing: createMode === "create-if-empty",
+      });
+      if (createMode === "create-if-empty") {
+        const entries = await fs.promises.readdir(resolvedDir);
+        if (entries.length > 0) {
+          return sendApiError(
+            res,
+            400,
+            "BAD_REQUEST",
+            "create-if-empty requires an empty target directory",
+          );
+        }
+      }
+
+      const id = randomId();
+      const now = Date.now();
+      const entryFile = await detectEntryFile(resolvedDir);
+      const project = insertProject(db, {
+        id,
+        name: name.trim(),
+        skillId: skillId ?? null,
+        designSystemId: designSystemId ?? null,
+        pendingPrompt: pendingPrompt || null,
+        metadata: {
+          ...(metadata && typeof metadata === "object"
+            ? {
+                ...metadata,
+                ...(Array.isArray(metadata.linkedDirs)
+                  ? (() => {
+                      const v = validateLinkedDirs(metadata.linkedDirs);
+                      return v.error ? {} : { linkedDirs: v.dirs };
+                    })()
+                  : {}),
+              }
+            : {}),
+          kind:
+            metadata &&
+            typeof metadata === "object" &&
+            typeof metadata.kind === "string"
+              ? metadata.kind
+              : "prototype",
+          baseDir: resolvedDir,
+          importedFrom: "folder",
+          entryFile,
+        },
+        createdAt: now,
+        updatedAt: now,
+      });
+      const cid = randomId();
+      insertConversation(db, {
+        id: cid,
+        projectId: id,
+        title: null,
+        createdAt: now,
+        updatedAt: now,
+      });
+      if (entryFile) setTabs(db, id, [entryFile], entryFile);
+      /** @type {import('@open-design/contracts').CreatePathBackedProjectResponse} */
+      const body = { project, conversationId: cid, resolvedDir, entryFile };
+      res.json(body);
+    } catch (err) {
+      return sendApiError(
+        res,
+        400,
+        "BAD_REQUEST",
+        String(err && err.message ? err.message : err),
+      );
     }
   });
 
   app.post(
-    '/api/import/claude-design',
-    importUpload.single('file'),
+    "/api/import/claude-design",
+    importUpload.single("file"),
     async (req, res) => {
       try {
         if (!req.file)
-          return res.status(400).json({ error: 'zip file required' });
+          return res.status(400).json({ error: "zip file required" });
         const originalName =
-          req.file.originalname || 'Claude Design export.zip';
+          req.file.originalname || "Claude Design export.zip";
         if (!/\.zip$/i.test(originalName)) {
           fs.promises.unlink(req.file.path).catch(() => {});
-          return res.status(400).json({ error: 'expected a .zip file' });
+          return res.status(400).json({ error: "expected a .zip file" });
         }
         const id = randomId();
         const now = Date.now();
         const baseName =
-          originalName.replace(/\.zip$/i, '').trim() || 'Claude Design import';
+          originalName.replace(/\.zip$/i, "").trim() || "Claude Design import";
         const imported = await importClaudeDesignZip(
           req.file.path,
           projectDir(PROJECTS_DIR, id),
@@ -2816,8 +3869,8 @@ export async function startServer({
           designSystemId: null,
           pendingPrompt: `Imported from Claude Design ZIP: ${originalName}. Continue editing ${imported.entryFile}.`,
           metadata: {
-            kind: 'prototype',
-            importedFrom: 'claude-design',
+            kind: "prototype",
+            importedFrom: "claude-design",
             entryFile: imported.entryFile,
             sourceFileName: originalName,
           },
@@ -2828,7 +3881,7 @@ export async function startServer({
         insertConversation(db, {
           id: cid,
           projectId: id,
-          title: 'Imported Claude Design project',
+          title: "Imported Claude Design project",
           createdAt: now,
           updatedAt: now,
         });
@@ -2860,11 +3913,11 @@ export async function startServer({
   // could call this route directly with an arbitrary absolute path and
   // then call `openPath(projectId)` on the resulting project to reveal
   // attacker-chosen filesystem locations in Finder/Explorer.
-  app.post('/api/import/folder', async (req, res) => {
+  app.post("/api/import/folder", async (req, res) => {
     try {
       const { baseDir, name, skillId, designSystemId } = req.body || {};
-      if (typeof baseDir !== 'string' || !baseDir.trim()) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'baseDir required');
+      if (typeof baseDir !== "string" || !baseDir.trim()) {
+        return sendApiError(res, 400, "BAD_REQUEST", "baseDir required");
       }
       // PR #974 round-4 P1: the gate is fail-CLOSED, not fail-open.
       //
@@ -2895,16 +3948,18 @@ export async function startServer({
           return sendApiError(
             res,
             503,
-            'DESKTOP_AUTH_PENDING',
-            'desktop auth required but secret not yet registered',
+            "DESKTOP_AUTH_PENDING",
+            "desktop auth required but secret not yet registered",
             {
-              details: { hint: 'restart desktop or wait for sidecar registration' },
+              details: {
+                hint: "restart desktop or wait for sidecar registration",
+              },
               retryable: true,
             },
           );
         }
         const headerValue = req.get(DESKTOP_IMPORT_TOKEN_HEADER);
-        const token = typeof headerValue === 'string' ? headerValue : '';
+        const token = typeof headerValue === "string" ? headerValue : "";
         const now = Date.now();
         pruneExpiredImportNonces(now);
         const verification = verifyDesktopImportToken(
@@ -2918,62 +3973,30 @@ export async function startServer({
           return sendApiError(
             res,
             403,
-            'FORBIDDEN',
-            'desktop import token rejected',
+            "FORBIDDEN",
+            "desktop import token rejected",
             { details: { reason: verification.reason } },
           );
         }
         consumedImportNonces.set(verification.nonce, verification.exp);
         trustedPickerImport = true;
       }
-      // Round-5 (lefarcen P3): defensive trim for *web-mode* callers
-      // where the request body baseDir may carry edge whitespace
-      // (path.isAbsolute("  /foo  ") returns false). Desktop callers
-      // already trim picker output before signing so this is a no-op
-      // for them and HMAC-binding is preserved end-to-end.
-      const trimmedInput = baseDir.trim();
-      if (!path.isAbsolute(path.normalize(trimmedInput))) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'baseDir must be absolute');
-      }
-      // Resolve symlinks once at import and persist the canonical path.
-      // Without this, a user-controlled symlink (e.g. ~/sneaky → /etc) at
-      // baseDir would let writeProjectFile escape the project sandbox at
-      // every later call: resolveSafe checks the *literal* baseDir, but
-      // the OS follows the symlink at write time. realpath() collapses
-      // the chain so the stored baseDir == what the kernel will write to.
-      let normalizedPath: string;
+      let normalizedPath = "";
       try {
-        normalizedPath = await fs.promises.realpath(trimmedInput);
-      } catch {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'folder not found');
-      }
-      // realpath resolved → lstat the canonical path to ensure it's a
-      // real directory, not another symlink (defense-in-depth).
-      let dirStat;
-      try {
-        dirStat = await fs.promises.lstat(normalizedPath);
-      } catch {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'folder not found');
-      }
-      if (!dirStat.isDirectory()) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'path must be a directory');
-      }
-      // Prevent importing the data directory into itself (post-realpath so
-      // a symlink pointing into RUNTIME_DATA_DIR is also caught). Compare
-      // against the canonical alias because `normalizedPath` is the import
-      // folder's realpath; on macOS the data dir at /var/... resolves to
-      // /private/var/... and would never start-with the user-shaped path.
-      if (
-        normalizedPath === RUNTIME_DATA_DIR_CANONICAL ||
-        normalizedPath.startsWith(RUNTIME_DATA_DIR_CANONICAL + path.sep)
-      ) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'cannot import the data directory');
+        normalizedPath = await resolveAndValidateProjectBaseDir(baseDir);
+      } catch (error) {
+        return sendApiError(
+          res,
+          400,
+          "BAD_REQUEST",
+          String(error && error.message ? error.message : error),
+        );
       }
 
       const id = randomId();
       const now = Date.now();
       const projectName =
-        typeof name === 'string' && name.trim()
+        typeof name === "string" && name.trim()
           ? name.trim()
           : path.basename(normalizedPath);
       const entryFile = await detectEntryFile(normalizedPath);
@@ -2985,9 +4008,9 @@ export async function startServer({
         designSystemId: designSystemId ?? null,
         pendingPrompt: null,
         metadata: {
-          kind: 'prototype',
+          kind: "prototype",
           baseDir: normalizedPath,
-          importedFrom: 'folder',
+          importedFrom: "folder",
           entryFile,
           // PR #974: stamp the project as trusted-picker-originated when
           // the import passed the desktop HMAC gate. The desktop main
@@ -3015,24 +4038,33 @@ export async function startServer({
       });
       if (entryFile) setTabs(db, id, [entryFile], entryFile);
       /** @type {import('@open-design/contracts').ImportFolderResponse} */
-      const body = { project, conversationId: cid, entryFile };
+      const body = {
+        project,
+        conversationId: cid,
+        entryFile,
+        resolvedDir: normalizedPath,
+      };
       res.json(body);
     } catch (err) {
-      sendApiError(res, 400, 'BAD_REQUEST', String(err));
+      sendApiError(res, 400, "BAD_REQUEST", String(err));
     }
   });
 
-  app.get('/api/projects/:id', (req, res) => {
+  app.get("/api/projects/:id", (req, res) => {
     const project = getProject(db, req.params.id);
     if (!project)
-      return sendApiError(res, 404, 'PROJECT_NOT_FOUND', 'not found');
-    const resolvedDir = resolveProjectDir(PROJECTS_DIR, project.id, project.metadata);
+      return sendApiError(res, 404, "PROJECT_NOT_FOUND", "not found");
+    const resolvedDir = resolveProjectDir(
+      PROJECTS_DIR,
+      project.id,
+      project.metadata,
+    );
     /** @type {import('@open-design/contracts').ProjectDetailResponse} */
     const body = { project, resolvedDir };
     res.json(body);
   });
 
-  app.patch('/api/projects/:id', (req, res) => {
+  app.patch("/api/projects/:id", (req, res) => {
     try {
       const patch = req.body || {};
       // baseDir / folder-import state is privileged: it's set only by the
@@ -3048,7 +4080,7 @@ export async function startServer({
       // For case 2 we re-stamp the immutable fields from the existing
       // project record onto the incoming patch so the user can keep
       // patching other metadata without ever losing their import root.
-      if (patch.metadata && typeof patch.metadata === 'object') {
+      if (patch.metadata && typeof patch.metadata === "object") {
         const existing = getProject(db, req.params.id);
         const existingMeta = existing?.metadata;
         // PR #974: `fromTrustedPicker` is privileged the same way `baseDir`
@@ -3058,25 +4090,34 @@ export async function startServer({
         // folder UI does that whenever it edits linkedDirs) — only reject
         // when the incoming value differs from the persisted one. Per
         // round-7 lefarcen P2.
-        if ('fromTrustedPicker' in patch.metadata
-            && patch.metadata.fromTrustedPicker !== existingMeta?.fromTrustedPicker) {
+        if (
+          "fromTrustedPicker" in patch.metadata &&
+          patch.metadata.fromTrustedPicker !== existingMeta?.fromTrustedPicker
+        ) {
           return sendApiError(
-            res, 400, 'BAD_REQUEST',
-            'fromTrustedPicker can only be set via POST /api/import/folder',
+            res,
+            400,
+            "BAD_REQUEST",
+            "fromTrustedPicker can only be set via POST /api/import/folder",
           );
         }
         if (existingMeta?.baseDir) {
-          if ('baseDir' in patch.metadata && patch.metadata.baseDir !== existingMeta.baseDir) {
+          if (
+            "baseDir" in patch.metadata &&
+            patch.metadata.baseDir !== existingMeta.baseDir
+          ) {
             return sendApiError(
-              res, 400, 'BAD_REQUEST',
-              'baseDir is immutable after import; use a new import to change it',
+              res,
+              400,
+              "BAD_REQUEST",
+              "baseDir is immutable after import; use a new import to change it",
             );
           }
           patch.metadata = {
             ...patch.metadata,
             baseDir: existingMeta.baseDir,
-            ...(existingMeta.importedFrom === 'folder'
-              ? { importedFrom: 'folder' }
+            ...(existingMeta.importedFrom === "folder"
+              ? { importedFrom: "folder" }
               : {}),
             // Preserve the trusted-picker marker when the existing project
             // had it, so downstream PATCH calls that omit metadata fields
@@ -3085,34 +4126,36 @@ export async function startServer({
               ? { fromTrustedPicker: true as const }
               : {}),
           };
-        } else if ('baseDir' in patch.metadata) {
+        } else if ("baseDir" in patch.metadata) {
           // Non-imported project trying to acquire a baseDir → reject (only
           // /api/import/folder can set it).
           return sendApiError(
-            res, 400, 'BAD_REQUEST',
-            'baseDir can only be set via POST /api/import/folder',
+            res,
+            400,
+            "BAD_REQUEST",
+            "baseDir can only be set via POST /api/import/folder",
           );
         }
       }
       if (patch.metadata?.linkedDirs) {
         const validated = validateLinkedDirs(patch.metadata.linkedDirs);
         if (validated.error) {
-          return sendApiError(res, 400, 'INVALID_LINKED_DIR', validated.error);
+          return sendApiError(res, 400, "INVALID_LINKED_DIR", validated.error);
         }
         patch.metadata.linkedDirs = validated.dirs;
       }
       const project = updateProject(db, req.params.id, patch);
       if (!project)
-        return sendApiError(res, 404, 'PROJECT_NOT_FOUND', 'not found');
+        return sendApiError(res, 404, "PROJECT_NOT_FOUND", "not found");
       /** @type {import('@open-design/contracts').ProjectResponse} */
       const body = { project };
       res.json(body);
     } catch (err) {
-      sendApiError(res, 400, 'BAD_REQUEST', String(err));
+      sendApiError(res, 400, "BAD_REQUEST", String(err));
     }
   });
 
-  app.delete('/api/projects/:id', async (req, res) => {
+  app.delete("/api/projects/:id", async (req, res) => {
     try {
       dbDeleteProject(db, req.params.id);
       await removeProjectDir(PROJECTS_DIR, req.params.id).catch(() => {});
@@ -3120,7 +4163,7 @@ export async function startServer({
       const body = { ok: true };
       res.json(body);
     } catch (err) {
-      sendApiError(res, 400, 'BAD_REQUEST', String(err));
+      sendApiError(res, 400, "BAD_REQUEST", String(err));
     }
   });
 
@@ -3131,9 +4174,9 @@ export async function startServer({
   // Subscribers come and go as users open/close project tabs; the underlying
   // chokidar watcher is refcounted in project-watchers.ts so we never hold
   // descriptors for projects no UI is looking at.
-  app.get('/api/projects/:id/events', (req, res) => {
+  app.get("/api/projects/:id/events", (req, res) => {
     if (!getProject(db, req.params.id)) {
-      return sendApiError(res, 404, 'PROJECT_NOT_FOUND', 'not found');
+      return sendApiError(res, 404, "PROJECT_NOT_FOUND", "not found");
     }
     let sub;
     try {
@@ -3148,10 +4191,17 @@ export async function startServer({
       }
       sinks.add(projectEventSink);
       const watchProject = getProject(db, req.params.id);
-      sub = subscribeFileEvents(PROJECTS_DIR, req.params.id, (evt) => {
-        sse.send('file-changed', evt);
-      }, { metadata: watchProject?.metadata });
-      sub.ready.then(() => sse.send('ready', { projectId: req.params.id })).catch(() => {});
+      sub = subscribeFileEvents(
+        PROJECTS_DIR,
+        req.params.id,
+        (evt) => {
+          sse.send("file-changed", evt);
+        },
+        { metadata: watchProject?.metadata },
+      );
+      sub.ready
+        .then(() => sse.send("ready", { projectId: req.params.id }))
+        .catch(() => {});
       const cleanup = () => {
         if (sub) {
           const { unsubscribe } = sub;
@@ -3160,54 +4210,56 @@ export async function startServer({
         }
         const currentSinks = activeProjectEventSinks.get(req.params.id);
         currentSinks?.delete(projectEventSink);
-        if (currentSinks?.size === 0) activeProjectEventSinks.delete(req.params.id);
+        if (currentSinks?.size === 0)
+          activeProjectEventSinks.delete(req.params.id);
       };
-      res.on('close', cleanup);
-      res.on('finish', cleanup);
+      res.on("close", cleanup);
+      res.on("finish", cleanup);
     } catch (err) {
       if (sub) Promise.resolve(sub.unsubscribe()).catch(() => {});
-      if (!res.headersSent) sendApiError(res, 400, 'BAD_REQUEST', String(err?.message || err));
+      if (!res.headersSent)
+        sendApiError(res, 400, "BAD_REQUEST", String(err?.message || err));
     }
   });
 
   // ---- Conversations --------------------------------------------------------
 
-  app.get('/api/projects/:id/conversations', (req, res) => {
+  app.get("/api/projects/:id/conversations", (req, res) => {
     if (!getProject(db, req.params.id)) {
-      return res.status(404).json({ error: 'project not found' });
+      return res.status(404).json({ error: "project not found" });
     }
     res.json({ conversations: listConversations(db, req.params.id) });
   });
 
-  app.post('/api/projects/:id/conversations', (req, res) => {
+  app.post("/api/projects/:id/conversations", (req, res) => {
     if (!getProject(db, req.params.id)) {
-      return res.status(404).json({ error: 'project not found' });
+      return res.status(404).json({ error: "project not found" });
     }
     const { title } = req.body || {};
     const now = Date.now();
     const conv = insertConversation(db, {
       id: randomId(),
       projectId: req.params.id,
-      title: typeof title === 'string' ? title.trim() || null : null,
+      title: typeof title === "string" ? title.trim() || null : null,
       createdAt: now,
       updatedAt: now,
     });
     res.json({ conversation: conv });
   });
 
-  app.patch('/api/projects/:id/conversations/:cid', (req, res) => {
+  app.patch("/api/projects/:id/conversations/:cid", (req, res) => {
     const conv = getConversation(db, req.params.cid);
     if (!conv || conv.projectId !== req.params.id) {
-      return res.status(404).json({ error: 'not found' });
+      return res.status(404).json({ error: "not found" });
     }
     const updated = updateConversation(db, req.params.cid, req.body || {});
     res.json({ conversation: updated });
   });
 
-  app.delete('/api/projects/:id/conversations/:cid', (req, res) => {
+  app.delete("/api/projects/:id/conversations/:cid", (req, res) => {
     const conv = getConversation(db, req.params.cid);
     if (!conv || conv.projectId !== req.params.id) {
-      return res.status(404).json({ error: 'not found' });
+      return res.status(404).json({ error: "not found" });
     }
     deleteConversation(db, req.params.cid);
     res.json({ ok: true });
@@ -3215,22 +4267,22 @@ export async function startServer({
 
   // ---- Messages -------------------------------------------------------------
 
-  app.get('/api/projects/:id/conversations/:cid/messages', (req, res) => {
+  app.get("/api/projects/:id/conversations/:cid/messages", (req, res) => {
     const conv = getConversation(db, req.params.cid);
     if (!conv || conv.projectId !== req.params.id) {
-      return res.status(404).json({ error: 'conversation not found' });
+      return res.status(404).json({ error: "conversation not found" });
     }
     res.json({ messages: listMessages(db, req.params.cid) });
   });
 
-  app.put('/api/projects/:id/conversations/:cid/messages/:mid', (req, res) => {
+  app.put("/api/projects/:id/conversations/:cid/messages/:mid", (req, res) => {
     const conv = getConversation(db, req.params.cid);
     if (!conv || conv.projectId !== req.params.id) {
-      return res.status(404).json({ error: 'conversation not found' });
+      return res.status(404).json({ error: "conversation not found" });
     }
     const m = req.body || {};
     if (m.id && m.id !== req.params.mid) {
-      return res.status(400).json({ error: 'id mismatch' });
+      return res.status(400).json({ error: "id mismatch" });
     }
     const saved = upsertMessage(db, req.params.cid, {
       ...m,
@@ -3251,14 +4303,17 @@ export async function startServer({
         reportedRuns.add(saved.runId);
         // Auto-evict so the Set doesn't accumulate forever in long-running
         // daemons. Same TTL as the runs map cleanup in runs.ts.
-        setTimeout(() => reportedRuns.delete(saved.runId), 30 * 60 * 1000).unref?.();
+        setTimeout(
+          () => reportedRuns.delete(saved.runId),
+          30 * 60 * 1000,
+        ).unref?.();
         void reportRunCompletedFromDaemon({
           db,
           dataDir: RUNTIME_DATA_DIR,
           run,
           persistedRunStatus: saved.runStatus,
           persistedEndedAt:
-            typeof saved.endedAt === 'number' ? saved.endedAt : undefined,
+            typeof saved.endedAt === "number" ? saved.endedAt : undefined,
           appVersion: cachedAppVersion,
         });
       }
@@ -3268,20 +4323,20 @@ export async function startServer({
 
   // ---- Preview comments ----------------------------------------------------
 
-  app.get('/api/projects/:id/conversations/:cid/comments', (req, res) => {
+  app.get("/api/projects/:id/conversations/:cid/comments", (req, res) => {
     const conv = getConversation(db, req.params.cid);
     if (!conv || conv.projectId !== req.params.id) {
-      return res.status(404).json({ error: 'conversation not found' });
+      return res.status(404).json({ error: "conversation not found" });
     }
     res.json({
       comments: listPreviewComments(db, req.params.id, req.params.cid),
     });
   });
 
-  app.post('/api/projects/:id/conversations/:cid/comments', (req, res) => {
+  app.post("/api/projects/:id/conversations/:cid/comments", (req, res) => {
     const conv = getConversation(db, req.params.cid);
     if (!conv || conv.projectId !== req.params.id) {
-      return res.status(404).json({ error: 'conversation not found' });
+      return res.status(404).json({ error: "conversation not found" });
     }
     try {
       const comment = upsertPreviewComment(
@@ -3298,11 +4353,11 @@ export async function startServer({
   });
 
   app.patch(
-    '/api/projects/:id/conversations/:cid/comments/:commentId',
+    "/api/projects/:id/conversations/:cid/comments/:commentId",
     (req, res) => {
       const conv = getConversation(db, req.params.cid);
       if (!conv || conv.projectId !== req.params.id) {
-        return res.status(404).json({ error: 'conversation not found' });
+        return res.status(404).json({ error: "conversation not found" });
       }
       try {
         const comment = updatePreviewCommentStatus(
@@ -3313,7 +4368,7 @@ export async function startServer({
           req.body?.status,
         );
         if (!comment)
-          return res.status(404).json({ error: 'comment not found' });
+          return res.status(404).json({ error: "comment not found" });
         updateProject(db, req.params.id, {});
         res.json({ comment });
       } catch (err) {
@@ -3323,11 +4378,11 @@ export async function startServer({
   );
 
   app.delete(
-    '/api/projects/:id/conversations/:cid/comments/:commentId',
+    "/api/projects/:id/conversations/:cid/comments/:commentId",
     (req, res) => {
       const conv = getConversation(db, req.params.cid);
       if (!conv || conv.projectId !== req.params.id) {
-        return res.status(404).json({ error: 'conversation not found' });
+        return res.status(404).json({ error: "conversation not found" });
       }
       const ok = deletePreviewComment(
         db,
@@ -3335,7 +4390,7 @@ export async function startServer({
         req.params.cid,
         req.params.commentId,
       );
-      if (!ok) return res.status(404).json({ error: 'comment not found' });
+      if (!ok) return res.status(404).json({ error: "comment not found" });
       updateProject(db, req.params.id, {});
       res.json({ ok: true });
     },
@@ -3343,26 +4398,26 @@ export async function startServer({
 
   // ---- Tabs -----------------------------------------------------------------
 
-  app.get('/api/projects/:id/tabs', (req, res) => {
+  app.get("/api/projects/:id/tabs", (req, res) => {
     if (!getProject(db, req.params.id)) {
-      return res.status(404).json({ error: 'project not found' });
+      return res.status(404).json({ error: "project not found" });
     }
     res.json(listTabs(db, req.params.id));
   });
 
-  app.put('/api/projects/:id/tabs', (req, res) => {
+  app.put("/api/projects/:id/tabs", (req, res) => {
     if (!getProject(db, req.params.id)) {
-      return res.status(404).json({ error: 'project not found' });
+      return res.status(404).json({ error: "project not found" });
     }
     const { tabs = [], active = null } = req.body || {};
-    if (!Array.isArray(tabs) || !tabs.every((t) => typeof t === 'string')) {
-      return res.status(400).json({ error: 'tabs must be string[]' });
+    if (!Array.isArray(tabs) || !tabs.every((t) => typeof t === "string")) {
+      return res.status(400).json({ error: "tabs must be string[]" });
     }
     const result = setTabs(
       db,
       req.params.id,
       tabs,
-      typeof active === 'string' ? active : null,
+      typeof active === "string" ? active : null,
     );
     res.json(result);
   });
@@ -3374,28 +4429,28 @@ export async function startServer({
   // starting point. Created via the project's Share menu (snapshots
   // every .html file in the project folder at the moment of save).
 
-  app.get('/api/templates', (_req, res) => {
+  app.get("/api/templates", (_req, res) => {
     res.json({ templates: listTemplates(db) });
   });
 
-  app.get('/api/templates/:id', (req, res) => {
+  app.get("/api/templates/:id", (req, res) => {
     const t = getTemplate(db, req.params.id);
-    if (!t) return res.status(404).json({ error: 'not found' });
+    if (!t) return res.status(404).json({ error: "not found" });
     res.json({ template: t });
   });
 
-  app.post('/api/templates', async (req, res) => {
+  app.post("/api/templates", async (req, res) => {
     try {
       const { name, description, sourceProjectId } = req.body || {};
-      if (typeof name !== 'string' || !name.trim()) {
-        return res.status(400).json({ error: 'name required' });
+      if (typeof name !== "string" || !name.trim()) {
+        return res.status(400).json({ error: "name required" });
       }
-      if (typeof sourceProjectId !== 'string') {
-        return res.status(400).json({ error: 'sourceProjectId required' });
+      if (typeof sourceProjectId !== "string") {
+        return res.status(400).json({ error: "sourceProjectId required" });
       }
       const sourceProject = getProject(db, sourceProjectId);
       if (!sourceProject) {
-        return res.status(404).json({ error: 'source project not found' });
+        return res.status(404).json({ error: "source project not found" });
       }
       // Snapshot every HTML / sketch / text file in the source project.
       // We deliberately skip binary uploads — templates are about the
@@ -3405,7 +4460,7 @@ export async function startServer({
       });
       const snapshot = [];
       for (const f of files) {
-        if (f.kind !== 'html' && f.kind !== 'text' && f.kind !== 'code')
+        if (f.kind !== "html" && f.kind !== "text" && f.kind !== "code")
           continue;
         const entry = await readProjectFile(
           PROJECTS_DIR,
@@ -3416,14 +4471,14 @@ export async function startServer({
         if (entry && Buffer.isBuffer(entry.buffer)) {
           snapshot.push({
             name: f.name,
-            content: entry.buffer.toString('utf8'),
+            content: entry.buffer.toString("utf8"),
           });
         }
       }
       const t = insertTemplate(db, {
         id: randomId(),
         name: name.trim(),
-        description: typeof description === 'string' ? description : null,
+        description: typeof description === "string" ? description : null,
         sourceProjectId,
         files: snapshot,
         createdAt: Date.now(),
@@ -3434,12 +4489,12 @@ export async function startServer({
     }
   });
 
-  app.delete('/api/templates/:id', (req, res) => {
+  app.delete("/api/templates/:id", (req, res) => {
     deleteTemplate(db, req.params.id);
     res.json({ ok: true });
   });
 
-  app.get('/api/agents', async (_req, res) => {
+  app.get("/api/agents", async (_req, res) => {
     try {
       const config = await readAppConfig(RUNTIME_DATA_DIR);
       const list = await detectAgents(config.agentCliEnv ?? {});
@@ -3449,7 +4504,89 @@ export async function startServer({
     }
   });
 
-  app.get('/api/skills', async (_req, res) => {
+  app.get("/api/desktop-profile/status", (req, res) => {
+    if (!isLocalSameOrigin(req, resolvedPort)) {
+      return res.status(403).json({ error: "cross-origin request rejected" });
+    }
+    res.json(desktopProfileSummary());
+  });
+
+  // --- Project dirs API ---
+  // GET  /api/project-dirs        → { skillsDirs, designSystemsDirs }
+  // POST /api/project-dirs        → { skillsDirs, designSystemsDirs } (body)
+  app.get("/api/project-dirs", (req, res) => {
+    if (!isLocalSameOrigin(req, resolvedPort)) {
+      return res.status(403).json({ error: "cross-origin request rejected" });
+    }
+    const cfg = readProjectDirsConfig();
+    res.json({
+      skillsDirs: cfg.skillsDirs,
+      designSystemsDirs: cfg.designSystemsDirs,
+    });
+  });
+
+  app.post("/api/project-dirs", (req, res) => {
+    if (!isLocalSameOrigin(req, resolvedPort)) {
+      return res.status(403).json({ error: "cross-origin request rejected" });
+    }
+    const body = req.body && typeof req.body === "object" ? req.body : {};
+    const current = readProjectDirsConfig();
+    const skillsDirs = Array.isArray(body.skillsDirs)
+      ? (body.skillsDirs as unknown[]).filter(
+          (d): d is string => typeof d === "string",
+        )
+      : current.skillsDirs;
+    const designSystemsDirs = Array.isArray(body.designSystemsDirs)
+      ? (body.designSystemsDirs as unknown[]).filter(
+          (d): d is string => typeof d === "string",
+        )
+      : current.designSystemsDirs;
+    const next: ProjectDirsConfig = { skillsDirs, designSystemsDirs };
+    try {
+      writeProjectDirsConfig(next);
+      res.json({
+        skillsDirs: next.skillsDirs,
+        designSystemsDirs: next.designSystemsDirs,
+      });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // GET /api/project-dirs/validate?path=<abs>&marker=<SKILL.md|DESIGN.md>
+  // → { exists: boolean, hasMarker: boolean }
+  app.get("/api/project-dirs/validate", (req, res) => {
+    if (!isLocalSameOrigin(req, resolvedPort)) {
+      return res.status(403).json({ error: "cross-origin request rejected" });
+    }
+    const rawPath = typeof req.query.path === "string" ? req.query.path : "";
+    const rawMarker =
+      typeof req.query.marker === "string" ? req.query.marker : "";
+    if (!rawPath) {
+      return res.status(400).json({ error: "path required" });
+    }
+    const marker =
+      rawMarker === "SKILL.md" || rawMarker === "DESIGN.md" ? rawMarker : "";
+    let exists = false;
+    let hasMarker = false;
+    try {
+      const st = fs.statSync(rawPath);
+      exists = st.isDirectory();
+    } catch {
+      exists = false;
+    }
+    if (exists && marker) {
+      try {
+        const st = fs.statSync(path.join(rawPath, marker));
+        hasMarker = st.isFile();
+      } catch {
+        hasMarker = false;
+      }
+    }
+    res.json({ exists, hasMarker });
+  });
+
+  app.get("/api/skills", async (_req, res) => {
     try {
       const skills = await listAllSkills();
       // Strip full body + on-disk dir from the listing — frontend fetches the
@@ -3457,7 +4594,7 @@ export async function startServer({
       res.json({
         skills: skills.map(({ body, dir: _dir, ...rest }) => ({
           ...rest,
-          hasBody: typeof body === 'string' && body.length > 0,
+          hasBody: typeof body === "string" && body.length > 0,
         })),
       });
     } catch (err) {
@@ -3465,11 +4602,56 @@ export async function startServer({
     }
   });
 
-  app.get('/api/skills/:id', async (req, res) => {
+  app.post("/api/skills/rescan", async (req, res) => {
+    if (!isLocalSameOrigin(req, resolvedPort)) {
+      return res.status(403).json({ error: "cross-origin request rejected" });
+    }
+    try {
+      const skills = await listAllSkills();
+      const sourceSummary = buildSourceReadabilitySummary(SKILLS_DIR);
+      res.json({
+        ...summarizeResourceScan("skills", SKILLS_DIR, skills),
+        sourceExists: sourceSummary.sourceExists,
+        errors: sourceSummary.errors,
+        skills: skills.map(({ body, dir: _dir, ...rest }) => ({
+          ...rest,
+          hasBody: typeof body === "string" && body.length > 0,
+        })),
+      });
+    } catch (err) {
+      res
+        .status(500)
+        .json(summarizeResourceScan("skills", SKILLS_DIR, [], [String(err)]));
+    }
+  });
+
+  app.post(
+    "/api/skills/sync-desktop",
+    requireLocalDaemonRequest,
+    async (req, res) => {
+      try {
+        const body = req.body && typeof req.body === "object" ? req.body : {};
+        const result = await syncSkillsToDesktop({
+          dryRun: body.dryRun !== false,
+          sourceDir:
+            typeof body.sourceDir === "string" ? body.sourceDir : undefined,
+          targetDir:
+            typeof body.targetDir === "string" ? body.targetDir : undefined,
+        });
+        res.json(result);
+      } catch (err) {
+        res
+          .status(400)
+          .json({ error: String(err && err.message ? err.message : err) });
+      }
+    },
+  );
+
+  app.get("/api/skills/:id", async (req, res) => {
     try {
       const skills = await listAllSkills();
       const skill = findSkillById(skills, req.params.id);
-      if (!skill) return res.status(404).json({ error: 'skill not found' });
+      if (!skill) return res.status(404).json({ error: "skill not found" });
       const { dir: _dir, ...serializable } = skill;
       res.json(serializable);
     } catch (err) {
@@ -3480,10 +4662,10 @@ export async function startServer({
   // Codex hatch-pet registry — pets packaged by the upstream `hatch-pet`
   // skill under `${CODEX_HOME:-$HOME/.codex}/pets/`. Surfaced so the web
   // pet settings can offer one-click adoption of recently-hatched pets.
-  app.get('/api/codex-pets', async (_req, res) => {
+  app.get("/api/codex-pets", async (_req, res) => {
     try {
       const result = await listCodexPets({
-        baseUrl: '',
+        baseUrl: "",
         bundledRoot: BUNDLED_PETS_DIR,
       });
       res.json(result);
@@ -3498,14 +4680,14 @@ export async function startServer({
   // immediately. The body is intentionally tiny — we keep the heavier
   // tuning knobs (`--limit`, `--concurrency`) on the CLI script and
   // only surface `force` + `source` here.
-  app.post('/api/codex-pets/sync', async (req, res) => {
+  app.post("/api/codex-pets/sync", async (req, res) => {
     try {
-      const body = req.body && typeof req.body === 'object' ? req.body : {};
-      const sourceRaw = typeof body.source === 'string' ? body.source : 'all';
+      const body = req.body && typeof req.body === "object" ? req.body : {};
+      const sourceRaw = typeof body.source === "string" ? body.source : "all";
       const source =
-        sourceRaw === 'petshare' || sourceRaw === 'hatchery'
+        sourceRaw === "petshare" || sourceRaw === "hatchery"
           ? sourceRaw
-          : 'all';
+          : "all";
       const result = await syncCommunityPets({
         source,
         force: Boolean(body.force),
@@ -3516,7 +4698,7 @@ export async function startServer({
     }
   });
 
-  app.get('/api/codex-pets/:id/spritesheet', async (req, res) => {
+  app.get("/api/codex-pets/:id/spritesheet", async (req, res) => {
     try {
       const sheet = await readCodexPetSpritesheet(req.params.id, {
         bundledRoot: BUNDLED_PETS_DIR,
@@ -3524,15 +4706,15 @@ export async function startServer({
       if (!sheet) {
         return res
           .status(404)
-          .type('text/plain')
-          .send('codex pet spritesheet not found');
+          .type("text/plain")
+          .send("codex pet spritesheet not found");
       }
       const mime =
-        sheet.ext === 'webp'
-          ? 'image/webp'
-          : sheet.ext === 'gif'
-            ? 'image/gif'
-            : 'image/png';
+        sheet.ext === "webp"
+          ? "image/webp"
+          : sheet.ext === "gif"
+            ? "image/gif"
+            : "image/png";
       res.type(mime);
       // Same-origin callers (the web app proxies `/api/*` through to
       // the daemon, so PetSettings adoption fetches arrive same-origin)
@@ -3541,17 +4723,17 @@ export async function startServer({
       // URIs (Origin: null) which need it to draw the bytes onto a
       // canvas without tainting. Local pet bytes should not be exposed
       // to arbitrary third-party origins via a wildcard ACAO.
-      if (req.headers.origin === 'null') {
-        res.setHeader('Access-Control-Allow-Origin', 'null');
+      if (req.headers.origin === "null") {
+        res.setHeader("Access-Control-Allow-Origin", "null");
       }
-      res.setHeader('Cache-Control', 'no-store');
+      res.setHeader("Cache-Control", "no-store");
       res.sendFile(sheet.absPath);
     } catch (err) {
-      res.status(500).type('text/plain').send(String(err));
+      res.status(500).type("text/plain").send(String(err));
     }
   });
 
-  app.get('/api/design-systems', async (_req, res) => {
+  app.get("/api/design-systems", async (_req, res) => {
     try {
       const systems = await listAllDesignSystems();
       res.json({
@@ -3562,20 +4744,46 @@ export async function startServer({
     }
   });
 
-  app.get('/api/design-systems/:id', async (req, res) => {
+  app.post("/api/design-systems/rescan", async (req, res) => {
+    if (!isLocalSameOrigin(req, resolvedPort)) {
+      return res.status(403).json({ error: "cross-origin request rejected" });
+    }
     try {
-      const body =
-        (await readDesignSystem(DESIGN_SYSTEMS_DIR, req.params.id)) ??
-        (await readDesignSystem(USER_DESIGN_SYSTEMS_DIR, req.params.id));
+      const systems = await listAllDesignSystems();
+      const sourceSummary =
+        buildDesignSystemSourceDiagnostics(DESIGN_SYSTEMS_DIR);
+      res.json({
+        ...summarizeResourceScan("design-systems", DESIGN_SYSTEMS_DIR, systems),
+        sourceExists: sourceSummary.sourceExists,
+        errors: sourceSummary.errors,
+        designSystems: systems.map(({ body, ...rest }) => rest),
+      });
+    } catch (err) {
+      res
+        .status(500)
+        .json(
+          summarizeResourceScan(
+            "design-systems",
+            DESIGN_SYSTEMS_DIR,
+            [],
+            [String(err)],
+          ),
+        );
+    }
+  });
+
+  app.get("/api/design-systems/:id", async (req, res) => {
+    try {
+      const body = await readDesignSystemFromAllDirs(req.params.id);
       if (body === null)
-        return res.status(404).json({ error: 'design system not found' });
+        return res.status(404).json({ error: "design system not found" });
       res.json({ id: req.params.id, body });
     } catch (err) {
       res.status(500).json({ error: String(err) });
     }
   });
 
-  app.get('/api/prompt-templates', async (_req, res) => {
+  app.get("/api/prompt-templates", async (_req, res) => {
     try {
       const templates = await listPromptTemplates(PROMPT_TEMPLATES_DIR);
       res.json({
@@ -3586,7 +4794,7 @@ export async function startServer({
     }
   });
 
-  app.get('/api/prompt-templates/:surface/:id', async (req, res) => {
+  app.get("/api/prompt-templates/:surface/:id", async (req, res) => {
     try {
       const tpl = await readPromptTemplate(
         PROMPT_TEMPLATES_DIR,
@@ -3594,7 +4802,7 @@ export async function startServer({
         req.params.id,
       );
       if (!tpl)
-        return res.status(404).json({ error: 'prompt template not found' });
+        return res.status(404).json({ error: "prompt template not found" });
       res.json({ promptTemplate: tpl });
     } catch (err) {
       res.status(500).json({ error: String(err) });
@@ -3605,34 +4813,30 @@ export async function startServer({
   // samples, sample components, and the full DESIGN.md rendered as prose.
   // Built at request time from the on-disk DESIGN.md so any update to the
   // file shows up on the next view, no rebuild needed.
-  app.get('/api/design-systems/:id/preview', async (req, res) => {
+  app.get("/api/design-systems/:id/preview", async (req, res) => {
     try {
-      const body =
-        (await readDesignSystem(DESIGN_SYSTEMS_DIR, req.params.id)) ??
-        (await readDesignSystem(USER_DESIGN_SYSTEMS_DIR, req.params.id));
+      const body = await readDesignSystemFromAllDirs(req.params.id);
       if (body === null)
-        return res.status(404).type('text/plain').send('not found');
+        return res.status(404).type("text/plain").send("not found");
       const html = renderDesignSystemPreview(req.params.id, body);
-      res.type('text/html').send(html);
+      res.type("text/html").send(html);
     } catch (err) {
-      res.status(500).type('text/plain').send(String(err));
+      res.status(500).type("text/plain").send(String(err));
     }
   });
 
   // Marketing-style showcase derived from the same DESIGN.md — full landing
   // page parameterised by the system's tokens. Same lazy-render strategy as
   // /preview: built at request time, no caching.
-  app.get('/api/design-systems/:id/showcase', async (req, res) => {
+  app.get("/api/design-systems/:id/showcase", async (req, res) => {
     try {
-      const body =
-        (await readDesignSystem(DESIGN_SYSTEMS_DIR, req.params.id)) ??
-        (await readDesignSystem(USER_DESIGN_SYSTEMS_DIR, req.params.id));
+      const body = await readDesignSystemFromAllDirs(req.params.id);
       if (body === null)
-        return res.status(404).type('text/plain').send('not found');
+        return res.status(404).type("text/plain").send("not found");
       const html = renderDesignSystemShowcase(req.params.id, body);
-      res.type('text/html').send(html);
+      res.type("text/html").send(html);
     } catch (err) {
-      res.status(500).type('text/plain').send(String(err));
+      res.status(500).type("text/plain").send(String(err));
     }
   });
 
@@ -3663,7 +4867,7 @@ export async function startServer({
   //   6. First .html in <skillDir>/examples/ — used as a friendly fallback
   //      so a skill that aggregates examples (like live-artifact) still has
   //      a real preview on its parent card instead of returning 404.
-  app.get('/api/skills/:id/example', async (req, res) => {
+  app.get("/api/skills/:id/example", async (req, res) => {
     try {
       const skills = await listAllSkills();
 
@@ -3675,63 +4879,63 @@ export async function startServer({
       if (derived) {
         const parent = findSkillById(skills, derived.parentId);
         if (!parent) {
-          return res.status(404).type('text/plain').send('skill not found');
+          return res.status(404).type("text/plain").send("skill not found");
         }
         const candidate = path.join(
           parent.dir,
-          'examples',
+          "examples",
           `${derived.childKey}.html`,
         );
         if (fs.existsSync(candidate)) {
-          const html = await fs.promises.readFile(candidate, 'utf8');
+          const html = await fs.promises.readFile(candidate, "utf8");
           return res
-            .type('text/html')
+            .type("text/html")
             .send(rewriteSkillAssetUrls(html, parent.id));
         }
         return res
           .status(404)
-          .type('text/plain')
-          .send('derived example not found');
+          .type("text/plain")
+          .send("derived example not found");
       }
 
       const skill = findSkillById(skills, req.params.id);
       if (!skill) {
-        return res.status(404).type('text/plain').send('skill not found');
+        return res.status(404).type("text/plain").send("skill not found");
       }
 
-      const baked = path.join(skill.dir, 'example.html');
+      const baked = path.join(skill.dir, "example.html");
       if (fs.existsSync(baked)) {
-        const html = await fs.promises.readFile(baked, 'utf8');
+        const html = await fs.promises.readFile(baked, "utf8");
         return res
-          .type('text/html')
+          .type("text/html")
           .send(rewriteSkillAssetUrls(html, skill.id));
       }
 
-      const tpl = path.join(skill.dir, 'assets', 'template.html');
-      const slides = path.join(skill.dir, 'assets', 'example-slides.html');
+      const tpl = path.join(skill.dir, "assets", "template.html");
+      const slides = path.join(skill.dir, "assets", "example-slides.html");
       if (fs.existsSync(tpl) && fs.existsSync(slides)) {
         try {
-          const tplHtml = await fs.promises.readFile(tpl, 'utf8');
-          const slidesHtml = await fs.promises.readFile(slides, 'utf8');
+          const tplHtml = await fs.promises.readFile(tpl, "utf8");
+          const slidesHtml = await fs.promises.readFile(slides, "utf8");
           const assembled = assembleExample(tplHtml, slidesHtml, skill.name);
           return res
-            .type('text/html')
+            .type("text/html")
             .send(rewriteSkillAssetUrls(assembled, skill.id));
         } catch {
           // Fall through to raw template on read failure.
         }
       }
       if (fs.existsSync(tpl)) {
-        const html = await fs.promises.readFile(tpl, 'utf8');
+        const html = await fs.promises.readFile(tpl, "utf8");
         return res
-          .type('text/html')
+          .type("text/html")
           .send(rewriteSkillAssetUrls(html, skill.id));
       }
-      const idx = path.join(skill.dir, 'assets', 'index.html');
+      const idx = path.join(skill.dir, "assets", "index.html");
       if (fs.existsSync(idx)) {
-        const html = await fs.promises.readFile(idx, 'utf8');
+        const html = await fs.promises.readFile(idx, "utf8");
         return res
-          .type('text/html')
+          .type("text/html")
           .send(rewriteSkillAssetUrls(html, skill.id));
       }
 
@@ -3743,7 +4947,7 @@ export async function startServer({
       // Subfolder layouts are excluded for the same reason as the derived
       // resolver above — their `template.html` still has unresolved
       // `{{data.x}}` placeholders.
-      const examplesDir = path.join(skill.dir, 'examples');
+      const examplesDir = path.join(skill.dir, "examples");
       if (fs.existsSync(examplesDir)) {
         let entries: string[] = [];
         try {
@@ -3753,13 +4957,13 @@ export async function startServer({
         }
         entries.sort();
         for (const name of entries) {
-          if (name.startsWith('.')) continue;
-          if (!name.toLowerCase().endsWith('.html')) continue;
+          if (name.startsWith(".")) continue;
+          if (!name.toLowerCase().endsWith(".html")) continue;
           const direct = path.join(examplesDir, name);
           try {
-            const html = await fs.promises.readFile(direct, 'utf8');
+            const html = await fs.promises.readFile(direct, "utf8");
             return res
-              .type('text/html')
+              .type("text/html")
               .send(rewriteSkillAssetUrls(html, skill.id));
           } catch {
             continue;
@@ -3769,12 +4973,12 @@ export async function startServer({
 
       res
         .status(404)
-        .type('text/plain')
+        .type("text/plain")
         .send(
-          'no example.html, assets/template.html, assets/index.html, or examples/*.html for this skill',
+          "no example.html, assets/template.html, assets/index.html, or examples/*.html for this skill",
         );
     } catch (err) {
-      res.status(500).type('text/plain').send(String(err));
+      res.status(500).type("text/plain").send(String(err));
     }
   });
 
@@ -3785,60 +4989,82 @@ export async function startServer({
   // The example response above rewrites `./assets/<file>` into a request
   // against this route; we still keep the on-disk paths human-friendly so
   // contributors can preview `example.html` straight from disk.
-  app.get('/api/skills/:id/assets/*', async (req, res) => {
+  app.get("/api/skills/:id/assets/*", async (req, res) => {
     try {
       const skills = await listAllSkills();
       const skill = findSkillById(skills, req.params.id);
       if (!skill) {
-        return res.status(404).type('text/plain').send('skill not found');
+        return res.status(404).type("text/plain").send("skill not found");
       }
-      const relPath = String(req.params[0] || '');
-      const assetsRoot = path.resolve(skill.dir, 'assets');
+      const relPath = String(req.params[0] || "");
+      const assetsRoot = path.resolve(skill.dir, "assets");
       const target = path.resolve(assetsRoot, relPath);
       if (target !== assetsRoot && !target.startsWith(assetsRoot + path.sep)) {
-        return res.status(400).type('text/plain').send('invalid asset path');
+        return res.status(400).type("text/plain").send("invalid asset path");
       }
       if (!fs.existsSync(target)) {
-        return res.status(404).type('text/plain').send('asset not found');
+        return res.status(404).type("text/plain").send("asset not found");
       }
       // The example HTML is rendered inside a sandboxed iframe (Origin: null).
       // Mirror the project /raw route's allowance so the iframe can fetch the
       // image bytes; same-origin web callers do not need this header.
-      if (req.headers.origin === 'null') {
-        res.header('Access-Control-Allow-Origin', '*');
+      if (req.headers.origin === "null") {
+        res.header("Access-Control-Allow-Origin", "*");
       }
       res.type(mimeFor(target)).sendFile(target);
     } catch (err) {
-      res.status(500).type('text/plain').send(String(err));
+      res.status(500).type("text/plain").send(String(err));
     }
   });
 
   // Install a skill from a GitHub URL or local path.
-  app.post('/api/skills/install', async (req, res) => {
+  app.post("/api/skills/install", async (req, res) => {
     if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'forbidden' });
+      return res.status(403).json({ error: "forbidden" });
     }
     try {
-      const result = await installFromTarget(req.body, USER_SKILLS_DIR, 'skill');
+      const result = await installFromTarget(
+        req.body,
+        USER_SKILLS_DIR,
+        "skill",
+      );
       if (!result.ok) return res.status(400).json({ error: result.error });
       const skills = await listAllSkills();
-      const skill = findSkillById(skills, req.body.source === 'github'
-        ? sanitizeRepoName(req.body.url)
-        : path.basename(fs.realpathSync.native(req.body.path)));
-      res.json({ skill: skill ? { ...skill, dir: undefined, body: undefined, hasBody: typeof skill.body === 'string' && skill.body.length > 0 } : null });
+      const skill = findSkillById(
+        skills,
+        req.body.source === "github"
+          ? sanitizeRepoName(req.body.url)
+          : path.basename(fs.realpathSync.native(req.body.path)),
+      );
+      res.json({
+        skill: skill
+          ? {
+              ...skill,
+              dir: undefined,
+              body: undefined,
+              hasBody: typeof skill.body === "string" && skill.body.length > 0,
+            }
+          : null,
+      });
     } catch (err) {
       res.status(500).json({ error: String(err) });
     }
   });
 
   // Uninstall a user-installed skill.
-  app.delete('/api/skills/:id', async (req, res) => {
+  app.delete("/api/skills/:id", async (req, res) => {
     if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'forbidden' });
+      return res.status(403).json({ error: "forbidden" });
     }
     try {
-      const result = await uninstallById(req.params.id, USER_SKILLS_DIR, SKILLS_DIR, 'skill');
-      if (!result.ok) return res.status(result.status || 400).json({ error: result.error });
+      const result = await uninstallById(
+        req.params.id,
+        USER_SKILLS_DIR,
+        SKILLS_DIR,
+        "skill",
+      );
+      if (!result.ok)
+        return res.status(result.status || 400).json({ error: result.error });
       res.json({ ok: true });
     } catch (err) {
       res.status(500).json({ error: String(err) });
@@ -3846,17 +5072,22 @@ export async function startServer({
   });
 
   // Install a design system from a GitHub URL or local path.
-  app.post('/api/design-systems/install', async (req, res) => {
+  app.post("/api/design-systems/install", async (req, res) => {
     if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'forbidden' });
+      return res.status(403).json({ error: "forbidden" });
     }
     try {
-      const result = await installFromTarget(req.body, USER_DESIGN_SYSTEMS_DIR, 'design-system');
+      const result = await installFromTarget(
+        req.body,
+        USER_DESIGN_SYSTEMS_DIR,
+        "design-system",
+      );
       if (!result.ok) return res.status(400).json({ error: result.error });
       const systems = await listAllDesignSystems();
-      const dsId = req.body.source === 'github'
-        ? sanitizeRepoName(req.body.url)
-        : path.basename(fs.realpathSync.native(req.body.path));
+      const dsId =
+        req.body.source === "github"
+          ? sanitizeRepoName(req.body.url)
+          : path.basename(fs.realpathSync.native(req.body.path));
       const ds = systems.find((s) => s.id === dsId);
       res.json({ designSystem: ds || null });
     } catch (err) {
@@ -3865,20 +5096,26 @@ export async function startServer({
   });
 
   // Uninstall a user-installed design system.
-  app.delete('/api/design-systems/:id', async (req, res) => {
+  app.delete("/api/design-systems/:id", async (req, res) => {
     if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'forbidden' });
+      return res.status(403).json({ error: "forbidden" });
     }
     try {
-      const result = await uninstallById(req.params.id, USER_DESIGN_SYSTEMS_DIR, DESIGN_SYSTEMS_DIR, 'design-system');
-      if (!result.ok) return res.status(result.status || 400).json({ error: result.error });
+      const result = await uninstallById(
+        req.params.id,
+        USER_DESIGN_SYSTEMS_DIR,
+        DESIGN_SYSTEMS_DIR,
+        "design-system",
+      );
+      if (!result.ok)
+        return res.status(result.status || 400).json({ error: result.error });
       res.json({ ok: true });
     } catch (err) {
       res.status(500).json({ error: String(err) });
     }
   });
 
-  app.post('/api/upload', upload.array('images', 8), (req, res) => {
+  app.post("/api/upload", upload.array("images", 8), (req, res) => {
     const files = (req.files || []).map((f) => ({
       name: f.originalname,
       path: f.path,
@@ -3892,18 +5129,18 @@ export async function startServer({
   // The body is also passed through the anti-slop linter; findings are
   // returned alongside the path so the UI can render a P0/P1 badge and the
   // chat layer can splice them into a system reminder for the agent.
-  app.post('/api/artifacts/save', (req, res) => {
+  app.post("/api/artifacts/save", (req, res) => {
     try {
       const { identifier, title, html } = req.body || {};
-      if (typeof html !== 'string' || html.length === 0) {
-        return res.status(400).json({ error: 'html required' });
+      if (typeof html !== "string" || html.length === 0) {
+        return res.status(400).json({ error: "html required" });
       }
-      const stamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19);
-      const slug = sanitizeSlug(identifier || title || 'artifact');
+      const stamp = new Date().toISOString().replace(/[:T]/g, "-").slice(0, 19);
+      const slug = sanitizeSlug(identifier || title || "artifact");
       const dir = path.join(ARTIFACTS_DIR, `${stamp}-${slug}`);
       fs.mkdirSync(dir, { recursive: true });
-      const file = path.join(dir, 'index.html');
-      fs.writeFileSync(file, html, 'utf8');
+      const file = path.join(dir, "index.html");
+      fs.writeFileSync(file, html, "utf8");
       const findings = lintArtifact(html);
       res.json({
         path: file,
@@ -3918,11 +5155,11 @@ export async function startServer({
   // Standalone lint endpoint — POST raw HTML, get findings back.
   // The chat layer uses this to lint streamed-in artifacts without writing
   // them to disk first, so a P0 issue can be surfaced before save.
-  app.post('/api/artifacts/lint', (req, res) => {
+  app.post("/api/artifacts/lint", (req, res) => {
     try {
       const { html } = req.body || {};
-      if (typeof html !== 'string' || html.length === 0) {
-        return res.status(400).json({ error: 'html required' });
+      if (typeof html !== "string" || html.length === 0) {
+        return res.status(400).json({ error: "html required" });
       }
       const findings = lintArtifact(html);
       res.json({
@@ -3934,11 +5171,19 @@ export async function startServer({
     }
   });
 
-  app.get('/api/live-artifacts', async (req, res) => {
+  app.get("/api/live-artifacts", async (req, res) => {
     try {
-      const projectId = typeof req.query.projectId === 'string' ? req.query.projectId : undefined;
+      const projectId =
+        typeof req.query.projectId === "string"
+          ? req.query.projectId
+          : undefined;
       if (!projectId) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'projectId query parameter is required');
+        return sendApiError(
+          res,
+          400,
+          "BAD_REQUEST",
+          "projectId query parameter is required",
+        );
       }
 
       const artifacts = await listLiveArtifacts({
@@ -3951,49 +5196,81 @@ export async function startServer({
     }
   });
 
-  app.options('/api/live-artifacts/:artifactId/preview', requireLocalDaemonRequest, (_req, res) => {
-    res.status(204).end();
-  });
+  app.options(
+    "/api/live-artifacts/:artifactId/preview",
+    requireLocalDaemonRequest,
+    (_req, res) => {
+      res.status(204).end();
+    },
+  );
 
-  app.get('/api/live-artifacts/:artifactId/preview', requireLocalDaemonRequest, async (req, res) => {
-    try {
-      const projectId = typeof req.query.projectId === 'string' ? req.query.projectId : undefined;
-      if (!projectId) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'projectId query parameter is required');
-      }
+  app.get(
+    "/api/live-artifacts/:artifactId/preview",
+    requireLocalDaemonRequest,
+    async (req, res) => {
+      try {
+        const projectId =
+          typeof req.query.projectId === "string"
+            ? req.query.projectId
+            : undefined;
+        if (!projectId) {
+          return sendApiError(
+            res,
+            400,
+            "BAD_REQUEST",
+            "projectId query parameter is required",
+          );
+        }
 
-      const variant = typeof req.query.variant === 'string' ? req.query.variant : 'rendered';
-      if (variant === 'template' || variant === 'rendered-source') {
-        const html = await readLiveArtifactCode({
+        const variant =
+          typeof req.query.variant === "string"
+            ? req.query.variant
+            : "rendered";
+        if (variant === "template" || variant === "rendered-source") {
+          const html = await readLiveArtifactCode({
+            projectsRoot: PROJECTS_DIR,
+            projectId,
+            artifactId: req.params.artifactId,
+            variant: variant === "template" ? "template" : "rendered",
+          });
+          setLiveArtifactCodeHeaders(res);
+          return res.status(200).send(html);
+        }
+        if (variant !== "rendered") {
+          return sendApiError(
+            res,
+            400,
+            "BAD_REQUEST",
+            "variant must be rendered, template, or rendered-source",
+          );
+        }
+
+        const record = await ensureLiveArtifactPreview({
           projectsRoot: PROJECTS_DIR,
           projectId,
           artifactId: req.params.artifactId,
-          variant: variant === 'template' ? 'template' : 'rendered',
         });
-        setLiveArtifactCodeHeaders(res);
-        return res.status(200).send(html);
+        setLiveArtifactPreviewHeaders(res);
+        res.status(200).send(record.html);
+      } catch (err) {
+        sendLiveArtifactRouteError(res, err);
       }
-      if (variant !== 'rendered') {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'variant must be rendered, template, or rendered-source');
-      }
+    },
+  );
 
-      const record = await ensureLiveArtifactPreview({
-        projectsRoot: PROJECTS_DIR,
-        projectId,
-        artifactId: req.params.artifactId,
-      });
-      setLiveArtifactPreviewHeaders(res);
-      res.status(200).send(record.html);
-    } catch (err) {
-      sendLiveArtifactRouteError(res, err);
-    }
-  });
-
-  app.get('/api/live-artifacts/:artifactId', async (req, res) => {
+  app.get("/api/live-artifacts/:artifactId", async (req, res) => {
     try {
-      const projectId = typeof req.query.projectId === 'string' ? req.query.projectId : undefined;
+      const projectId =
+        typeof req.query.projectId === "string"
+          ? req.query.projectId
+          : undefined;
       if (!projectId) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'projectId query parameter is required');
+        return sendApiError(
+          res,
+          400,
+          "BAD_REQUEST",
+          "projectId query parameter is required",
+        );
       }
 
       const record = await getLiveArtifact({
@@ -4007,11 +5284,19 @@ export async function startServer({
     }
   });
 
-  app.get('/api/live-artifacts/:artifactId/refreshes', async (req, res) => {
+  app.get("/api/live-artifacts/:artifactId/refreshes", async (req, res) => {
     try {
-      const projectId = typeof req.query.projectId === 'string' ? req.query.projectId : undefined;
+      const projectId =
+        typeof req.query.projectId === "string"
+          ? req.query.projectId
+          : undefined;
       if (!projectId) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'projectId query parameter is required');
+        return sendApiError(
+          res,
+          400,
+          "BAD_REQUEST",
+          "projectId query parameter is required",
+        );
       }
 
       const refreshes = await listLiveArtifactRefreshLogEntries({
@@ -4025,20 +5310,33 @@ export async function startServer({
     }
   });
 
-  app.post('/api/tools/live-artifacts/create', async (req, res) => {
+  app.post("/api/tools/live-artifacts/create", async (req, res) => {
     try {
-      const toolGrant = authorizeToolRequest(req, res, 'live-artifacts:create');
+      const toolGrant = authorizeToolRequest(req, res, "live-artifacts:create");
       if (!toolGrant) return;
-      const { projectId, input, templateHtml, provenanceJson, createdByRunId } = req.body || {};
+      const { projectId, input, templateHtml, provenanceJson, createdByRunId } =
+        req.body || {};
       if (requestProjectOverride(projectId, toolGrant.projectId)) {
-        return sendApiError(res, 403, 'FORBIDDEN', 'projectId is derived from the tool token', {
-          details: { suppliedProjectId: projectId },
-        });
+        return sendApiError(
+          res,
+          403,
+          "FORBIDDEN",
+          "projectId is derived from the tool token",
+          {
+            details: { suppliedProjectId: projectId },
+          },
+        );
       }
       if (requestRunOverride(createdByRunId, toolGrant.runId)) {
-        return sendApiError(res, 403, 'FORBIDDEN', 'createdByRunId is derived from the tool token', {
-          details: { suppliedRunId: createdByRunId },
-        });
+        return sendApiError(
+          res,
+          403,
+          "FORBIDDEN",
+          "createdByRunId is derived from the tool token",
+          {
+            details: { suppliedRunId: createdByRunId },
+          },
+        );
       }
 
       const record = await createLiveArtifact({
@@ -4049,22 +5347,31 @@ export async function startServer({
         provenanceJson,
         createdByRunId: toolGrant.runId,
       });
-      emitLiveArtifactEvent(toolGrant, 'created', record.artifact);
+      emitLiveArtifactEvent(toolGrant, "created", record.artifact);
       res.json({ artifact: record.artifact });
     } catch (err) {
       sendLiveArtifactRouteError(res, err);
     }
   });
 
-  app.get('/api/tools/live-artifacts/list', async (req, res) => {
+  app.get("/api/tools/live-artifacts/list", async (req, res) => {
     try {
-      const toolGrant = authorizeToolRequest(req, res, 'live-artifacts:list');
+      const toolGrant = authorizeToolRequest(req, res, "live-artifacts:list");
       if (!toolGrant) return;
-      const projectId = typeof req.query.projectId === 'string' ? req.query.projectId : undefined;
+      const projectId =
+        typeof req.query.projectId === "string"
+          ? req.query.projectId
+          : undefined;
       if (requestProjectOverride(projectId, toolGrant.projectId)) {
-        return sendApiError(res, 403, 'FORBIDDEN', 'projectId is derived from the tool token', {
-          details: { suppliedProjectId: projectId },
-        });
+        return sendApiError(
+          res,
+          403,
+          "FORBIDDEN",
+          "projectId is derived from the tool token",
+          {
+            details: { suppliedProjectId: projectId },
+          },
+        );
       }
 
       const artifacts = await listLiveArtifacts({
@@ -4077,18 +5384,25 @@ export async function startServer({
     }
   });
 
-  app.post('/api/tools/live-artifacts/update', async (req, res) => {
+  app.post("/api/tools/live-artifacts/update", async (req, res) => {
     try {
-      const toolGrant = authorizeToolRequest(req, res, 'live-artifacts:update');
+      const toolGrant = authorizeToolRequest(req, res, "live-artifacts:update");
       if (!toolGrant) return;
-      const { projectId, artifactId, input, templateHtml, provenanceJson } = req.body || {};
+      const { projectId, artifactId, input, templateHtml, provenanceJson } =
+        req.body || {};
       if (requestProjectOverride(projectId, toolGrant.projectId)) {
-        return sendApiError(res, 403, 'FORBIDDEN', 'projectId is derived from the tool token', {
-          details: { suppliedProjectId: projectId },
-        });
+        return sendApiError(
+          res,
+          403,
+          "FORBIDDEN",
+          "projectId is derived from the tool token",
+          {
+            details: { suppliedProjectId: projectId },
+          },
+        );
       }
-      if (typeof artifactId !== 'string' || artifactId.length === 0) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'artifactId is required');
+      if (typeof artifactId !== "string" || artifactId.length === 0) {
+        return sendApiError(res, 400, "BAD_REQUEST", "artifactId is required");
       }
 
       const record = await updateLiveArtifact({
@@ -4099,25 +5413,35 @@ export async function startServer({
         templateHtml,
         provenanceJson,
       });
-      emitLiveArtifactEvent(toolGrant, 'updated', record.artifact);
+      emitLiveArtifactEvent(toolGrant, "updated", record.artifact);
       res.json({ artifact: record.artifact });
     } catch (err) {
       sendLiveArtifactRouteError(res, err);
     }
   });
 
-  app.post('/api/tools/live-artifacts/refresh', async (req, res) => {
+  app.post("/api/tools/live-artifacts/refresh", async (req, res) => {
     try {
-      const toolGrant = authorizeToolRequest(req, res, 'live-artifacts:refresh');
+      const toolGrant = authorizeToolRequest(
+        req,
+        res,
+        "live-artifacts:refresh",
+      );
       if (!toolGrant) return;
       const { projectId, artifactId } = req.body || {};
       if (requestProjectOverride(projectId, toolGrant.projectId)) {
-        return sendApiError(res, 403, 'FORBIDDEN', 'projectId is derived from the tool token', {
-          details: { suppliedProjectId: projectId },
-        });
+        return sendApiError(
+          res,
+          403,
+          "FORBIDDEN",
+          "projectId is derived from the tool token",
+          {
+            details: { suppliedProjectId: projectId },
+          },
+        );
       }
-      if (typeof artifactId !== 'string' || artifactId.length === 0) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'artifactId is required');
+      if (typeof artifactId !== "string" || artifactId.length === 0) {
+        return sendApiError(res, 400, "BAD_REQUEST", "artifactId is required");
       }
 
       let result;
@@ -4127,19 +5451,26 @@ export async function startServer({
           projectId: toolGrant.projectId,
           artifactId,
           onStarted: ({ refreshId }) => {
-            emitLiveArtifactRefreshEvent(toolGrant, { phase: 'started', artifactId, refreshId });
+            emitLiveArtifactRefreshEvent(toolGrant, {
+              phase: "started",
+              artifactId,
+              refreshId,
+            });
           },
         });
       } catch (refreshErr) {
         emitLiveArtifactRefreshEvent(toolGrant, {
-          phase: 'failed',
+          phase: "failed",
           artifactId,
-          error: refreshErr instanceof Error ? refreshErr.message : String(refreshErr),
+          error:
+            refreshErr instanceof Error
+              ? refreshErr.message
+              : String(refreshErr),
         });
         throw refreshErr;
       }
       emitLiveArtifactRefreshEvent(toolGrant, {
-        phase: 'succeeded',
+        phase: "succeeded",
         artifactId,
         refreshId: result.refresh.id,
         title: result.artifact.title,
@@ -4151,11 +5482,19 @@ export async function startServer({
     }
   });
 
-  app.patch('/api/live-artifacts/:artifactId', async (req, res) => {
+  app.patch("/api/live-artifacts/:artifactId", async (req, res) => {
     try {
-      const projectId = typeof req.query.projectId === 'string' ? req.query.projectId : undefined;
+      const projectId =
+        typeof req.query.projectId === "string"
+          ? req.query.projectId
+          : undefined;
       if (!projectId) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'projectId query parameter is required');
+        return sendApiError(
+          res,
+          400,
+          "BAD_REQUEST",
+          "projectId query parameter is required",
+        );
       }
 
       const record = await updateLiveArtifact({
@@ -4164,18 +5503,26 @@ export async function startServer({
         artifactId: req.params.artifactId,
         input: req.body ?? {},
       });
-      emitLiveArtifactEvent({ projectId }, 'updated', record.artifact);
+      emitLiveArtifactEvent({ projectId }, "updated", record.artifact);
       res.json({ artifact: record.artifact });
     } catch (err) {
       sendLiveArtifactRouteError(res, err);
     }
   });
 
-  app.delete('/api/live-artifacts/:artifactId', async (req, res) => {
+  app.delete("/api/live-artifacts/:artifactId", async (req, res) => {
     try {
-      const projectId = typeof req.query.projectId === 'string' ? req.query.projectId : undefined;
+      const projectId =
+        typeof req.query.projectId === "string"
+          ? req.query.projectId
+          : undefined;
       if (!projectId) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'projectId query parameter is required');
+        return sendApiError(
+          res,
+          400,
+          "BAD_REQUEST",
+          "projectId query parameter is required",
+        );
       }
 
       const existing = await getLiveArtifact({
@@ -4189,94 +5536,145 @@ export async function startServer({
         artifactId: req.params.artifactId,
       });
       updateProject(db, projectId, {});
-      emitLiveArtifactEvent({ projectId }, 'deleted', existing.artifact);
+      emitLiveArtifactEvent({ projectId }, "deleted", existing.artifact);
       res.json({ ok: true });
     } catch (err) {
       sendLiveArtifactRouteError(res, err);
     }
   });
 
-  app.options('/api/live-artifacts/:artifactId/refresh', requireLocalDaemonRequest, (_req, res) => {
-    res.status(204).end();
-  });
+  app.options(
+    "/api/live-artifacts/:artifactId/refresh",
+    requireLocalDaemonRequest,
+    (_req, res) => {
+      res.status(204).end();
+    },
+  );
 
-  app.post('/api/live-artifacts/:artifactId/refresh', requireLocalDaemonRequest, async (req, res) => {
-    try {
-      const projectId = typeof req.query.projectId === 'string' ? req.query.projectId : undefined;
-      if (!projectId) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'projectId query parameter is required');
-      }
-
-      let result;
+  app.post(
+    "/api/live-artifacts/:artifactId/refresh",
+    requireLocalDaemonRequest,
+    async (req, res) => {
       try {
-        result = await refreshLiveArtifact({
-          projectsRoot: PROJECTS_DIR,
-          projectId,
-          artifactId: req.params.artifactId,
-          onStarted: ({ refreshId }) => {
-            emitLiveArtifactRefreshEvent({ projectId }, { phase: 'started', artifactId: req.params.artifactId, refreshId });
-          },
-        });
-      } catch (refreshErr) {
-        emitLiveArtifactRefreshEvent({ projectId }, {
-          phase: 'failed',
-          artifactId: req.params.artifactId,
-          error: refreshErr instanceof Error ? refreshErr.message : String(refreshErr),
-        });
-        throw refreshErr;
-      }
-      emitLiveArtifactRefreshEvent({ projectId }, {
-        phase: 'succeeded',
-        artifactId: req.params.artifactId,
-        refreshId: result.refresh.id,
-        title: result.artifact.title,
-        refreshedSourceCount: result.refresh.refreshedSourceCount,
-      });
-      res.json(result);
-    } catch (err) {
-      sendLiveArtifactRouteError(res, err);
-    }
-  });
+        const projectId =
+          typeof req.query.projectId === "string"
+            ? req.query.projectId
+            : undefined;
+        if (!projectId) {
+          return sendApiError(
+            res,
+            400,
+            "BAD_REQUEST",
+            "projectId query parameter is required",
+          );
+        }
 
-  app.use('/artifacts', express.static(ARTIFACTS_DIR));
+        let result;
+        try {
+          result = await refreshLiveArtifact({
+            projectsRoot: PROJECTS_DIR,
+            projectId,
+            artifactId: req.params.artifactId,
+            onStarted: ({ refreshId }) => {
+              emitLiveArtifactRefreshEvent(
+                { projectId },
+                {
+                  phase: "started",
+                  artifactId: req.params.artifactId,
+                  refreshId,
+                },
+              );
+            },
+          });
+        } catch (refreshErr) {
+          emitLiveArtifactRefreshEvent(
+            { projectId },
+            {
+              phase: "failed",
+              artifactId: req.params.artifactId,
+              error:
+                refreshErr instanceof Error
+                  ? refreshErr.message
+                  : String(refreshErr),
+            },
+          );
+          throw refreshErr;
+        }
+        emitLiveArtifactRefreshEvent(
+          { projectId },
+          {
+            phase: "succeeded",
+            artifactId: req.params.artifactId,
+            refreshId: result.refresh.id,
+            title: result.artifact.title,
+            refreshedSourceCount: result.refresh.refreshedSourceCount,
+          },
+        );
+        res.json(result);
+      } catch (err) {
+        sendLiveArtifactRouteError(res, err);
+      }
+    },
+  );
+
+  app.use("/artifacts", express.static(ARTIFACTS_DIR));
 
   // ---- Deploy --------------------------------------------------------------
 
-  app.get('/api/deploy/config', async (req, res) => {
+  app.get("/api/deploy/config", async (req, res) => {
     try {
       const providerId =
-        typeof req.query.providerId === 'string' ? req.query.providerId : VERCEL_PROVIDER_ID;
+        typeof req.query.providerId === "string"
+          ? req.query.providerId
+          : VERCEL_PROVIDER_ID;
       if (!isDeployProviderId(providerId)) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'unsupported deploy provider');
+        return sendApiError(
+          res,
+          400,
+          "BAD_REQUEST",
+          "unsupported deploy provider",
+        );
       }
       /** @type {import('@open-design/contracts').DeployConfigResponse} */
-      const body = publicDeployConfigForProvider(providerId, await readDeployConfig(providerId));
+      const body = publicDeployConfigForProvider(
+        providerId,
+        await readDeployConfig(providerId),
+      );
       res.json(body);
     } catch (err) {
-      sendApiError(res, 500, 'INTERNAL_ERROR', String(err?.message || err));
+      sendApiError(res, 500, "INTERNAL_ERROR", String(err?.message || err));
     }
   });
 
-  app.put('/api/deploy/config', async (req, res) => {
+  app.put("/api/deploy/config", async (req, res) => {
     try {
       const input = req.body || {};
       const providerId =
-        typeof input.providerId === 'string' ? input.providerId : VERCEL_PROVIDER_ID;
+        typeof input.providerId === "string"
+          ? input.providerId
+          : VERCEL_PROVIDER_ID;
       if (!isDeployProviderId(providerId)) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'unsupported deploy provider');
+        return sendApiError(
+          res,
+          400,
+          "BAD_REQUEST",
+          "unsupported deploy provider",
+        );
       }
       /** @type {import('@open-design/contracts').DeployConfigResponse} */
       const body = await writeDeployConfig(providerId, input);
       res.json(body);
     } catch (err) {
-      sendApiError(res, 400, 'BAD_REQUEST', String(err?.message || err));
+      sendApiError(res, 400, "BAD_REQUEST", String(err?.message || err));
     }
   });
 
-  app.get('/api/deploy/cloudflare-pages/zones', async (_req, res) => {
+  app.get("/api/deploy/cloudflare-pages/zones", async (_req, res) => {
     try {
       /** @type {import('@open-design/contracts').CloudflarePagesZonesResponse} */
-      const body = await listCloudflarePagesZones(await readDeployConfig(CLOUDFLARE_PAGES_PROVIDER_ID));
+      const body = await listCloudflarePagesZones(
+        await readDeployConfig(CLOUDFLARE_PAGES_PROVIDER_ID),
+      );
       res.json(body);
     } catch (err) {
       const status = err instanceof DeployError ? err.status : 400;
@@ -4284,33 +5682,45 @@ export async function startServer({
         err instanceof DeployError && err.details
           ? { details: err.details }
           : {};
-      sendApiError(res, status, 'BAD_REQUEST', String(err?.message || err), init);
+      sendApiError(
+        res,
+        status,
+        "BAD_REQUEST",
+        String(err?.message || err),
+        init,
+      );
     }
   });
 
-  app.get('/api/projects/:id/deployments', (req, res) => {
+  app.get("/api/projects/:id/deployments", (req, res) => {
     try {
       /** @type {import('@open-design/contracts').ProjectDeploymentsResponse} */
-      const body = { deployments: publicDeployments(listDeployments(db, req.params.id)) };
+      const body = {
+        deployments: publicDeployments(listDeployments(db, req.params.id)),
+      };
       res.json(body);
     } catch (err) {
-      sendApiError(res, 400, 'BAD_REQUEST', String(err?.message || err));
+      sendApiError(res, 400, "BAD_REQUEST", String(err?.message || err));
     }
   });
 
-  app.post('/api/projects/:id/deploy', async (req, res) => {
+  app.post("/api/projects/:id/deploy", async (req, res) => {
     try {
-      const { fileName, providerId = VERCEL_PROVIDER_ID, cloudflarePages } = req.body || {};
+      const {
+        fileName,
+        providerId = VERCEL_PROVIDER_ID,
+        cloudflarePages,
+      } = req.body || {};
       if (!isDeployProviderId(providerId)) {
         return sendApiError(
           res,
           400,
-          'BAD_REQUEST',
-          'unsupported deploy provider',
+          "BAD_REQUEST",
+          "unsupported deploy provider",
         );
       }
-      if (typeof fileName !== 'string' || !fileName.trim()) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'fileName required');
+      if (typeof fileName !== "string" || !fileName.trim()) {
+        return sendApiError(res, 400, "BAD_REQUEST", "fileName required");
       }
 
       const prior = getDeployment(db, req.params.id, fileName, providerId);
@@ -4324,24 +5734,30 @@ export async function startServer({
       const project = getProject(db, req.params.id);
       const cloudflarePagesProjectName =
         providerId === CLOUDFLARE_PAGES_PROVIDER_ID
-          ? cloudflarePagesProjectNameForDeploy(db, req.params.id, project?.name, prior)
-          : '';
-      const result = providerId === CLOUDFLARE_PAGES_PROVIDER_ID
-        ? await deployToCloudflarePages({
-            config: {
-              ...await readDeployConfig(CLOUDFLARE_PAGES_PROVIDER_ID),
-              projectName: cloudflarePagesProjectName,
-            },
-            files,
-            projectId: req.params.id,
-            cloudflarePages,
-            priorMetadata: prior?.providerMetadata,
-          })
-        : await deployToVercel({
-            config: await readDeployConfig(VERCEL_PROVIDER_ID),
-            files,
-            projectId: req.params.id,
-          });
+          ? cloudflarePagesProjectNameForDeploy(
+              db,
+              req.params.id,
+              project?.name,
+              prior,
+            )
+          : "";
+      const result =
+        providerId === CLOUDFLARE_PAGES_PROVIDER_ID
+          ? await deployToCloudflarePages({
+              config: {
+                ...(await readDeployConfig(CLOUDFLARE_PAGES_PROVIDER_ID)),
+                projectName: cloudflarePagesProjectName,
+              },
+              files,
+              projectId: req.params.id,
+              cloudflarePages,
+              priorMetadata: prior?.providerMetadata,
+            })
+          : await deployToVercel({
+              config: await readDeployConfig(VERCEL_PROVIDER_ID),
+              files,
+              projectId: req.params.id,
+            });
       const now = Date.now();
       /** @type {import('@open-design/contracts').DeployProjectFileResponse} */
       const body = upsertDeployment(db, {
@@ -4352,14 +5768,15 @@ export async function startServer({
         url: result.url,
         deploymentId: result.deploymentId,
         deploymentCount: (prior?.deploymentCount ?? 0) + 1,
-        target: 'preview',
+        target: "preview",
         status: result.status,
         statusMessage: result.statusMessage,
         reachableAt: result.reachableAt,
         cloudflarePages: result.cloudflarePages,
         providerMetadata:
           providerId === CLOUDFLARE_PAGES_PROVIDER_ID
-            ? (result.providerMetadata ?? cloudflarePagesDeploymentMetadata(cloudflarePagesProjectName))
+            ? (result.providerMetadata ??
+              cloudflarePagesDeploymentMetadata(cloudflarePagesProjectName))
             : prior?.providerMetadata,
         createdAt: prior?.createdAt ?? now,
         updatedAt: now,
@@ -4374,26 +5791,26 @@ export async function startServer({
       sendApiError(
         res,
         status,
-        status === 404 ? 'FILE_NOT_FOUND' : 'BAD_REQUEST',
+        status === 404 ? "FILE_NOT_FOUND" : "BAD_REQUEST",
         String(err?.message || err),
         init,
       );
     }
   });
 
-  app.post('/api/projects/:id/deploy/preflight', async (req, res) => {
+  app.post("/api/projects/:id/deploy/preflight", async (req, res) => {
     try {
       const { fileName, providerId = VERCEL_PROVIDER_ID } = req.body || {};
       if (!isDeployProviderId(providerId)) {
         return sendApiError(
           res,
           400,
-          'BAD_REQUEST',
-          'unsupported deploy provider',
+          "BAD_REQUEST",
+          "unsupported deploy provider",
         );
       }
-      if (typeof fileName !== 'string' || !fileName.trim()) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'fileName required');
+      if (typeof fileName !== "string" || !fileName.trim()) {
+        return sendApiError(res, 400, "BAD_REQUEST", "fileName required");
       }
       const preflightProject = getProject(db, req.params.id);
       /** @type {import('@open-design/contracts').DeployPreflightResponse} */
@@ -4410,19 +5827,19 @@ export async function startServer({
       // surface it in the daemon log without leaking internals to the
       // client which still gets a generic 400.
       if (!(err instanceof DeployError)) {
-        console.error('[deploy/preflight]', err);
+        console.error("[deploy/preflight]", err);
       }
       const status = err instanceof DeployError ? err.status : 400;
       sendApiError(
         res,
         status,
-        status === 404 ? 'FILE_NOT_FOUND' : 'BAD_REQUEST',
+        status === 404 ? "FILE_NOT_FOUND" : "BAD_REQUEST",
         String(err?.message || err),
       );
     }
   });
 
-  app.post('/api/projects/:id/finalize/anthropic', async (req, res) => {
+  app.post("/api/projects/:id/finalize/anthropic", async (req, res) => {
     const { apiKey, baseUrl, model, maxTokens } = req.body || {};
     try {
       // Centralized path-traversal guard. `isSafeId` (apps/daemon/src/projects.ts)
@@ -4432,36 +5849,49 @@ export async function startServer({
       // we see it, so this check covers both URL-supplied and stored-row
       // attack vectors.
       if (!isSafeId(req.params.id)) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'invalid project id');
+        return sendApiError(res, 400, "BAD_REQUEST", "invalid project id");
       }
 
-      if (typeof apiKey !== 'string' || !apiKey.trim()) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'apiKey is required');
+      if (typeof apiKey !== "string" || !apiKey.trim()) {
+        return sendApiError(res, 400, "BAD_REQUEST", "apiKey is required");
       }
-      if (typeof model !== 'string' || !model.trim()) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'model is required');
+      if (typeof model !== "string" || !model.trim()) {
+        return sendApiError(res, 400, "BAD_REQUEST", "model is required");
       }
       if (baseUrl !== undefined) {
-        if (typeof baseUrl !== 'string' || !baseUrl.trim()) {
-          return sendApiError(res, 400, 'BAD_REQUEST', 'baseUrl must be a non-empty string when provided');
+        if (typeof baseUrl !== "string" || !baseUrl.trim()) {
+          return sendApiError(
+            res,
+            400,
+            "BAD_REQUEST",
+            "baseUrl must be a non-empty string when provided",
+          );
         }
         const validated = validateExternalApiBaseUrl(baseUrl);
         if (validated.error) {
           return sendApiError(
             res,
             validated.forbidden ? 403 : 400,
-            validated.forbidden ? 'FORBIDDEN' : 'BAD_REQUEST',
+            validated.forbidden ? "FORBIDDEN" : "BAD_REQUEST",
             validated.error,
           );
         }
       }
-      if (maxTokens !== undefined && (typeof maxTokens !== 'number' || maxTokens <= 0)) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'maxTokens must be a positive number when provided');
+      if (
+        maxTokens !== undefined &&
+        (typeof maxTokens !== "number" || maxTokens <= 0)
+      ) {
+        return sendApiError(
+          res,
+          400,
+          "BAD_REQUEST",
+          "maxTokens must be a positive number when provided",
+        );
       }
 
       const project = getProject(db, req.params.id);
       if (!project) {
-        return sendApiError(res, 404, 'PROJECT_NOT_FOUND', 'project not found');
+        return sendApiError(res, 404, "PROJECT_NOT_FOUND", "project not found");
       }
 
       // Wire the request lifecycle into a server-side AbortController
@@ -4494,7 +5924,7 @@ export async function startServer({
       // stream finishes, which on POST routes happens as soon as
       // Express body-parser drains the body — i.e. before the route
       // does any work — so it cannot be used as a disconnect signal.
-      res.on('close', abortFromRequest);
+      res.on("close", abortFromRequest);
 
       let result;
       try {
@@ -4506,7 +5936,7 @@ export async function startServer({
           { apiKey, baseUrl, model, maxTokens, signal: finalizeAbort.signal },
         );
       } finally {
-        res.off('close', abortFromRequest);
+        res.off("close", abortFromRequest);
       }
       res.json(result);
     } catch (err) {
@@ -4514,7 +5944,7 @@ export async function startServer({
       // call. Caller can retry after a short wait; not a client error.
       // Maps to the shared CONFLICT code per @lefarcen P2 on PR #832.
       if (err instanceof FinalizePackageLockedError) {
-        return sendApiError(res, 409, 'CONFLICT', err.message);
+        return sendApiError(res, 409, "CONFLICT", err.message);
       }
 
       // Upstream Anthropic error - status-aware mapping using shared
@@ -4523,15 +5953,21 @@ export async function startServer({
       // echoes the inbound headers. Codes per @lefarcen P2 on PR #832:
       // 401 -> UNAUTHORIZED, 429 -> RATE_LIMITED, others -> UPSTREAM_UNAVAILABLE.
       if (err instanceof FinalizeUpstreamError) {
-        const safeDetails = redactSecrets(err.rawText || '', [apiKey]);
+        const safeDetails = redactSecrets(err.rawText || "", [apiKey]);
         const init = safeDetails ? { details: safeDetails } : {};
         if (err.status === 401) {
-          return sendApiError(res, 401, 'UNAUTHORIZED', err.message, init);
+          return sendApiError(res, 401, "UNAUTHORIZED", err.message, init);
         }
         if (err.status === 429) {
-          return sendApiError(res, 429, 'RATE_LIMITED', err.message, init);
+          return sendApiError(res, 429, "RATE_LIMITED", err.message, init);
         }
-        return sendApiError(res, 502, 'UPSTREAM_UNAVAILABLE', err.message, init);
+        return sendApiError(
+          res,
+          502,
+          "UPSTREAM_UNAVAILABLE",
+          err.message,
+          init,
+        );
       }
 
       // The blocking call hit our 120s AbortController timeout - or the
@@ -4539,23 +5975,30 @@ export async function startServer({
       // 503 with the shared UPSTREAM_UNAVAILABLE code (no dedicated
       // TIMEOUT code in the contracts ApiErrorCode union).
       const errName =
-        err && typeof err === 'object' && 'name' in err ? (err as { name?: unknown }).name : '';
-      if (errName === 'AbortError') {
-        return sendApiError(res, 503, 'UPSTREAM_UNAVAILABLE', 'finalize timed out');
+        err && typeof err === "object" && "name" in err
+          ? (err as { name?: unknown }).name
+          : "";
+      if (errName === "AbortError") {
+        return sendApiError(
+          res,
+          503,
+          "UPSTREAM_UNAVAILABLE",
+          "finalize timed out",
+        );
       }
 
       // Unexpected runtime failure (file IO, db access, prompt build).
       // Log via console.error per the daemon convention; client sees a
       // generic 500 with the shared INTERNAL_ERROR code. Run the message
       // through redactSecrets defensively.
-      console.error('[finalize/anthropic]', err);
+      console.error("[finalize/anthropic]", err);
       const safeMsg = redactSecrets(String(err?.message || err), [apiKey]);
-      return sendApiError(res, 500, 'INTERNAL_ERROR', safeMsg);
+      return sendApiError(res, 500, "INTERNAL_ERROR", safeMsg);
     }
   });
 
   app.post(
-    '/api/projects/:id/deployments/:deploymentId/check-link',
+    "/api/projects/:id/deployments/:deploymentId/check-link",
     async (req, res) => {
       try {
         const existing = getDeploymentById(
@@ -4567,22 +6010,26 @@ export async function startServer({
           return sendApiError(
             res,
             404,
-            'FILE_NOT_FOUND',
-            'deployment not found',
+            "FILE_NOT_FOUND",
+            "deployment not found",
           );
         }
         const stableCloudflareProjectName =
           existing.providerId === CLOUDFLARE_PAGES_PROVIDER_ID
             ? cloudflarePagesProjectNameFromDeployment(existing)
-            : '';
-        if (existing.providerId === CLOUDFLARE_PAGES_PROVIDER_ID && existing.cloudflarePages?.pagesDev?.url) {
+            : "";
+        if (
+          existing.providerId === CLOUDFLARE_PAGES_PROVIDER_ID &&
+          existing.cloudflarePages?.pagesDev?.url
+        ) {
           const checked = await checkCloudflarePagesDeploymentLinks(existing);
           const now = Date.now();
           /** @type {import('@open-design/contracts').CheckDeploymentLinkResponse} */
           const body = upsertDeployment(db, {
             ...existing,
             ...checked,
-            reachableAt: checked.status === 'ready' ? now : existing.reachableAt,
+            reachableAt:
+              checked.status === "ready" ? now : existing.reachableAt,
             updatedAt: now,
           });
           return res.json(publicDeployment(body));
@@ -4596,17 +6043,17 @@ export async function startServer({
         const body = upsertDeployment(db, {
           ...existing,
           url: checkUrl || existing.url,
-          status: result.reachable ? 'ready' : result.status || 'link-delayed',
+          status: result.reachable ? "ready" : result.status || "link-delayed",
           statusMessage: result.reachable
-            ? 'Public link is ready.'
+            ? "Public link is ready."
             : result.statusMessage ||
-              'Vercel is still preparing the public link.',
+              "Vercel is still preparing the public link.",
           reachableAt: result.reachable ? now : existing.reachableAt,
           updatedAt: now,
         });
         res.json(publicDeployment(body));
       } catch (err) {
-        sendApiError(res, 400, 'BAD_REQUEST', String(err?.message || err));
+        sendApiError(res, 400, "BAD_REQUEST", String(err?.message || err));
       }
     },
   );
@@ -4615,46 +6062,142 @@ export async function startServer({
   // Skills can compose multi-screen / multi-device layouts by pointing at
   // these files via `<iframe src="/frames/iphone-15-pro.html?screen=...">`.
   // No mtime-based caching — frames are static and small.
-  app.use('/frames', express.static(FRAMES_DIR));
+  app.use("/frames", express.static(FRAMES_DIR));
 
   // Project files. Each project owns a flat folder under .od/projects/<id>/
   // containing every file the user has uploaded, pasted, sketched, or that
   // the agent has generated. Names are sanitized; paths are confined to the
   // project's own folder (see apps/daemon/src/projects.ts).
-  app.get('/api/projects/:id/files', async (req, res) => {
+  app.get("/api/projects/:id/files", async (req, res) => {
     try {
       const since = Number(req.query?.since);
       const project = getProject(db, req.params.id);
-      const files = await listFiles(PROJECTS_DIR, req.params.id, {
-        since: Number.isFinite(since) ? since : undefined,
-        metadata: project?.metadata,
-      });
+      const [files, folders] = await Promise.all([
+        listFiles(PROJECTS_DIR, req.params.id, {
+          since: Number.isFinite(since) ? since : undefined,
+          metadata: project?.metadata,
+        }),
+        listFolders(PROJECTS_DIR, req.params.id, {
+          metadata: project?.metadata,
+        }),
+      ]);
       /** @type {import('@open-design/contracts').ProjectFilesResponse} */
-      const body = { files };
+      const body = { files, folders };
       res.json(body);
     } catch (err) {
-      sendApiError(res, 400, 'BAD_REQUEST', String(err));
+      sendApiError(res, 400, "BAD_REQUEST", String(err));
     }
   });
 
-  app.get('/api/projects/:id/search', async (req, res) => {
+  app.post("/api/projects/:id/folders", async (req, res) => {
     try {
-      const query = String(req.query.q ?? '');
+      const { name } = req.body || {};
+      if (typeof name !== "string" || !name.trim()) {
+        return sendApiError(res, 400, "BAD_REQUEST", "name required");
+      }
+      const project = getProject(db, req.params.id);
+      await ensureProject(PROJECTS_DIR, req.params.id, project?.metadata);
+      const folder = await createProjectFolder(
+        PROJECTS_DIR,
+        req.params.id,
+        name,
+        project?.metadata,
+      );
+      res.json({ folder });
+    } catch (err) {
+      const code = err && (err as NodeJS.ErrnoException).code;
+      if (code === "EEXIST")
+        return sendApiError(res, 409, "FOLDER_EXISTS", "folder already exists");
+      sendApiError(
+        res,
+        400,
+        "BAD_REQUEST",
+        String((err as Error)?.message || err),
+      );
+    }
+  });
+
+  app.post("/api/projects/:id/folders/rename", async (req, res) => {
+    try {
+      const { from, to } = req.body || {};
+      if (typeof from !== "string" || typeof to !== "string") {
+        return sendApiError(res, 400, "BAD_REQUEST", "from and to required");
+      }
+      const project = getProject(db, req.params.id);
+      const result = await renameProjectFolder(
+        PROJECTS_DIR,
+        req.params.id,
+        from,
+        to,
+        project?.metadata,
+      );
+      res.json(result);
+    } catch (err) {
+      const code = err && (err as NodeJS.ErrnoException).code;
+      if (code === "ENOENT")
+        return sendApiError(res, 404, "FOLDER_NOT_FOUND", "folder not found");
+      if (code === "EEXIST")
+        return sendApiError(
+          res,
+          409,
+          "FOLDER_EXISTS",
+          "target folder already exists",
+        );
+      sendApiError(
+        res,
+        400,
+        "BAD_REQUEST",
+        String((err as Error)?.message || err),
+      );
+    }
+  });
+
+  app.delete("/api/projects/:id/folders/:name", async (req, res) => {
+    try {
+      const project = getProject(db, req.params.id);
+      await deleteProjectFolder(
+        PROJECTS_DIR,
+        req.params.id,
+        req.params.name,
+        project?.metadata,
+      );
+      res.json({ ok: true });
+    } catch (err) {
+      const code = err && (err as NodeJS.ErrnoException).code;
+      if (code === "ENOENT")
+        return sendApiError(res, 404, "FOLDER_NOT_FOUND", "folder not found");
+      sendApiError(
+        res,
+        400,
+        "BAD_REQUEST",
+        String((err as Error)?.message || err),
+      );
+    }
+  });
+
+  app.get("/api/projects/:id/search", async (req, res) => {
+    try {
+      const query = String(req.query.q ?? "");
       if (!query) {
-        sendApiError(res, 400, 'BAD_REQUEST', 'q query parameter is required');
+        sendApiError(res, 400, "BAD_REQUEST", "q query parameter is required");
         return;
       }
       const pattern = req.query.pattern ? String(req.query.pattern) : null;
       const max = Math.min(Number(req.query.max) || 200, 1000);
       const searchProject = getProject(db, req.params.id);
-      const matches = await searchProjectFiles(PROJECTS_DIR, req.params.id, query, {
-        pattern,
-        max,
-        metadata: searchProject?.metadata,
-      });
+      const matches = await searchProjectFiles(
+        PROJECTS_DIR,
+        req.params.id,
+        query,
+        {
+          pattern,
+          max,
+          metadata: searchProject?.metadata,
+        },
+      );
       res.json({ query, matches });
     } catch (err) {
-      sendApiError(res, 400, 'BAD_REQUEST', String(err));
+      sendApiError(res, 400, "BAD_REQUEST", String(err));
     }
   });
 
@@ -4663,9 +6206,9 @@ export async function startServer({
   // imported `ui-design/` folder — instead of a one-file snapshot of the
   // rendered HTML. `root` scopes the archive to a subdirectory; without
   // it, the whole project is packed.
-  app.get('/api/projects/:id/archive', async (req, res) => {
+  app.get("/api/projects/:id/archive", async (req, res) => {
     try {
-      const root = typeof req.query?.root === 'string' ? req.query.root : '';
+      const root = typeof req.query?.root === "string" ? req.query.root : "";
       const project = getProject(db, req.params.id);
       const { buffer, baseName } = await buildProjectArchive(
         PROJECTS_DIR,
@@ -4674,26 +6217,28 @@ export async function startServer({
         project?.metadata,
       );
       const fallbackName = project?.name || req.params.id;
-      const fileSlug = sanitizeArchiveFilename(baseName || fallbackName) || 'project';
+      const fileSlug =
+        sanitizeArchiveFilename(baseName || fallbackName) || "project";
       const filename = `${fileSlug}.zip`;
       // RFC 5987 dance: legacy `filename=` carries an ASCII fallback, while
       // `filename*=UTF-8''…` lets modern browsers pick up project names
       // with non-ASCII characters (accents, CJK, etc.) without mojibake.
       const asciiFallback =
-        filename.replace(/[^\x20-\x7e]/g, '_').replace(/"/g, '_') || 'project.zip';
-      res.setHeader('Content-Type', 'application/zip');
+        filename.replace(/[^\x20-\x7e]/g, "_").replace(/"/g, "_") ||
+        "project.zip";
+      res.setHeader("Content-Type", "application/zip");
       res.setHeader(
-        'Content-Disposition',
+        "Content-Disposition",
         `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
       );
       res.send(buffer);
     } catch (err) {
       const code = err && err.code;
-      const status = code === 'ENOENT' || code === 'ENOTDIR' ? 404 : 400;
+      const status = code === "ENOENT" || code === "ENOTDIR" ? 404 : 400;
       sendApiError(
         res,
         status,
-        status === 404 ? 'FILE_NOT_FOUND' : 'BAD_REQUEST',
+        status === 404 ? "FILE_NOT_FOUND" : "BAD_REQUEST",
         String(err?.message || err),
       );
     }
@@ -4701,11 +6246,16 @@ export async function startServer({
 
   // Batch archive: accepts a list of file names and returns a ZIP of just
   // those files. Used by the Design Files panel multi-select download.
-  app.post('/api/projects/:id/archive/batch', async (req, res) => {
+  app.post("/api/projects/:id/archive/batch", async (req, res) => {
     try {
       const { files } = req.body || {};
       if (!Array.isArray(files) || files.length === 0) {
-        sendApiError(res, 400, 'BAD_REQUEST', 'files must be a non-empty array');
+        sendApiError(
+          res,
+          400,
+          "BAD_REQUEST",
+          "files must be a non-empty array",
+        );
         return;
       }
       const project = getProject(db, req.params.id);
@@ -4715,23 +6265,25 @@ export async function startServer({
         files,
         project?.metadata,
       );
-      const fileSlug = sanitizeArchiveFilename(project?.name || req.params.id) || 'project';
+      const fileSlug =
+        sanitizeArchiveFilename(project?.name || req.params.id) || "project";
       const filename = `${fileSlug}.zip`;
       const asciiFallback =
-        filename.replace(/[^\x20-\x7e]/g, '_').replace(/"/g, '_') || 'project.zip';
-      res.setHeader('Content-Type', 'application/zip');
+        filename.replace(/[^\x20-\x7e]/g, "_").replace(/"/g, "_") ||
+        "project.zip";
+      res.setHeader("Content-Type", "application/zip");
       res.setHeader(
-        'Content-Disposition',
+        "Content-Disposition",
         `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
       );
       res.send(buffer);
     } catch (err) {
       const code = err && err.code;
-      const status = code === 'ENOENT' ? 404 : 400;
+      const status = code === "ENOENT" ? 404 : 400;
       sendApiError(
         res,
         status,
-        status === 404 ? 'FILE_NOT_FOUND' : 'BAD_REQUEST',
+        status === 404 ? "FILE_NOT_FOUND" : "BAD_REQUEST",
         String(err?.message || err),
       );
     }
@@ -4740,16 +6292,16 @@ export async function startServer({
   // Preflight for the raw file route. Current artifact fetches are simple GETs
   // (no preflight needed), but an explicit handler future-proofs the route if
   // artifacts ever add custom request headers.
-  app.options('/api/projects/:id/raw/*', (req, res) => {
-    if (req.headers.origin === 'null') {
-      res.header('Access-Control-Allow-Origin', '*');
-      res.header('Access-Control-Allow-Methods', 'GET');
-      res.header('Access-Control-Allow-Headers', 'Content-Type');
+  app.options("/api/projects/:id/raw/*", (req, res) => {
+    if (req.headers.origin === "null") {
+      res.header("Access-Control-Allow-Origin", "*");
+      res.header("Access-Control-Allow-Methods", "GET");
+      res.header("Access-Control-Allow-Headers", "Content-Type");
     }
     res.sendStatus(204);
   });
 
-  app.get('/api/projects/:id/raw/*', async (req, res) => {
+  app.get("/api/projects/:id/raw/*", async (req, res) => {
     try {
       const relPath = req.params[0];
       const project = getProject(db, req.params.id);
@@ -4758,8 +6310,8 @@ export async function startServer({
       // data: URIs, file://, and some sandboxed iframes also send null — all are
       // local-only callers, so this is safe. Real cross-origin sites send a real
       // origin and remain blocked by the browser's same-origin policy.
-      if (req.headers.origin === 'null') {
-        res.header('Access-Control-Allow-Origin', '*');
+      if (req.headers.origin === "null") {
+        res.header("Access-Control-Allow-Origin", "*");
       }
 
       // Stat the file first without buffering so we can choose the right path.
@@ -4773,19 +6325,19 @@ export async function startServer({
       // Stream video/audio with HTTP 206 Partial Content support (RFC 7233).
       // The inline VideoViewer and AudioViewer components fetch this route;
       // browsers require Accept-Ranges + 206 responses to play and seek media.
-      if (meta.mime.startsWith('video/') || meta.mime.startsWith('audio/')) {
-        res.setHeader('Accept-Ranges', 'bytes');
-        res.setHeader('Content-Type', meta.mime);
+      if (meta.mime.startsWith("video/") || meta.mime.startsWith("audio/")) {
+        res.setHeader("Accept-Ranges", "bytes");
+        res.setHeader("Content-Type", meta.mime);
 
         if (meta.size === 0) {
-          res.setHeader('Content-Length', '0');
+          res.setHeader("Content-Length", "0");
           return res.status(200).end();
         }
 
         const range = parseByteRange(req.headers.range, meta.size);
 
-        if (range === 'unsatisfiable') {
-          res.setHeader('Content-Range', `bytes */${meta.size}`);
+        if (range === "unsatisfiable") {
+          res.setHeader("Content-Range", `bytes */${meta.size}`);
           return res.status(416).end();
         }
 
@@ -4793,20 +6345,20 @@ export async function startServer({
         if (range) {
           ({ start, end } = range);
           statusCode = 206;
-          res.setHeader('Content-Range', `bytes ${start}-${end}/${meta.size}`);
-          res.setHeader('Content-Length', String(end - start + 1));
+          res.setHeader("Content-Range", `bytes ${start}-${end}/${meta.size}`);
+          res.setHeader("Content-Length", String(end - start + 1));
         } else {
           start = 0;
           end = meta.size - 1;
           statusCode = 200;
-          res.setHeader('Content-Length', String(meta.size));
+          res.setHeader("Content-Length", String(meta.size));
         }
 
         res.status(statusCode);
         const stream = fs.createReadStream(meta.filePath, { start, end });
-        stream.on('error', (streamErr) => {
+        stream.on("error", (streamErr) => {
           if (!res.headersSent) {
-            sendApiError(res, 500, 'STREAM_ERROR', String(streamErr));
+            sendApiError(res, 500, "STREAM_ERROR", String(streamErr));
           } else {
             res.destroy(streamErr);
           }
@@ -4816,32 +6368,37 @@ export async function startServer({
       }
 
       // Non-media files: read into buffer (existing behaviour).
-      const file = await readProjectFile(PROJECTS_DIR, req.params.id, relPath, project?.metadata);
+      const file = await readProjectFile(
+        PROJECTS_DIR,
+        req.params.id,
+        relPath,
+        project?.metadata,
+      );
       res.type(file.mime).send(file.buffer);
     } catch (err) {
-      const status = err && err.code === 'ENOENT' ? 404 : 400;
+      const status = err && err.code === "ENOENT" ? 404 : 400;
       sendApiError(
         res,
         status,
-        status === 404 ? 'FILE_NOT_FOUND' : 'BAD_REQUEST',
+        status === 404 ? "FILE_NOT_FOUND" : "BAD_REQUEST",
         String(err),
       );
     }
   });
 
-  app.post('/api/projects/:id/export/pdf', async (req, res) => {
-    if (typeof desktopPdfExporter !== 'function') {
+  app.post("/api/projects/:id/export/pdf", async (req, res) => {
+    if (typeof desktopPdfExporter !== "function") {
       return sendApiError(
         res,
         501,
-        'UPSTREAM_UNAVAILABLE',
-        'desktop PDF export is only available in the desktop runtime',
+        "UPSTREAM_UNAVAILABLE",
+        "desktop PDF export is only available in the desktop runtime",
       );
     }
     try {
       const { fileName, title, deck } = req.body || {};
-      if (typeof fileName !== 'string' || fileName.length === 0) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'fileName required');
+      if (typeof fileName !== "string" || fileName.length === 0) {
+        return sendApiError(res, 400, "BAD_REQUEST", "fileName required");
       }
       const input = await buildDesktopPdfExportInput({
         daemonUrl,
@@ -4849,40 +6406,45 @@ export async function startServer({
         fileName,
         projectId: req.params.id,
         projectsRoot: PROJECTS_DIR,
-        title: typeof title === 'string' ? title : undefined,
+        title: typeof title === "string" ? title : undefined,
       });
       const result = await desktopPdfExporter(input);
       res.json(result);
     } catch (err) {
-      const status = err && err.code === 'ENOENT' ? 404 : 400;
+      const status = err && err.code === "ENOENT" ? 404 : 400;
       sendApiError(
         res,
         status,
-        status === 404 ? 'FILE_NOT_FOUND' : 'BAD_REQUEST',
+        status === 404 ? "FILE_NOT_FOUND" : "BAD_REQUEST",
         String(err?.message || err),
       );
     }
   });
 
-  app.delete('/api/projects/:id/raw/*', async (req, res) => {
+  app.delete("/api/projects/:id/raw/*", async (req, res) => {
     try {
       const project = getProject(db, req.params.id);
-      await deleteProjectFile(PROJECTS_DIR, req.params.id, req.params[0], project?.metadata);
+      await deleteProjectFile(
+        PROJECTS_DIR,
+        req.params.id,
+        req.params[0],
+        project?.metadata,
+      );
       /** @type {import('@open-design/contracts').DeleteProjectFileResponse} */
       const body = { ok: true };
       res.json(body);
     } catch (err) {
-      const status = err && err.code === 'ENOENT' ? 404 : 400;
+      const status = err && err.code === "ENOENT" ? 404 : 400;
       sendApiError(
         res,
         status,
-        status === 404 ? 'FILE_NOT_FOUND' : 'BAD_REQUEST',
+        status === 404 ? "FILE_NOT_FOUND" : "BAD_REQUEST",
         String(err),
       );
     }
   });
 
-  app.get('/api/projects/:id/files/:name/preview', async (req, res) => {
+  app.get("/api/projects/:id/files/:name/preview", async (req, res) => {
     try {
       const project = getProject(db, req.params.id);
       const file = await readProjectFile(
@@ -4897,19 +6459,19 @@ export async function startServer({
       const status =
         err && err.statusCode
           ? err.statusCode
-          : err && err.code === 'ENOENT'
+          : err && err.code === "ENOENT"
             ? 404
             : 400;
       sendApiError(
         res,
         status,
-        status === 404 ? 'FILE_NOT_FOUND' : 'BAD_REQUEST',
-        err?.message || 'preview unavailable',
+        status === 404 ? "FILE_NOT_FOUND" : "BAD_REQUEST",
+        err?.message || "preview unavailable",
       );
     }
   });
 
-  app.get('/api/projects/:id/files/*', async (req, res) => {
+  app.get("/api/projects/:id/files/*", async (req, res) => {
     try {
       const project = getProject(db, req.params.id);
 
@@ -4925,20 +6487,20 @@ export async function startServer({
       // Stream video and audio with HTTP 206 Partial Content support (RFC 7233).
       // Browsers require range responses to seek/scrub media; buffering the
       // whole file into memory would also block the process on large videos.
-      if (meta.mime.startsWith('video/') || meta.mime.startsWith('audio/')) {
-        res.setHeader('Accept-Ranges', 'bytes');
-        res.setHeader('Content-Type', meta.mime);
+      if (meta.mime.startsWith("video/") || meta.mime.startsWith("audio/")) {
+        res.setHeader("Accept-Ranges", "bytes");
+        res.setHeader("Content-Type", meta.mime);
 
         // Empty file edge case: nothing to range over.
         if (meta.size === 0) {
-          res.setHeader('Content-Length', '0');
+          res.setHeader("Content-Length", "0");
           return res.status(200).end();
         }
 
         const range = parseByteRange(req.headers.range, meta.size);
 
-        if (range === 'unsatisfiable') {
-          res.setHeader('Content-Range', `bytes */${meta.size}`);
+        if (range === "unsatisfiable") {
+          res.setHeader("Content-Range", `bytes */${meta.size}`);
           return res.status(416).end();
         }
 
@@ -4946,20 +6508,20 @@ export async function startServer({
         if (range) {
           ({ start, end } = range);
           statusCode = 206;
-          res.setHeader('Content-Range', `bytes ${start}-${end}/${meta.size}`);
-          res.setHeader('Content-Length', String(end - start + 1));
+          res.setHeader("Content-Range", `bytes ${start}-${end}/${meta.size}`);
+          res.setHeader("Content-Length", String(end - start + 1));
         } else {
           start = 0;
           end = meta.size - 1;
           statusCode = 200;
-          res.setHeader('Content-Length', String(meta.size));
+          res.setHeader("Content-Length", String(meta.size));
         }
 
         res.status(statusCode);
         const stream = fs.createReadStream(meta.filePath, { start, end });
-        stream.on('error', (streamErr) => {
+        stream.on("error", (streamErr) => {
           if (!res.headersSent) {
-            sendApiError(res, 500, 'STREAM_ERROR', String(streamErr));
+            sendApiError(res, 500, "STREAM_ERROR", String(streamErr));
           } else {
             res.destroy(streamErr);
           }
@@ -4977,11 +6539,11 @@ export async function startServer({
       );
       res.type(file.mime).send(file.buffer);
     } catch (err) {
-      const status = err && err.code === 'ENOENT' ? 404 : 400;
+      const status = err && err.code === "ENOENT" ? 404 : 400;
       sendApiError(
         res,
         status,
-        status === 404 ? 'FILE_NOT_FOUND' : 'BAD_REQUEST',
+        status === 404 ? "FILE_NOT_FOUND" : "BAD_REQUEST",
         String(err),
       );
     }
@@ -4991,9 +6553,9 @@ export async function startServer({
   // {name, content, encoding} for sketches and pasted text. The frontend
   // uses both depending on the file source.
   app.post(
-    '/api/projects/:id/files',
+    "/api/projects/:id/files",
     (req, res, next) => {
-      upload.single('file')(req, res, (err) => {
+      upload.single("file")(req, res, (err) => {
         if (err) return sendMulterError(res, err);
         next();
       });
@@ -5001,7 +6563,11 @@ export async function startServer({
     async (req, res) => {
       try {
         const uploadProject = getProject(db, req.params.id);
-        await ensureProject(PROJECTS_DIR, req.params.id, uploadProject?.metadata);
+        await ensureProject(
+          PROJECTS_DIR,
+          req.params.id,
+          uploadProject?.metadata,
+        );
         if (req.file) {
           const buf = await fs.promises.readFile(req.file.path);
           const desiredName = sanitizeName(
@@ -5021,12 +6587,12 @@ export async function startServer({
           return res.json(body);
         }
         const { name, content, encoding, artifactManifest } = req.body || {};
-        if (typeof name !== 'string' || typeof content !== 'string') {
+        if (typeof name !== "string" || typeof content !== "string") {
           return sendApiError(
             res,
             400,
-            'BAD_REQUEST',
-            'name and content required',
+            "BAD_REQUEST",
+            "name and content required",
           );
         }
         if (artifactManifest !== undefined && artifactManifest !== null) {
@@ -5038,15 +6604,15 @@ export async function startServer({
             return sendApiError(
               res,
               400,
-              'BAD_REQUEST',
+              "BAD_REQUEST",
               `invalid artifactManifest: ${validated.error}`,
             );
           }
         }
         const buf =
-          encoding === 'base64'
-            ? Buffer.from(content, 'base64')
-            : Buffer.from(content, 'utf8');
+          encoding === "base64"
+            ? Buffer.from(content, "base64")
+            : Buffer.from(content, "utf8");
         const meta = await writeProjectFile(
           PROJECTS_DIR,
           req.params.id,
@@ -5059,16 +6625,16 @@ export async function startServer({
         const body = { file: meta };
         res.json(body);
       } catch (err) {
-        sendApiError(res, 500, 'INTERNAL_ERROR', 'upload failed');
+        sendApiError(res, 500, "INTERNAL_ERROR", "upload failed");
       }
     },
   );
 
-  app.post('/api/projects/:id/files/rename', async (req, res) => {
+  app.post("/api/projects/:id/files/rename", async (req, res) => {
     try {
       const { from, to } = req.body || {};
-      if (typeof from !== 'string' || typeof to !== 'string') {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'from and to required');
+      if (typeof from !== "string" || typeof to !== "string") {
+        return sendApiError(res, 400, "BAD_REQUEST", "from and to required");
       }
       const project = getProject(db, req.params.id);
       const result = await renameProjectFile(
@@ -5083,35 +6649,45 @@ export async function startServer({
       res.json(body);
     } catch (err) {
       const code = err && err.code;
-      if (code === 'ENOENT') {
-        return sendApiError(res, 404, 'FILE_NOT_FOUND', 'file not found');
+      if (code === "ENOENT") {
+        return sendApiError(res, 404, "FILE_NOT_FOUND", "file not found");
       }
-      if (code === 'EEXIST') {
-        return sendApiError(res, 409, 'FILE_EXISTS', 'target file already exists');
+      if (code === "EEXIST") {
+        return sendApiError(
+          res,
+          409,
+          "FILE_EXISTS",
+          "target file already exists",
+        );
       }
-      sendApiError(res, 400, 'BAD_REQUEST', String(err?.message || err));
+      sendApiError(res, 400, "BAD_REQUEST", String(err?.message || err));
     }
   });
 
-  app.delete('/api/projects/:id/files/:name', async (req, res) => {
+  app.delete("/api/projects/:id/files/:name", async (req, res) => {
     try {
       const delProject = getProject(db, req.params.id);
-      await deleteProjectFile(PROJECTS_DIR, req.params.id, req.params.name, delProject?.metadata);
+      await deleteProjectFile(
+        PROJECTS_DIR,
+        req.params.id,
+        req.params.name,
+        delProject?.metadata,
+      );
       /** @type {import('@open-design/contracts').DeleteProjectFileResponse} */
       const body = { ok: true };
       res.json(body);
     } catch (err) {
-      const status = err && err.code === 'ENOENT' ? 404 : 400;
+      const status = err && err.code === "ENOENT" ? 404 : 400;
       sendApiError(
         res,
         status,
-        status === 404 ? 'FILE_NOT_FOUND' : 'BAD_REQUEST',
+        status === 404 ? "FILE_NOT_FOUND" : "BAD_REQUEST",
         String(err),
       );
     }
   });
 
-  app.get('/api/media/models', (_req, res) => {
+  app.get("/api/media/models", (_req, res) => {
     res.json({
       providers: MEDIA_PROVIDERS,
       image: IMAGE_MODELS,
@@ -5123,7 +6699,7 @@ export async function startServer({
     });
   });
 
-  app.get('/api/media/config', async (_req, res) => {
+  app.get("/api/media/config", async (_req, res) => {
     try {
       const cfg = await readMaskedConfig(PROJECT_ROOT);
       res.json(cfg);
@@ -5134,21 +6710,21 @@ export async function startServer({
     }
   });
 
-  app.put('/api/media/config', async (req, res) => {
+  app.put("/api/media/config", async (req, res) => {
     try {
       const cfg = await writeConfig(PROJECT_ROOT, req.body);
       res.json(cfg);
     } catch (err) {
-      const status = typeof err?.status === 'number' ? err.status : 400;
+      const status = typeof err?.status === "number" ? err.status : 400;
       res
         .status(status)
         .json({ error: String(err && err.message ? err.message : err) });
     }
   });
 
-  app.get('/api/app-config', async (req, res) => {
+  app.get("/api/app-config", async (req, res) => {
     if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'cross-origin request rejected' });
+      return res.status(403).json({ error: "cross-origin request rejected" });
     }
     try {
       const config = await readAppConfig(RUNTIME_DATA_DIR);
@@ -5160,9 +6736,9 @@ export async function startServer({
     }
   });
 
-  app.put('/api/app-config', async (req, res) => {
+  app.put("/api/app-config", async (req, res) => {
     if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'cross-origin request rejected' });
+      return res.status(403).json({ error: "cross-origin request rejected" });
     }
     try {
       const config = await writeAppConfig(RUNTIME_DATA_DIR, req.body);
@@ -5175,9 +6751,9 @@ export async function startServer({
     }
   });
 
-  app.get('/api/orbit/status', async (req, res) => {
+  app.get("/api/orbit/status", async (req, res) => {
     if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'cross-origin request rejected' });
+      return res.status(403).json({ error: "cross-origin request rejected" });
     }
     try {
       res.json(await orbitService.status());
@@ -5188,12 +6764,12 @@ export async function startServer({
     }
   });
 
-  app.post('/api/orbit/run', async (req, res) => {
+  app.post("/api/orbit/run", async (req, res) => {
     if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'cross-origin request rejected' });
+      return res.status(403).json({ error: "cross-origin request rejected" });
     }
     try {
-      res.json(await orbitService.start('manual'));
+      res.json(await orbitService.start("manual"));
     } catch (err) {
       res
         .status(500)
@@ -5219,14 +6795,15 @@ export async function startServer({
     if (!schedule) {
       // Legacy fallback: daily HH:MM in UTC.
       schedule = {
-        kind: row.scheduleKind || 'daily',
-        time: row.scheduleValue || '09:00',
-        timezone: 'UTC',
+        kind: row.scheduleKind || "daily",
+        time: row.scheduleValue || "09:00",
+        timezone: "UTC",
       };
     }
-    const target = row.projectMode === 'reuse' && row.projectId
-      ? { mode: 'reuse', projectId: row.projectId }
-      : { mode: 'create_each_run' };
+    const target =
+      row.projectMode === "reuse" && row.projectId
+        ? { mode: "reuse", projectId: row.projectId }
+        : { mode: "create_each_run" };
     let lastRun = null;
     if (latestRun) {
       lastRun = {
@@ -5234,7 +6811,9 @@ export async function startServer({
         status: latestRun.status,
         trigger: latestRun.trigger,
         startedAt: latestRun.startedAt,
-        ...(latestRun.completedAt == null ? {} : { completedAt: latestRun.completedAt }),
+        ...(latestRun.completedAt == null
+          ? {}
+          : { completedAt: latestRun.completedAt }),
         projectId: latestRun.projectId,
         conversationId: latestRun.conversationId,
         agentRunId: latestRun.agentRunId,
@@ -5263,11 +6842,16 @@ export async function startServer({
   // working; schedule_json is the authoritative form.
   function scheduleToDbCols(schedule) {
     const json = JSON.stringify(schedule);
-    let value = '';
-    if (schedule.kind === 'hourly') value = String(schedule.minute);
-    else if (schedule.kind === 'weekly') value = `${schedule.weekday}:${schedule.time}`;
+    let value = "";
+    if (schedule.kind === "hourly") value = String(schedule.minute);
+    else if (schedule.kind === "weekly")
+      value = `${schedule.weekday}:${schedule.time}`;
     else value = schedule.time;
-    return { scheduleKind: schedule.kind, scheduleValue: value, scheduleJson: json };
+    return {
+      scheduleKind: schedule.kind,
+      scheduleValue: value,
+      scheduleJson: json,
+    };
   }
 
   function routineFromDb(id) {
@@ -5281,17 +6865,17 @@ export async function startServer({
   }
 
   function validateRoutineInput(body, partial) {
-    if (!body || typeof body !== 'object') {
-      throw new Error('Request body must be an object');
+    if (!body || typeof body !== "object") {
+      throw new Error("Request body must be an object");
     }
     if (!partial || body.name !== undefined) {
-      if (typeof body.name !== 'string' || !body.name.trim()) {
-        throw new Error('name is required');
+      if (typeof body.name !== "string" || !body.name.trim()) {
+        throw new Error("name is required");
       }
     }
     if (!partial || body.prompt !== undefined) {
-      if (typeof body.prompt !== 'string' || !body.prompt.trim()) {
-        throw new Error('prompt is required');
+      if (typeof body.prompt !== "string" || !body.prompt.trim()) {
+        throw new Error("prompt is required");
       }
     }
     if (!partial || body.schedule !== undefined) {
@@ -5299,9 +6883,10 @@ export async function startServer({
     }
     if (!partial || body.target !== undefined) {
       validateRoutineTarget(body.target);
-      if (body.target.mode === 'reuse') {
+      if (body.target.mode === "reuse") {
         const proj = getProject(db, body.target.projectId);
-        if (!proj) throw new Error(`target project ${body.target.projectId} not found`);
+        if (!proj)
+          throw new Error(`target project ${body.target.projectId} not found`);
       }
     }
   }
@@ -5310,113 +6895,137 @@ export async function startServer({
   // conversation, prime the user/assistant message pair, and dispatch into
   // startChatRun. Returns the in-flight handles so the service can persist
   // the routine_run row and observe completion.
-  routineService.setRunHandler(async ({ routine, trigger, startedAt, runId }) => {
-    const appConfig = await readAppConfig(RUNTIME_DATA_DIR);
-    let agentId = routine.agentId
-      || (typeof appConfig.agentId === 'string' && appConfig.agentId ? appConfig.agentId : null);
-    if (!agentId) {
-      const agents = await detectAgents(appConfig.agentCliEnv ?? {}).catch(() => []);
-      agentId = agents.find((agent) => agent.available)?.id ?? null;
-    }
-    if (!agentId) {
-      throw new Error('No available agent is configured. Choose an agent in Settings first.');
-    }
+  routineService.setRunHandler(
+    async ({ routine, trigger, startedAt, runId }) => {
+      const appConfig = await readAppConfig(RUNTIME_DATA_DIR);
+      let agentId =
+        routine.agentId ||
+        (typeof appConfig.agentId === "string" && appConfig.agentId
+          ? appConfig.agentId
+          : null);
+      if (!agentId) {
+        const agents = await detectAgents(appConfig.agentCliEnv ?? {}).catch(
+          () => [],
+        );
+        agentId = agents.find((agent) => agent.available)?.id ?? null;
+      }
+      if (!agentId) {
+        throw new Error(
+          "No available agent is configured. Choose an agent in Settings first.",
+        );
+      }
 
-    const now = startedAt;
-    const stamp = formatLocalProjectTimestamp(new Date(now).toISOString());
+      const now = startedAt;
+      const stamp = formatLocalProjectTimestamp(new Date(now).toISOString());
 
-    let projectId;
-    let projectName;
-    if (routine.target.mode === 'reuse') {
-      const proj = getProject(db, routine.target.projectId);
-      if (!proj) throw new Error(`Routine target project ${routine.target.projectId} not found`);
-      projectId = proj.id;
-      projectName = proj.name;
-    } else {
-      projectId = `routine-${randomUUID()}`;
-      projectName = `${routine.name} · ${stamp}`;
-      insertProject(db, {
-        id: projectId,
-        name: projectName,
-        skillId: routine.skillId ?? null,
-        designSystemId: appConfig.designSystemId ?? null,
-        pendingPrompt: null,
-        metadata: { kind: 'other', intent: 'routine', routineId: routine.id, trigger },
+      let projectId;
+      let projectName;
+      if (routine.target.mode === "reuse") {
+        const proj = getProject(db, routine.target.projectId);
+        if (!proj)
+          throw new Error(
+            `Routine target project ${routine.target.projectId} not found`,
+          );
+        projectId = proj.id;
+        projectName = proj.name;
+      } else {
+        projectId = `routine-${randomUUID()}`;
+        projectName = `${routine.name} · ${stamp}`;
+        insertProject(db, {
+          id: projectId,
+          name: projectName,
+          skillId: routine.skillId ?? null,
+          designSystemId: appConfig.designSystemId ?? null,
+          pendingPrompt: null,
+          metadata: {
+            kind: "other",
+            intent: "routine",
+            routineId: routine.id,
+            trigger,
+          },
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+
+      const conversationId = `routine-conv-${randomUUID()}`;
+      const conversationTitle =
+        routine.target.mode === "reuse"
+          ? `${routine.name} · ${stamp}`
+          : projectName;
+      insertConversation(db, {
+        id: conversationId,
+        projectId,
+        title: conversationTitle,
         createdAt: now,
         updatedAt: now,
       });
-    }
 
-    const conversationId = `routine-conv-${randomUUID()}`;
-    const conversationTitle = routine.target.mode === 'reuse'
-      ? `${routine.name} · ${stamp}`
-      : projectName;
-    insertConversation(db, {
-      id: conversationId,
-      projectId,
-      title: conversationTitle,
-      createdAt: now,
-      updatedAt: now,
-    });
+      const assistantMessageId = `routine-assistant-${randomUUID()}`;
+      const run = design.runs.create({
+        projectId,
+        conversationId,
+        assistantMessageId,
+        clientRequestId: `routine-${trigger}-${randomUUID()}`,
+        agentId,
+      });
+      upsertMessage(db, conversationId, {
+        id: `routine-user-${run.id}`,
+        role: "user",
+        content: routine.prompt,
+      });
+      upsertMessage(db, conversationId, {
+        id: assistantMessageId,
+        role: "assistant",
+        content: "",
+        agentId,
+        agentName: getAgentDef(agentId)?.name ?? agentId,
+        runId: run.id,
+        runStatus: "queued",
+        startedAt: now,
+      });
 
-    const assistantMessageId = `routine-assistant-${randomUUID()}`;
-    const run = design.runs.create({
-      projectId,
-      conversationId,
-      assistantMessageId,
-      clientRequestId: `routine-${trigger}-${randomUUID()}`,
-      agentId,
-    });
-    upsertMessage(db, conversationId, {
-      id: `routine-user-${run.id}`,
-      role: 'user',
-      content: routine.prompt,
-    });
-    upsertMessage(db, conversationId, {
-      id: assistantMessageId,
-      role: 'assistant',
-      content: '',
-      agentId,
-      agentName: getAgentDef(agentId)?.name ?? agentId,
-      runId: run.id,
-      runStatus: 'queued',
-      startedAt: now,
-    });
+      const modelPrefs = appConfig.agentModels?.[agentId] ?? {};
+      design.runs.start(run, () =>
+        startChatRun(
+          {
+            agentId,
+            projectId,
+            conversationId: run.conversationId,
+            assistantMessageId: run.assistantMessageId,
+            clientRequestId: run.clientRequestId,
+            skillId: routine.skillId ?? null,
+            designSystemId: appConfig.designSystemId ?? null,
+            model: modelPrefs.model ?? null,
+            reasoning: modelPrefs.reasoning ?? null,
+            message: routine.prompt,
+            systemPrompt: [
+              `You are running an unattended scheduled routine named "${routine.name}".`,
+              "Do not ask follow-up questions, do not emit <question-form>, and do not wait for user input. Pick reasonable defaults and finish the task.",
+            ].join("\n"),
+          },
+          run,
+        ),
+      );
 
-    const modelPrefs = appConfig.agentModels?.[agentId] ?? {};
-    design.runs.start(run, () => startChatRun({
-      agentId,
-      projectId,
-      conversationId: run.conversationId,
-      assistantMessageId: run.assistantMessageId,
-      clientRequestId: run.clientRequestId,
-      skillId: routine.skillId ?? null,
-      designSystemId: appConfig.designSystemId ?? null,
-      model: modelPrefs.model ?? null,
-      reasoning: modelPrefs.reasoning ?? null,
-      message: routine.prompt,
-      systemPrompt: [
-        `You are running an unattended scheduled routine named "${routine.name}".`,
-        'Do not ask follow-up questions, do not emit <question-form>, and do not wait for user input. Pick reasonable defaults and finish the task.',
-      ].join('\n'),
-    }, run));
+      const completion = (async () => {
+        const finalStatus = await design.runs.wait(run);
+        db.prepare(
+          `UPDATE messages SET run_status = ?, ended_at = ? WHERE id = ?`,
+        ).run(finalStatus.status, Date.now(), assistantMessageId);
+        return {
+          status: finalStatus.status,
+          summary: `Routine "${routine.name}" ${finalStatus.status}.`,
+        };
+      })();
 
-    const completion = (async () => {
-      const finalStatus = await design.runs.wait(run);
-      db.prepare(`UPDATE messages SET run_status = ?, ended_at = ? WHERE id = ?`)
-        .run(finalStatus.status, Date.now(), assistantMessageId);
-      return {
-        status: finalStatus.status,
-        summary: `Routine "${routine.name}" ${finalStatus.status}.`,
-      };
-    })();
+      return { projectId, conversationId, agentRunId: run.id, completion };
+    },
+  );
 
-    return { projectId, conversationId, agentRunId: run.id, completion };
-  });
-
-  app.get('/api/routines', (req, res) => {
+  app.get("/api/routines", (req, res) => {
     if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'cross-origin request rejected' });
+      return res.status(403).json({ error: "cross-origin request rejected" });
     }
     try {
       const rows = listRoutines(db);
@@ -5433,9 +7042,9 @@ export async function startServer({
     }
   });
 
-  app.post('/api/routines', (req, res) => {
+  app.post("/api/routines", (req, res) => {
     if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'cross-origin request rejected' });
+      return res.status(403).json({ error: "cross-origin request rejected" });
     }
     try {
       const body = req.body || {};
@@ -5449,7 +7058,7 @@ export async function startServer({
         prompt: body.prompt,
         ...scheduleCols,
         projectMode: body.target.mode,
-        projectId: body.target.mode === 'reuse' ? body.target.projectId : null,
+        projectId: body.target.mode === "reuse" ? body.target.projectId : null,
         skillId: body.skillId ?? null,
         agentId: body.agentId ?? null,
         enabled: body.enabled !== false,
@@ -5464,22 +7073,23 @@ export async function startServer({
     }
   });
 
-  app.get('/api/routines/:id', (req, res) => {
+  app.get("/api/routines/:id", (req, res) => {
     if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'cross-origin request rejected' });
+      return res.status(403).json({ error: "cross-origin request rejected" });
     }
     const routine = routineFromDb(req.params.id);
-    if (!routine) return res.status(404).json({ error: 'routine not found' });
+    if (!routine) return res.status(404).json({ error: "routine not found" });
     res.json({ routine });
   });
 
-  app.patch('/api/routines/:id', (req, res) => {
+  app.patch("/api/routines/:id", (req, res) => {
     if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'cross-origin request rejected' });
+      return res.status(403).json({ error: "cross-origin request rejected" });
     }
     try {
       const existing = getRoutine(db, req.params.id);
-      if (!existing) return res.status(404).json({ error: 'routine not found' });
+      if (!existing)
+        return res.status(404).json({ error: "routine not found" });
       const body = req.body || {};
       validateRoutineInput(body, true);
       const patch = {};
@@ -5493,7 +7103,8 @@ export async function startServer({
       }
       if (body.target !== undefined) {
         patch.projectMode = body.target.mode;
-        patch.projectId = body.target.mode === 'reuse' ? body.target.projectId : null;
+        patch.projectId =
+          body.target.mode === "reuse" ? body.target.projectId : null;
       }
       if (body.skillId !== undefined) patch.skillId = body.skillId ?? null;
       if (body.agentId !== undefined) patch.agentId = body.agentId ?? null;
@@ -5507,24 +7118,25 @@ export async function startServer({
     }
   });
 
-  app.delete('/api/routines/:id', (req, res) => {
+  app.delete("/api/routines/:id", (req, res) => {
     if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'cross-origin request rejected' });
+      return res.status(403).json({ error: "cross-origin request rejected" });
     }
     routineService?.unschedule(req.params.id);
     const removed = dbDeleteRoutine(db, req.params.id);
-    if (!removed) return res.status(404).json({ error: 'routine not found' });
+    if (!removed) return res.status(404).json({ error: "routine not found" });
     res.status(204).end();
   });
 
-  app.post('/api/routines/:id/run', async (req, res) => {
+  app.post("/api/routines/:id/run", async (req, res) => {
     if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'cross-origin request rejected' });
+      return res.status(403).json({ error: "cross-origin request rejected" });
     }
     try {
-      if (!routineService) throw new Error('routine service unavailable');
+      if (!routineService) throw new Error("routine service unavailable");
       const existing = getRoutine(db, req.params.id);
-      if (!existing) return res.status(404).json({ error: 'routine not found' });
+      if (!existing)
+        return res.status(404).json({ error: "routine not found" });
       const start = await routineService.runNow(req.params.id);
       const latest = getLatestRoutineRun(db, req.params.id);
       const routine = routineFromDb(req.params.id);
@@ -5540,21 +7152,21 @@ export async function startServer({
     }
   });
 
-  app.get('/api/routines/:id/runs', (req, res) => {
+  app.get("/api/routines/:id/runs", (req, res) => {
     if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'cross-origin request rejected' });
+      return res.status(403).json({ error: "cross-origin request rejected" });
     }
     const existing = getRoutine(db, req.params.id);
-    if (!existing) return res.status(404).json({ error: 'routine not found' });
+    if (!existing) return res.status(404).json({ error: "routine not found" });
     const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
     const runs = listRoutineRuns(db, req.params.id, limit);
     res.json({ runs });
   });
 
   // Native OS folder picker dialog. Returns { path: string | null }.
-  app.post('/api/dialog/open-folder', async (req, res) => {
+  app.post("/api/dialog/open-folder", async (req, res) => {
     if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'cross-origin request rejected' });
+      return res.status(403).json({ error: "cross-origin request rejected" });
     }
     try {
       const selected = await openNativeFolderDialog();
@@ -5566,18 +7178,18 @@ export async function startServer({
     }
   });
 
-  app.post('/api/projects/:id/media/generate', async (req, res) => {
+  app.post("/api/projects/:id/media/generate", async (req, res) => {
     if (!isLocalSameOrigin(req, resolvedPort)) {
       return res.status(403).json({
         error:
-          'cross-origin request rejected: media generation is restricted to the local UI / CLI',
+          "cross-origin request rejected: media generation is restricted to the local UI / CLI",
       });
     }
 
     try {
       const projectId = req.params.id;
       const project = getProject(db, projectId);
-      if (!project) return res.status(404).json({ error: 'project not found' });
+      if (!project) return res.status(404).json({ error: "project not found" });
 
       const taskId = randomUUID();
       const task = createMediaTask(db, taskId, projectId, {
@@ -5587,11 +7199,11 @@ export async function startServer({
       console.error(
         `[task ${taskId.slice(0, 8)}] queued model=${req.body?.model} ` +
           `surface=${req.body?.surface} ` +
-          `image=${req.body?.image ? 'yes' : 'no'} ` +
-          `compositionDir=${req.body?.compositionDir ? 'yes' : 'no'}`,
+          `image=${req.body?.image ? "yes" : "no"} ` +
+          `compositionDir=${req.body?.compositionDir ? "yes" : "no"}`,
       );
 
-      task.status = 'running';
+      task.status = "running";
       persistMediaTask(db, task);
       generateMedia({
         projectRoot: PROJECT_ROOT,
@@ -5603,20 +7215,23 @@ export async function startServer({
         output: req.body?.output,
         aspect: req.body?.aspect,
         length:
-          typeof req.body?.length === 'number' ? req.body.length : undefined,
+          typeof req.body?.length === "number" ? req.body.length : undefined,
         duration:
-          typeof req.body?.duration === 'number'
+          typeof req.body?.duration === "number"
             ? req.body.duration
             : undefined,
         voice: req.body?.voice,
         audioKind: req.body?.audioKind,
-        language: typeof req.body?.language === 'string' ? req.body.language : undefined,
+        language:
+          typeof req.body?.language === "string"
+            ? req.body.language
+            : undefined,
         compositionDir: req.body?.compositionDir,
         image: req.body?.image,
         onProgress: (line) => appendTaskProgress(db, task, line),
       })
         .then((meta) => {
-          task.status = 'done';
+          task.status = "done";
           task.file = meta;
           task.endedAt = Date.now();
           persistMediaTask(db, task);
@@ -5627,10 +7242,10 @@ export async function startServer({
           );
         })
         .catch((err) => {
-          task.status = 'failed';
+          task.status = "failed";
           task.error = {
             message: String(err && err.message ? err.message : err),
-            status: typeof err?.status === 'number' ? err.status : 400,
+            status: typeof err?.status === "number" ? err.status : 400,
             code: err?.code,
           };
           task.endedAt = Date.now();
@@ -5638,7 +7253,7 @@ export async function startServer({
           notifyTaskWaiters(db, task);
           console.error(
             `[task ${taskId.slice(0, 8)}] failed status=${task.error.status} ` +
-              `message=${(task.error.message || '').slice(0, 240)}`,
+              `message=${(task.error.message || "").slice(0, 240)}`,
           );
         });
 
@@ -5648,7 +7263,7 @@ export async function startServer({
         startedAt: task.startedAt,
       });
     } catch (err) {
-      const status = typeof err?.status === 'number' ? err.status : 400;
+      const status = typeof err?.status === "number" ? err.status : 400;
       const code = err?.code;
       const body = { error: String(err && err.message ? err.message : err) };
       if (code) body.code = code;
@@ -5656,11 +7271,11 @@ export async function startServer({
     }
   });
 
-  app.post('/api/research/search', async (req, res) => {
+  app.post("/api/research/search", async (req, res) => {
     if (!isLocalSameOrigin(req, resolvedPort)) {
       return res.status(403).json({
         error:
-          'cross-origin request rejected: research search is restricted to the local UI / CLI',
+          "cross-origin request rejected: research search is restricted to the local UI / CLI",
       });
     }
 
@@ -5669,7 +7284,7 @@ export async function startServer({
         projectRoot: PROJECT_ROOT,
         query: req.body?.query,
         maxSources:
-          typeof req.body?.maxSources === 'number'
+          typeof req.body?.maxSources === "number"
             ? req.body.maxSources
             : undefined,
         providers: Array.isArray(req.body?.providers)
@@ -5685,20 +7300,20 @@ export async function startServer({
       }
       res.status(500).json({
         error: {
-          code: 'RESEARCH_FAILED',
+          code: "RESEARCH_FAILED",
           message: String(err && err.message ? err.message : err),
         },
       });
     }
   });
 
-  app.post('/api/media/tasks/:id/wait', async (req, res) => {
+  app.post("/api/media/tasks/:id/wait", async (req, res) => {
     if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'cross-origin request rejected' });
+      return res.status(403).json({ error: "cross-origin request rejected" });
     }
     const taskId = req.params.id;
     const task = getLiveMediaTask(db, taskId);
-    if (!task) return res.status(404).json({ error: 'task not found' });
+    if (!task) return res.status(404).json({ error: "task not found" });
 
     const since = Number.isFinite(req.body?.since) ? Number(req.body.since) : 0;
     const requestedTimeout = Number.isFinite(req.body?.timeoutMs)
@@ -5728,16 +7343,16 @@ export async function startServer({
     };
     task.waiters.add(wake);
     const timer = setTimeout(wake, timeoutMs);
-    res.on('close', wake);
+    res.on("close", wake);
   });
 
-  app.get('/api/projects/:id/media/tasks', (req, res) => {
+  app.get("/api/projects/:id/media/tasks", (req, res) => {
     if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'cross-origin request rejected' });
+      return res.status(403).json({ error: "cross-origin request rejected" });
     }
     const projectId = req.params.id;
     const includeDone =
-      req.query.includeDone === '1' || req.query.includeDone === 'true';
+      req.query.includeDone === "1" || req.query.includeDone === "true";
     const tasks = listMediaTasksByProject(db, projectId, {
       includeTerminal: includeDone,
     }).map((t) => ({
@@ -5750,8 +7365,10 @@ export async function startServer({
       model: t.model,
       progress: t.progress.slice(-3),
       progressCount: t.progress.length,
-      ...(t.status === 'done' ? { file: t.file } : {}),
-      ...(t.status === 'failed' || t.status === 'interrupted' ? { error: t.error } : {}),
+      ...(t.status === "done" ? { file: t.file } : {}),
+      ...(t.status === "failed" || t.status === "interrupted"
+        ? { error: t.error }
+        : {}),
     }));
     tasks.sort((a, b) => b.startedAt - a.startedAt);
     res.json({ tasks });
@@ -5762,7 +7379,7 @@ export async function startServer({
   // metadata as listFiles so the client can stage them as ChatAttachments
   // without a separate refetch.
   app.post(
-    '/api/projects/:id/upload',
+    "/api/projects/:id/upload",
     handleProjectUpload,
     async (req, res) => {
       try {
@@ -5786,7 +7403,7 @@ export async function startServer({
         const body = { files: out };
         res.json(body);
       } catch (err) {
-        sendApiError(res, 500, 'INTERNAL_ERROR', 'upload failed');
+        sendApiError(res, 500, "INTERNAL_ERROR", "upload failed");
       }
     },
   );
@@ -5824,13 +7441,13 @@ export async function startServer({
     connectedExternalMcp,
   }) => {
     const project =
-      typeof projectId === 'string' && projectId
+      typeof projectId === "string" && projectId
         ? getProject(db, projectId)
         : null;
     const effectiveSkillId =
-      typeof skillId === 'string' && skillId ? skillId : project?.skillId;
+      typeof skillId === "string" && skillId ? skillId : project?.skillId;
     const effectiveDesignSystemId =
-      typeof designSystemId === 'string' && designSystemId
+      typeof designSystemId === "string" && designSystemId
         ? designSystemId
         : project?.designSystemId;
     const metadata = project?.metadata;
@@ -5841,10 +7458,7 @@ export async function startServer({
     let skillCraftRequires = [];
     let activeSkillDir = null;
     if (effectiveSkillId) {
-      const skill = findSkillById(
-        await listAllSkills(),
-        effectiveSkillId,
-      );
+      const skill = findSkillById(await listAllSkills(), effectiveSkillId);
       if (skill) {
         skillBody = skill.body;
         skillName = skill.name;
@@ -5873,12 +7487,15 @@ export async function startServer({
       designSystemTitle = summary?.title;
       designSystemBody =
         (await readDesignSystem(DESIGN_SYSTEMS_DIR, effectiveDesignSystemId)) ??
-        (await readDesignSystem(USER_DESIGN_SYSTEMS_DIR, effectiveDesignSystemId)) ??
+        (await readDesignSystem(
+          USER_DESIGN_SYSTEMS_DIR,
+          effectiveDesignSystemId,
+        )) ??
         undefined;
     }
 
     const template =
-      metadata?.kind === 'template' && typeof metadata.templateId === 'string'
+      metadata?.kind === "template" && typeof metadata.templateId === "string"
         ? (getTemplate(db, metadata.templateId) ?? undefined)
         : undefined;
 
@@ -5888,14 +7505,16 @@ export async function startServer({
     // <CRITIQUE_RUN> tags the model was never told to emit. The composer
     // itself ignores these fields when cfg.enabled is false, so the legacy
     // path stays untouched.
-    const critiqueBrand = critiqueCfg.enabled
-      && typeof designSystemTitle === 'string'
-      && typeof designSystemBody === 'string'
-      ? { name: designSystemTitle, design_md: designSystemBody }
-      : undefined;
-    const critiqueSkill = critiqueCfg.enabled && typeof effectiveSkillId === 'string'
-      ? { id: effectiveSkillId }
-      : undefined;
+    const critiqueBrand =
+      critiqueCfg.enabled &&
+      typeof designSystemTitle === "string" &&
+      typeof designSystemBody === "string"
+        ? { name: designSystemTitle, design_md: designSystemBody }
+        : undefined;
+    const critiqueSkill =
+      critiqueCfg.enabled && typeof effectiveSkillId === "string"
+        ? { id: effectiveSkillId }
+        : undefined;
     // Single-source-of-truth eligibility check. The composer downstream
     // appends <CRITIQUE_RUN> instructions only when this check passes, and
     // the spawn path routes runs through runOrchestrator(...) only when the
@@ -5909,18 +7528,19 @@ export async function startServer({
     // is instructed to emit Critique Theater tags that no orchestrator
     // consumes.
     const isMediaSurface =
-      skillMode === 'image' ||
-      skillMode === 'video' ||
-      skillMode === 'audio' ||
-      metadata?.kind === 'image' ||
-      metadata?.kind === 'video' ||
-      metadata?.kind === 'audio';
-    const isPlainAdapter = (streamFormat ?? 'plain') === 'plain';
-    const critiqueShouldRun = critiqueCfg.enabled
-      && critiqueBrand !== undefined
-      && critiqueSkill !== undefined
-      && !isMediaSurface
-      && isPlainAdapter;
+      skillMode === "image" ||
+      skillMode === "video" ||
+      skillMode === "audio" ||
+      metadata?.kind === "image" ||
+      metadata?.kind === "video" ||
+      metadata?.kind === "audio";
+    const isPlainAdapter = (streamFormat ?? "plain") === "plain";
+    const critiqueShouldRun =
+      critiqueCfg.enabled &&
+      critiqueBrand !== undefined &&
+      critiqueSkill !== undefined &&
+      !isMediaSurface &&
+      isPlainAdapter;
     // Only thread the critique fields when the run is actually eligible;
     // otherwise the composer's own internal eligibility check (cfg.enabled
     // && brand && skill && !isMediaSurface) might still fire on
@@ -5977,41 +7597,44 @@ export async function startServer({
       reasoning,
       research,
     } = chatBody;
-    if (typeof projectId === 'string' && projectId) run.projectId = projectId;
-    if (typeof conversationId === 'string' && conversationId)
+    if (typeof projectId === "string" && projectId) run.projectId = projectId;
+    if (typeof conversationId === "string" && conversationId)
       run.conversationId = conversationId;
-    if (typeof assistantMessageId === 'string' && assistantMessageId)
+    if (typeof assistantMessageId === "string" && assistantMessageId)
       run.assistantMessageId = assistantMessageId;
-    if (typeof clientRequestId === 'string' && clientRequestId)
+    if (typeof clientRequestId === "string" && clientRequestId)
       run.clientRequestId = clientRequestId;
-    if (typeof agentId === 'string' && agentId) run.agentId = agentId;
+    if (typeof agentId === "string" && agentId) run.agentId = agentId;
     // Stash the original user prompt + per-turn config so the
     // langfuse-bridge report path can include them without reaching back
     // into chatBody across the createChatRunService boundary. Each field
     // is optional and only set when the chat body actually carried it.
-    const telemetryPrompt = telemetryPromptFromRunRequest(message, currentPrompt);
-    if (typeof telemetryPrompt === 'string') run.userPrompt = telemetryPrompt;
-    if (typeof model === 'string' && model) run.model = model;
-    if (typeof reasoning === 'string' && reasoning) run.reasoning = reasoning;
-    if (typeof skillId === 'string' && skillId) run.skillId = skillId;
-    if (typeof designSystemId === 'string' && designSystemId)
+    const telemetryPrompt = telemetryPromptFromRunRequest(
+      message,
+      currentPrompt,
+    );
+    if (typeof telemetryPrompt === "string") run.userPrompt = telemetryPrompt;
+    if (typeof model === "string" && model) run.model = model;
+    if (typeof reasoning === "string" && reasoning) run.reasoning = reasoning;
+    if (typeof skillId === "string" && skillId) run.skillId = skillId;
+    if (typeof designSystemId === "string" && designSystemId)
       run.designSystemId = designSystemId;
     const def = getAgentDef(agentId);
     if (!def)
       return design.runs.fail(
         run,
-        'AGENT_UNAVAILABLE',
+        "AGENT_UNAVAILABLE",
         `unknown agent: ${agentId}`,
       );
     if (!def.bin)
-      return design.runs.fail(run, 'AGENT_UNAVAILABLE', 'agent has no binary');
+      return design.runs.fail(run, "AGENT_UNAVAILABLE", "agent has no binary");
     const safeCommentAttachments =
       normalizeCommentAttachments(commentAttachments);
     if (
-      (typeof message !== 'string' || !message.trim()) &&
+      (typeof message !== "string" || !message.trim()) &&
       safeCommentAttachments.length === 0
     ) {
-      return design.runs.fail(run, 'BAD_REQUEST', 'message required');
+      return design.runs.fail(run, "BAD_REQUEST", "message required");
     }
     if (run.cancelRequested || design.runs.isTerminal(run.status)) return;
     const runId = run.id;
@@ -6024,13 +7647,15 @@ export async function startServer({
     // so the agent writes back to the user's original source tree.
     let cwd = null;
     let existingProjectFiles = [];
-    if (typeof projectId === 'string' && projectId) {
+    if (typeof projectId === "string" && projectId) {
       try {
         const chatProject = getProject(db, projectId);
         const chatMeta = chatProject?.metadata;
         if (chatMeta?.baseDir) {
           cwd = path.normalize(chatMeta.baseDir);
-          existingProjectFiles = await listFiles(PROJECTS_DIR, projectId, { metadata: chatMeta });
+          existingProjectFiles = await listFiles(PROJECTS_DIR, projectId, {
+            metadata: chatMeta,
+          });
         } else {
           cwd = await ensureProject(PROJECTS_DIR, projectId);
           existingProjectFiles = await listFiles(PROJECTS_DIR, projectId);
@@ -6056,7 +7681,7 @@ export async function startServer({
     // to Read it.
     const safeAttachments = cwd
       ? (Array.isArray(attachments) ? attachments : [])
-          .filter((p) => typeof p === 'string' && p.length > 0)
+          .filter((p) => typeof p === "string" && p.length > 0)
           .filter((p) => {
             try {
               const abs = path.resolve(cwd, p);
@@ -6081,10 +7706,10 @@ export async function startServer({
     const filesListBlock = existingProjectFiles.length
       ? `\nFiles already in this folder (do NOT overwrite unless the user asks; pick a fresh, descriptive name for new artifacts):\n${existingProjectFiles
           .map((f) => `- ${f.name}`)
-          .join('\n')}`
-      : '\nThis folder is empty. Choose a clear, descriptive filename for whatever you create.';
+          .join("\n")}`
+      : "\nThis folder is empty. Choose a clear, descriptive filename for whatever you create.";
     const projectRecord =
-      typeof projectId === 'string' && projectId
+      typeof projectId === "string" && projectId
         ? getProject(db, projectId)
         : null;
     const linkedDirs = (() => {
@@ -6094,30 +7719,35 @@ export async function startServer({
     })();
     const cwdHint = cwd
       ? `\n\nYour working directory: ${cwd}\nWrite project files relative to it (e.g. \`index.html\`, \`assets/x.png\`). The user can browse those files in real time.${filesListBlock}`
-      : '';
-    const linkedDirsHint = linkedDirs.length > 0
-      ? `\n\nLinked code folders (read-only reference code the user wants you to see):\n${
-          linkedDirs.map((d) => `- \`${d}\``).join('\n')
-        }`
-      : '';
+      : "";
+    const linkedDirsHint =
+      linkedDirs.length > 0
+        ? `\n\nLinked code folders (read-only reference code the user wants you to see):\n${linkedDirs
+            .map((d) => `- \`${d}\``)
+            .join("\n")}`
+        : "";
     const attachmentHint = safeAttachments.length
-      ? `\n\nAttached project files: ${safeAttachments.map((p) => `\`${p}\``).join(', ')}`
-      : '';
-    const toolTokenGrant = cwd && typeof projectId === 'string' && projectId
-      ? toolTokenRegistry.mint({
-          runId,
-          projectId,
-          allowedEndpoints: CHAT_TOOL_ENDPOINTS,
-          allowedOperations: CHAT_TOOL_OPERATIONS,
-        })
-      : null;
+      ? `\n\nAttached project files: ${safeAttachments.map((p) => `\`${p}\``).join(", ")}`
+      : "";
+    const toolTokenGrant =
+      cwd && typeof projectId === "string" && projectId
+        ? toolTokenRegistry.mint({
+            runId,
+            projectId,
+            allowedEndpoints: CHAT_TOOL_ENDPOINTS,
+            allowedOperations: CHAT_TOOL_OPERATIONS,
+          })
+        : null;
     let toolTokenRevoked = false;
     const revokeToolToken = (reason) => {
       if (toolTokenRevoked || !toolTokenGrant) return;
       toolTokenRevoked = true;
       toolTokenRegistry.revokeToken(toolTokenGrant.token, reason);
     };
-    const runtimeToolPrompt = createAgentRuntimeToolPrompt(daemonUrl, toolTokenGrant);
+    const runtimeToolPrompt = createAgentRuntimeToolPrompt(
+      daemonUrl,
+      toolTokenGrant,
+    );
     const commentHint = renderCommentAttachmentHint(safeCommentAttachments);
 
     // Resolve external MCP config + stored OAuth tokens up-front so the
@@ -6131,11 +7761,13 @@ export async function startServer({
       externalMcpConfig = await readMcpConfig(RUNTIME_DATA_DIR);
     } catch (err) {
       console.warn(
-        '[mcp-config] read failed:',
+        "[mcp-config] read failed:",
         err && err.message ? err.message : err,
       );
     }
-    const enabledExternalMcp = externalMcpConfig.servers.filter((s) => s.enabled);
+    const enabledExternalMcp = externalMcpConfig.servers.filter(
+      (s) => s.enabled,
+    );
     const oauthTokensForSpawn = {};
     try {
       const stored = await readAllTokens(RUNTIME_DATA_DIR);
@@ -6157,7 +7789,7 @@ export async function startServer({
             if (refreshed) access = refreshed.accessToken;
           } catch (err) {
             console.warn(
-              '[mcp-oauth] refresh failed for',
+              "[mcp-oauth] refresh failed for",
               serverId,
               err && err.message ? err.message : err,
             );
@@ -6167,31 +7799,34 @@ export async function startServer({
           oauthTokensForSpawn[serverId] = access;
         } else {
           console.warn(
-            '[mcp-oauth] skipping expired token for',
+            "[mcp-oauth] skipping expired token for",
             serverId,
-            '— reconnect required',
+            "— reconnect required",
           );
         }
       }
     } catch (err) {
       console.warn(
-        '[mcp-tokens] read failed:',
+        "[mcp-tokens] read failed:",
         err && err.message ? err.message : err,
       );
     }
     const connectedExternalMcp = enabledExternalMcp
-      .filter((s) => typeof oauthTokensForSpawn[s.id] === 'string')
+      .filter((s) => typeof oauthTokensForSpawn[s.id] === "string")
       .map((s) => ({ id: s.id, label: s.label }));
 
-    const { prompt: daemonSystemPrompt, activeSkillDir, critiqueShouldRun } =
-      await composeDaemonSystemPrompt({
-        agentId,
-        projectId,
-        skillId,
-        designSystemId,
-        streamFormat: def?.streamFormat ?? 'plain',
-        connectedExternalMcp,
-      });
+    const {
+      prompt: daemonSystemPrompt,
+      activeSkillDir,
+      critiqueShouldRun,
+    } = await composeDaemonSystemPrompt({
+      agentId,
+      projectId,
+      skillId,
+      designSystemId,
+      streamFormat: def?.streamFormat ?? "plain",
+      connectedExternalMcp,
+    });
 
     // Make skill side files reachable through three layers, in order of
     // preference. The skill preamble emitted by `withSkillRootPreamble()`
@@ -6229,7 +7864,7 @@ export async function startServer({
       );
       if (!result.staged) {
         console.warn(
-          `[od] skill-stage skipped: ${result.reason ?? 'unknown reason'}; falling back to absolute paths`,
+          `[od] skill-stage skipped: ${result.reason ?? "unknown reason"}; falling back to absolute paths`,
         );
       }
     }
@@ -6271,9 +7906,9 @@ export async function startServer({
       message,
     );
     const clientInstructionPrompt = [researchCommandContract, systemPrompt]
-      .map((part) => (typeof part === 'string' ? part.trim() : ''))
+      .map((part) => (typeof part === "string" ? part.trim() : ""))
       .filter(Boolean)
-      .join('\n\n---\n\n');
+      .join("\n\n---\n\n");
     const instructionPrompt = composeLiveInstructionPrompt({
       daemonSystemPrompt,
       runtimeToolPrompt,
@@ -6287,25 +7922,25 @@ export async function startServer({
           ? `# Instructions${cwdHint}${linkedDirsHint}\n\n---\n`
           : linkedDirsHint
             ? `# Instructions${linkedDirsHint}\n\n---\n`
-            : '',
-      `# User request\n\n${message || '(No extra typed instruction.)'}${attachmentHint}${commentHint}`,
+            : "",
+      `# User request\n\n${message || "(No extra typed instruction.)"}${attachmentHint}${commentHint}`,
       safeImages.length
-        ? `\n\n${safeImages.map((p) => `@${p}`).join(' ')}`
-        : '',
-    ].join('');
+        ? `\n\n${safeImages.map((p) => `@${p}`).join(" ")}`
+        : "",
+    ].join("");
     // Per-agent model + reasoning the user picked in the model menu.
     // Trust the value when it matches the most recent /api/agents listing
     // (live or fallback). Otherwise allow it through if it passes a
     // permissive sanitizer — that's the path for user-typed custom model
     // ids the CLI's listing didn't surface yet.
     const safeModel =
-      typeof model === 'string'
+      typeof model === "string"
         ? isKnownModel(def, model)
           ? model
           : sanitizeCustomModel(model)
         : null;
     const safeReasoning =
-      typeof reasoning === 'string' && Array.isArray(def.reasoningOptions)
+      typeof reasoning === "string" && Array.isArray(def.reasoningOptions)
         ? (def.reasoningOptions.find((r) => r.id === reasoning)?.id ?? null)
         : null;
     const agentOptions = { model: safeModel, reasoning: safeReasoning };
@@ -6346,9 +7981,9 @@ export async function startServer({
     // We also unlink a stale `.mcp.json` we previously wrote when the user has
     // since disabled all servers, so removing a server actually takes effect
     // on the next run.
-    if (def.id === 'claude' && isManagedProjectCwd(cwd, PROJECTS_DIR)) {
+    if (def.id === "claude" && isManagedProjectCwd(cwd, PROJECTS_DIR)) {
       {
-        const target = path.join(cwd, '.mcp.json');
+        const target = path.join(cwd, ".mcp.json");
         if (enabledExternalMcp.length > 0) {
           try {
             const claudeMcp = buildClaudeMcpJson(
@@ -6356,16 +7991,18 @@ export async function startServer({
               oauthTokensForSpawn,
             );
             if (claudeMcp) {
-              await fs.promises.mkdir(path.dirname(target), { recursive: true });
+              await fs.promises.mkdir(path.dirname(target), {
+                recursive: true,
+              });
               await fs.promises.writeFile(
                 target,
                 JSON.stringify(claudeMcp, null, 2),
-                'utf8',
+                "utf8",
               );
             }
           } catch (err) {
             console.warn(
-              '[mcp-config] failed to write project .mcp.json:',
+              "[mcp-config] failed to write project .mcp.json:",
               err && err.message ? err.message : err,
             );
           }
@@ -6373,9 +8010,9 @@ export async function startServer({
           try {
             await fs.promises.unlink(target);
           } catch (err) {
-            if ((err && err.code) !== 'ENOENT') {
+            if ((err && err.code) !== "ENOENT") {
               console.warn(
-                '[mcp-config] failed to remove stale .mcp.json:',
+                "[mcp-config] failed to remove stale .mcp.json:",
                 err && err.message ? err.message : err,
               );
             }
@@ -6383,7 +8020,7 @@ export async function startServer({
         }
       }
     }
-    if (enabledExternalMcp.length > 0 && def.streamFormat === 'acp-json-rpc') {
+    if (enabledExternalMcp.length > 0 && def.streamFormat === "acp-json-rpc") {
       const acpExternal = buildAcpMcpServers(enabledExternalMcp);
       mcpServers.push(...acpExternal);
     }
@@ -6399,14 +8036,14 @@ export async function startServer({
     if (promptBudgetError) {
       design.runs.emit(
         run,
-        'error',
+        "error",
         createSseErrorPayload(
           promptBudgetError.code,
           promptBudgetError.message,
           { retryable: false },
         ),
       );
-      return design.runs.finish(run, 'failed', 1, null);
+      return design.runs.finish(run, "failed", 1, null);
     }
 
     let configuredAgentEnv = {};
@@ -6445,14 +8082,14 @@ export async function startServer({
     if (cmdShimBudgetError) {
       design.runs.emit(
         run,
-        'error',
+        "error",
         createSseErrorPayload(
           cmdShimBudgetError.code,
           cmdShimBudgetError.message,
           { retryable: false },
         ),
       );
-      return design.runs.finish(run, 'failed', 1, null);
+      return design.runs.finish(run, "failed", 1, null);
     }
 
     // Companion guard for non-shim Windows installs (e.g. a cargo-built
@@ -6472,14 +8109,14 @@ export async function startServer({
     if (directExeBudgetError) {
       design.runs.emit(
         run,
-        'error',
+        "error",
         createSseErrorPayload(
           directExeBudgetError.code,
           directExeBudgetError.message,
           { retryable: false },
         ),
       );
-      return design.runs.finish(run, 'failed', 1, null);
+      return design.runs.finish(run, "failed", 1, null);
     }
 
     const send = (event, data) => design.runs.emit(run, event, data);
@@ -6495,24 +8132,29 @@ export async function startServer({
     const scheduleForcedChildShutdown = () => {
       if (!child) return;
       setTimeout(() => {
-        if (child && !child.killed) child.kill('SIGTERM');
+        if (child && !child.killed) child.kill("SIGTERM");
       }, inactivityKillGraceMs).unref?.();
       setTimeout(() => {
-        if (child && !child.killed) child.kill('SIGKILL');
+        if (child && !child.killed) child.kill("SIGKILL");
       }, inactivityKillGraceMs * 2).unref?.();
     };
     const failForInactivity = () => {
       if (run.cancelRequested || design.runs.isTerminal(run.status)) return;
       const message =
         `Agent stalled without emitting any new output for ${Math.round(inactivityTimeoutMs / 1000)}s. ` +
-        'The model or CLI likely hung while generating. Retry the turn or pick a different model.';
+        "The model or CLI likely hung while generating. Retry the turn or pick a different model.";
       clearInactivityWatchdog();
-      send('error', createSseErrorPayload('AGENT_EXECUTION_FAILED', message, { retryable: true }));
-      design.runs.finish(run, 'failed', 1, null);
+      send(
+        "error",
+        createSseErrorPayload("AGENT_EXECUTION_FAILED", message, {
+          retryable: true,
+        }),
+      );
+      design.runs.finish(run, "failed", 1, null);
       if (acpSession?.abort) {
         acpSession.abort();
       }
-      if (child && !child.killed) child.kill('SIGTERM');
+      if (child && !child.killed) child.kill("SIGTERM");
       scheduleForcedChildShutdown();
     };
     const noteAgentActivity = () => {
@@ -6525,8 +8167,9 @@ export async function startServer({
       activeChatAgentEventSinks.delete(toolTokenGrant?.runId ?? runId);
     };
     if (toolTokenGrant?.runId) {
-      activeChatAgentEventSinks.set(toolTokenGrant.runId, (payload) =>
-        (noteAgentActivity(), send('agent', payload)),
+      activeChatAgentEventSinks.set(
+        toolTokenGrant.runId,
+        (payload) => (noteAgentActivity(), send("agent", payload)),
       );
     }
     // If detection can't find the binary, surface a friendly SSE error
@@ -6534,21 +8177,24 @@ export async function startServer({
     // spawn(def.bin) — that fallback re-introduces the exact ENOENT symptom
     // from issue #10.
     if (!resolvedBin) {
-      revokeToolToken('child_exit');
+      revokeToolToken("child_exit");
       unregisterChatAgentEventSink();
-      send('error', createSseErrorPayload(
-        'AGENT_UNAVAILABLE',
-        `Agent "${def.name}" (\`${def.bin}\`) is not installed or not on PATH. ` +
-          'Install it and refresh the agent list (GET /api/agents) before retrying.',
-        { retryable: true },
-      ));
-      return design.runs.finish(run, 'failed', 1, null);
+      send(
+        "error",
+        createSseErrorPayload(
+          "AGENT_UNAVAILABLE",
+          `Agent "${def.name}" (\`${def.bin}\`) is not installed or not on PATH. ` +
+            "Install it and refresh the agent list (GET /api/agents) before retrying.",
+          { retryable: true },
+        ),
+      );
+      return design.runs.finish(run, "failed", 1, null);
     }
     const odMediaEnv = {
       OD_BIN,
       OD_NODE_BIN,
       OD_DAEMON_URL: daemonUrl,
-      ...(typeof projectId === 'string' && projectId && cwd
+      ...(typeof projectId === "string" && projectId && cwd
         ? {
             OD_PROJECT_ID: projectId,
             OD_PROJECT_DIR: cwd,
@@ -6556,19 +8202,19 @@ export async function startServer({
         : {}),
     };
     if (run.cancelRequested || design.runs.isTerminal(run.status)) {
-      revokeToolToken('child_exit');
+      revokeToolToken("child_exit");
       unregisterChatAgentEventSink();
       return;
     }
 
-    run.status = 'running';
+    run.status = "running";
     run.updatedAt = Date.now();
-    send('start', {
+    send("start", {
       runId,
       agentId,
       bin: resolvedBin,
-      streamFormat: def.streamFormat ?? 'plain',
-      projectId: typeof projectId === 'string' ? projectId : null,
+      streamFormat: def.streamFormat ?? "plain",
+      projectId: typeof projectId === "string" ? projectId : null,
       cwd,
       model: safeModel,
       reasoning: safeReasoning,
@@ -6583,9 +8229,9 @@ export async function startServer({
       // Prompt delivery via stdin is now the universal default. This bypasses
       // both the cmd.exe 8KB limit and the CreateProcess 32KB limit.
       const stdinMode =
-        def.promptViaStdin || def.streamFormat === 'acp-json-rpc'
-          ? 'pipe'
-          : 'ignore';
+        def.promptViaStdin || def.streamFormat === "acp-json-rpc"
+          ? "pipe"
+          : "ignore";
       const env = {
         ...spawnEnvForAgent(
           def.id,
@@ -6604,7 +8250,7 @@ export async function startServer({
       });
       child = spawn(invocation.command, invocation.args, {
         env,
-        stdio: [stdinMode, 'pipe', 'pipe'],
+        stdio: [stdinMode, "pipe", "pipe"],
         cwd: effectiveCwd,
         shell: false,
         // Required when invocation wraps a Windows .cmd/.bat shim through
@@ -6613,17 +8259,17 @@ export async function startServer({
         windowsVerbatimArguments: invocation.windowsVerbatimArguments,
       });
       run.child = child;
-      if (def.promptViaStdin && child.stdin && def.streamFormat !== 'pi-rpc') {
+      if (def.promptViaStdin && child.stdin && def.streamFormat !== "pi-rpc") {
         // EPIPE from a fast-exiting CLI (bad auth, missing model, exit on
         // launch) would otherwise surface as an unhandled stream error and
         // crash the daemon. Swallow it — the regular exit/close handlers
         // below already route the underlying failure to SSE via stderr.
-        child.stdin.on('error', (err) => {
-          if (err.code !== 'EPIPE') {
+        child.stdin.on("error", (err) => {
+          if (err.code !== "EPIPE") {
             send(
-              'error',
+              "error",
               createSseErrorPayload(
-                'AGENT_EXECUTION_FAILED',
+                "AGENT_EXECUTION_FAILED",
                 `stdin: ${err.message}`,
               ),
             );
@@ -6632,21 +8278,27 @@ export async function startServer({
         writePromptToChildStdin = true;
       }
     } catch (err) {
-      revokeToolToken('child_exit');
+      revokeToolToken("child_exit");
       unregisterChatAgentEventSink();
-      send('error', createSseErrorPayload('AGENT_EXECUTION_FAILED', `spawn failed: ${err.message}`));
-      design.runs.finish(run, 'failed', 1, null);
+      send(
+        "error",
+        createSseErrorPayload(
+          "AGENT_EXECUTION_FAILED",
+          `spawn failed: ${err.message}`,
+        ),
+      );
+      design.runs.finish(run, "failed", 1, null);
       return;
     }
 
-    child.stdout.setEncoding('utf8');
-    child.stderr.setEncoding('utf8');
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
 
     // Reset the inactivity watchdog on every raw stdout byte so that
     // structured adapters that buffer partial lines (Codex item.completed,
     // pi-rpc session/prompt, ACP agent messages) and models that spend a
     // long time in non-streamed reasoning still keep the run alive.
-    child.stdout.on('data', () => noteAgentActivity());
+    child.stdout.on("data", () => noteAgentActivity());
 
     // Critique Theater branch (M0 dark launch, default disabled).
     // Only plain-stream adapters are routed through runOrchestrator in v1.
@@ -6664,19 +8316,28 @@ export async function startServer({
     // and fall through to legacy generation; otherwise the parser waits for
     // <CRITIQUE_RUN> tags the model was never told to emit.
     if (critiqueShouldRun) {
-      const adapterStreamFormat: string = def.streamFormat ?? 'plain';
-      if (adapterStreamFormat !== 'plain') {
+      const adapterStreamFormat: string = def.streamFormat ?? "plain";
+      if (adapterStreamFormat !== "plain") {
         if (!critiqueWarnedAdapters.has(adapterStreamFormat)) {
           critiqueWarnedAdapters.add(adapterStreamFormat);
-          console.warn(`[critique] adapter format=${adapterStreamFormat} is not plain-stream; skipping orchestrator and falling through to legacy generation`);
+          console.warn(
+            `[critique] adapter format=${adapterStreamFormat} is not plain-stream; skipping orchestrator and falling through to legacy generation`,
+          );
         }
       } else {
         const critiqueRunId = run.id;
         // Per-run artifact directory keeps concurrent or sequential runs in the
         // same project from overwriting each other's transcript or final HTML.
         // Spec: artifacts/<projectId>/<runId>/transcript.ndjson(.gz).
-        const critiqueProjectKey = typeof projectId === 'string' && projectId ? projectId : critiqueRunId;
-        const critiqueArtifactDir = path.join(CRITIQUE_ARTIFACTS_DIR, critiqueProjectKey, critiqueRunId);
+        const critiqueProjectKey =
+          typeof projectId === "string" && projectId
+            ? projectId
+            : critiqueRunId;
+        const critiqueArtifactDir = path.join(
+          CRITIQUE_ARTIFACTS_DIR,
+          critiqueProjectKey,
+          critiqueRunId,
+        );
         const stdoutIterable = (async function* () {
           for await (const chunk of child.stdout) yield String(chunk);
         })();
@@ -6706,29 +8367,36 @@ export async function startServer({
         // an early child error fired before the orchestrator returns has no
         // listener. Both registrations are idempotent and the run lifecycle
         // is owned solely by the orchestrator's awaited result below.
-        child.stderr.on('data', (chunk) => {
+        child.stderr.on("data", (chunk) => {
           noteAgentActivity();
-          send('stderr', { chunk });
+          send("stderr", { chunk });
         });
-        child.on('error', (err) => {
-          send('error', createSseErrorPayload('AGENT_EXECUTION_FAILED', err.message));
+        child.on("error", (err) => {
+          send(
+            "error",
+            createSseErrorPayload("AGENT_EXECUTION_FAILED", err.message),
+          );
         });
 
         // Wrap the child's close event so the orchestrator can race child
         // exit against parser completion, abort, and timeouts in one awaited
         // flow. Without this the orchestrator can't tell a non-zero exit
         // apart from a clean ship and may misclassify failures.
-        const childExitPromise = new Promise<{ code: number | null; signal: NodeJS.Signals | null }>((resolve) => {
-          child.once('close', (code, signal) => resolve({ code, signal }));
+        const childExitPromise = new Promise<{
+          code: number | null;
+          signal: NodeJS.Signals | null;
+        }>((resolve) => {
+          child.once("close", (code, signal) => resolve({ code, signal }));
         });
         try {
           const orchestratorResult = await runOrchestrator({
             runId: critiqueRunId,
-            projectId: typeof projectId === 'string' ? projectId : '',
-            conversationId: typeof conversationId === 'string' ? conversationId : null,
+            projectId: typeof projectId === "string" ? projectId : "",
+            conversationId:
+              typeof conversationId === "string" ? conversationId : null,
             artifactId: critiqueRunId,
             artifactDir: critiqueArtifactDir,
-            adapter: typeof agentId === 'string' ? agentId : 'unknown',
+            adapter: typeof agentId === "string" ? agentId : "unknown",
             cfg: critiqueCfg,
             db,
             bus: critiqueBus,
@@ -6742,18 +8410,25 @@ export async function startServer({
           // finalize as 'succeeded'; every other status (timed_out,
           // interrupted, degraded, failed, legacy) is a failure path so the
           // run reflects the real outcome instead of a misleading success.
-          const succeeded = orchestratorResult.status === 'shipped'
-            || orchestratorResult.status === 'below_threshold';
+          const succeeded =
+            orchestratorResult.status === "shipped" ||
+            orchestratorResult.status === "below_threshold";
           if (run.cancelRequested) {
-            design.runs.finish(run, 'canceled', 1, null);
+            design.runs.finish(run, "canceled", 1, null);
           } else if (succeeded) {
-            design.runs.finish(run, 'succeeded', 0, null);
+            design.runs.finish(run, "succeeded", 0, null);
           } else {
-            design.runs.finish(run, 'failed', 1, null);
+            design.runs.finish(run, "failed", 1, null);
           }
         } catch (err) {
-          send('error', createSseErrorPayload('AGENT_EXECUTION_FAILED', err instanceof Error ? err.message : String(err)));
-          design.runs.finish(run, 'failed', 1, null);
+          send(
+            "error",
+            createSseErrorPayload(
+              "AGENT_EXECUTION_FAILED",
+              err instanceof Error ? err.message : String(err),
+            ),
+          );
+          design.runs.finish(run, "failed", 1, null);
         } finally {
           critiqueRunRegistry.unregister(critiqueProjectKey, critiqueRunId);
         }
@@ -6780,50 +8455,53 @@ export async function startServer({
     // banner without any follow-up is exactly the silent-failure shape we
     // want to surface as failed instead of succeeded.
     const SUBSTANTIVE_AGENT_EVENT_TYPES = new Set([
-      'text_delta',
-      'thinking_delta',
-      'tool_use',
-      'tool_result',
-      'artifact',
+      "text_delta",
+      "thinking_delta",
+      "tool_use",
+      "tool_result",
+      "artifact",
     ]);
     const sendAgentEvent = (ev) => {
-      if (ev?.type === 'error') {
+      if (ev?.type === "error") {
         if (agentStreamError) return;
-        agentStreamError = String(ev.message || 'Agent stream error');
+        agentStreamError = String(ev.message || "Agent stream error");
         clearInactivityWatchdog();
-        send('error', createSseErrorPayload('AGENT_EXECUTION_FAILED', agentStreamError, {
-          details: ev.raw ? { raw: ev.raw } : undefined,
-          retryable: false,
-        }));
+        send(
+          "error",
+          createSseErrorPayload("AGENT_EXECUTION_FAILED", agentStreamError, {
+            details: ev.raw ? { raw: ev.raw } : undefined,
+            retryable: false,
+          }),
+        );
         return;
       }
       noteAgentActivity();
       if (ev?.type && SUBSTANTIVE_AGENT_EVENT_TYPES.has(ev.type)) {
         agentProducedOutput = true;
       }
-      send('agent', ev);
+      send("agent", ev);
     };
 
-    if (def.streamFormat === 'claude-stream-json') {
+    if (def.streamFormat === "claude-stream-json") {
       const claude = createClaudeStreamHandler((ev) => {
         noteAgentActivity();
-        send('agent', ev);
+        send("agent", ev);
       });
-      child.stdout.on('data', (chunk) => claude.feed(chunk));
-      child.on('close', () => claude.flush());
-    } else if (def.streamFormat === 'qoder-stream-json') {
+      child.stdout.on("data", (chunk) => claude.feed(chunk));
+      child.on("close", () => claude.flush());
+    } else if (def.streamFormat === "qoder-stream-json") {
       trackingSubstantiveOutput = true;
       const qoder = createQoderStreamHandler(sendAgentEvent);
-      child.stdout.on('data', (chunk) => qoder.feed(chunk));
-      child.on('close', () => qoder.flush());
-    } else if (def.streamFormat === 'copilot-stream-json') {
+      child.stdout.on("data", (chunk) => qoder.feed(chunk));
+      child.on("close", () => qoder.flush());
+    } else if (def.streamFormat === "copilot-stream-json") {
       const copilot = createCopilotStreamHandler((ev) => {
         noteAgentActivity();
-        send('agent', ev);
+        send("agent", ev);
       });
-      child.stdout.on('data', (chunk) => copilot.feed(chunk));
-      child.on('close', () => copilot.flush());
-    } else if (def.streamFormat === 'pi-rpc') {
+      child.stdout.on("data", (chunk) => copilot.feed(chunk));
+      child.on("close", () => copilot.flush());
+    } else if (def.streamFormat === "pi-rpc") {
       // Route through sendAgentEvent so that pi-rpc's error events
       // (extension_error, auto_retry_end with success=false, and the
       // message_update error delta) set agentStreamError and flip the
@@ -6846,17 +8524,20 @@ export async function startServer({
         cwd: effectiveCwd,
         model: safeModel,
         send: (channel, payload) => {
-          if (channel === 'agent') {
+          if (channel === "agent") {
             sendAgentEvent(payload);
-          } else if (channel === 'error') {
+          } else if (channel === "error") {
             if (agentStreamError) return;
-            agentStreamError = String(payload?.message || 'Pi session error');
+            agentStreamError = String(payload?.message || "Pi session error");
             clearInactivityWatchdog();
-            send('error', createSseErrorPayload(
-              'AGENT_EXECUTION_FAILED',
-              agentStreamError,
-              { retryable: false },
-            ));
+            send(
+              "error",
+              createSseErrorPayload(
+                "AGENT_EXECUTION_FAILED",
+                agentStreamError,
+                { retryable: false },
+              ),
+            );
           } else {
             noteAgentActivity();
             send(channel, payload);
@@ -6865,7 +8546,7 @@ export async function startServer({
         imagePaths: def.supportsImagePaths ? safeImages : [],
         uploadRoot: UPLOAD_DIR,
       });
-    } else if (def.streamFormat === 'acp-json-rpc') {
+    } else if (def.streamFormat === "acp-json-rpc") {
       acpSession = attachAcpSession({
         child,
         prompt: composed,
@@ -6877,7 +8558,7 @@ export async function startServer({
           send(event, data);
         },
       });
-    } else if (def.streamFormat === 'json-event-stream') {
+    } else if (def.streamFormat === "json-event-stream") {
       // Pipe through sendAgentEvent so the OpenCode `type:'error'` frame
       // (now emitted as a real error event by json-event-stream.ts after
       // #691) actually triggers `agentStreamError` instead of being
@@ -6888,38 +8569,41 @@ export async function startServer({
         def.eventParser || def.id,
         sendAgentEvent,
       );
-      child.stdout.on('data', (chunk) => handler.feed(chunk));
-      child.on('close', () => handler.flush());
+      child.stdout.on("data", (chunk) => handler.feed(chunk));
+      child.on("close", () => handler.flush());
     } else {
-      child.stdout.on('data', (chunk) => {
+      child.stdout.on("data", (chunk) => {
         noteAgentActivity();
-        send('stdout', { chunk });
+        send("stdout", { chunk });
       });
     }
     // Wire the acpSession onto the run so cancel() can call abort()
     // instead of raw SIGTERM (applies to pi-rpc and acp-json-rpc).
     run.acpSession = acpSession;
-    child.stderr.on('data', (chunk) => {
+    child.stderr.on("data", (chunk) => {
       noteAgentActivity();
-      send('stderr', { chunk });
+      send("stderr", { chunk });
     });
 
-    child.on('error', (err) => {
+    child.on("error", (err) => {
       clearInactivityWatchdog();
-      revokeToolToken('child_exit');
+      revokeToolToken("child_exit");
       unregisterChatAgentEventSink();
-      send('error', createSseErrorPayload('AGENT_EXECUTION_FAILED', err.message));
-      design.runs.finish(run, 'failed', 1, null);
+      send(
+        "error",
+        createSseErrorPayload("AGENT_EXECUTION_FAILED", err.message),
+      );
+      design.runs.finish(run, "failed", 1, null);
     });
-    child.on('close', (code, signal) => {
+    child.on("close", (code, signal) => {
       clearInactivityWatchdog();
-      revokeToolToken('child_exit');
+      revokeToolToken("child_exit");
       unregisterChatAgentEventSink();
       if (acpSession?.hasFatalError()) {
-        return design.runs.finish(run, 'failed', code ?? 1, signal ?? null);
+        return design.runs.finish(run, "failed", code ?? 1, signal ?? null);
       }
       if (agentStreamError) {
-        return design.runs.finish(run, 'failed', code ?? 1, signal ?? null);
+        return design.runs.finish(run, "failed", code ?? 1, signal ?? null);
       }
       // Empty-output guard: a clean `code === 0` exit on a stream we are
       // tracking, with no error frame and no substantive event, means the
@@ -6936,164 +8620,185 @@ export async function startServer({
         trackingSubstantiveOutput &&
         !agentProducedOutput
       ) {
-        send('error', createSseErrorPayload(
-          'AGENT_EXECUTION_FAILED',
-          'Agent completed without producing any output. The model or provider may have returned an empty response — check the agent logs for upstream errors.',
-          { retryable: true },
-        ));
-        return design.runs.finish(run, 'failed', code, signal);
+        send(
+          "error",
+          createSseErrorPayload(
+            "AGENT_EXECUTION_FAILED",
+            "Agent completed without producing any output. The model or provider may have returned an empty response — check the agent logs for upstream errors.",
+            { retryable: true },
+          ),
+        );
+        return design.runs.finish(run, "failed", code, signal);
       }
       const status = run.cancelRequested
-        ? 'canceled'
+        ? "canceled"
         : code === 0
-          ? 'succeeded'
-          : 'failed';
+          ? "succeeded"
+          : "failed";
       design.runs.finish(run, status, code, signal);
     });
     if (writePromptToChildStdin && child.stdin) {
-      child.stdin.end(composed, 'utf8');
+      child.stdin.end(composed, "utf8");
     }
   };
 
-  orbitService.setRunHandler(async ({
-    trigger,
-    startedAt,
-    prompt,
-    systemPrompt,
-    template,
-  }) => {
-    // Each Orbit run gets its own project so the conversation, messages, and
-    // live artifact are isolated. The handler does the synchronous prep here
-    // (insert project/conversation/run rows, kick off the chat run) and
-    // returns immediately with the new project id; the daemon endpoint
-    // resolves the HTTP request with that id so the client can navigate to
-    // the new project before the agent has finished. Anything that depends
-    // on the agent's final status (live artifact discovery, lastRun summary
-    // metadata) lives inside the `completion` promise.
-    const appConfig = await readAppConfig(RUNTIME_DATA_DIR);
-    let agentId = typeof appConfig.agentId === 'string' && appConfig.agentId
-      ? appConfig.agentId
-      : null;
-    if (!agentId) {
-      const agents = await detectAgents(appConfig.agentCliEnv ?? {}).catch(() => []);
-      agentId = agents.find((agent) => agent.available)?.id ?? null;
-    }
-    if (!agentId) throw new Error('No available agent is configured for Orbit. Choose an agent in Settings first.');
-
-    const now = Date.now();
-    const projectId = `orbit-${randomUUID()}`;
-    const conversationId = `orbit-conv-${randomUUID()}`;
-    const assistantMessageId = `orbit-assistant-${randomUUID()}`;
-    const projectName = `Orbit · ${formatLocalProjectTimestamp(startedAt)}`;
-
-    const orbitDesignSystemId = template?.designSystemRequired === false
-      ? null
-      : appConfig.designSystemId ?? null;
-
-    insertProject(db, {
-      id: projectId,
-      name: projectName,
-      skillId: 'live-artifact',
-      designSystemId: orbitDesignSystemId,
-      pendingPrompt: null,
-      metadata: { kind: 'orbit', trigger },
-      createdAt: now,
-      updatedAt: now,
-    });
-    insertConversation(db, {
-      id: conversationId,
-      projectId,
-      title: projectName,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    const run = design.runs.create({
-      projectId,
-      conversationId,
-      assistantMessageId,
-      clientRequestId: `orbit-${trigger}-${randomUUID()}`,
-      agentId,
-    });
-    upsertMessage(db, conversationId, {
-      id: `orbit-user-${run.id}`,
-      role: 'user',
-      content: prompt,
-    });
-    upsertMessage(db, conversationId, {
-      id: assistantMessageId,
-      role: 'assistant',
-      content: '',
-      agentId,
-      agentName: getAgentDef(agentId)?.name ?? agentId,
-      runId: run.id,
-      runStatus: 'queued',
-      startedAt: now,
-    });
-
-    if (template?.dir) {
-      const cwd = await ensureProject(PROJECTS_DIR, projectId);
-      const result = await stageActiveSkill(
-        cwd,
-        path.basename(template.dir),
-        template.dir,
-        (msg) => console.warn(msg),
-      );
-      if (!result.staged) {
-        console.warn(
-          `[od] orbit template skill-stage skipped: ${result.reason ?? 'unknown reason'}; falling back to prompt-embedded instructions`,
+  orbitService.setRunHandler(
+    async ({ trigger, startedAt, prompt, systemPrompt, template }) => {
+      // Each Orbit run gets its own project so the conversation, messages, and
+      // live artifact are isolated. The handler does the synchronous prep here
+      // (insert project/conversation/run rows, kick off the chat run) and
+      // returns immediately with the new project id; the daemon endpoint
+      // resolves the HTTP request with that id so the client can navigate to
+      // the new project before the agent has finished. Anything that depends
+      // on the agent's final status (live artifact discovery, lastRun summary
+      // metadata) lives inside the `completion` promise.
+      const appConfig = await readAppConfig(RUNTIME_DATA_DIR);
+      let agentId =
+        typeof appConfig.agentId === "string" && appConfig.agentId
+          ? appConfig.agentId
+          : null;
+      if (!agentId) {
+        const agents = await detectAgents(appConfig.agentCliEnv ?? {}).catch(
+          () => [],
         );
+        agentId = agents.find((agent) => agent.available)?.id ?? null;
       }
-    }
+      if (!agentId)
+        throw new Error(
+          "No available agent is configured for Orbit. Choose an agent in Settings first.",
+        );
 
-    const modelPrefs = appConfig.agentModels?.[agentId] ?? {};
-    design.runs.start(run, () => startChatRun({
-      agentId,
-      projectId,
-      conversationId: run.conversationId,
-      assistantMessageId: run.assistantMessageId,
-      clientRequestId: run.clientRequestId,
-      skillId: 'live-artifact',
-      designSystemId: orbitDesignSystemId,
-      model: modelPrefs.model ?? null,
-      reasoning: modelPrefs.reasoning ?? null,
-      message: prompt,
-      systemPrompt: [
-        renderOrbitTemplateSystemPrompt(template),
-        systemPrompt,
-        'You are Orbit, an autonomous activity-summary agent inside Open Design.',
-        'You must discover connectors and connector tools yourself through the OD CLI; the daemon has not chosen tools for you.',
-        'You must create and register a Live Artifact as the final deliverable. Do not merely describe what you would do.',
-        'Do not ask follow-up questions, do not emit <question-form>, and do not wait for user input. This run is unattended; pick reasonable defaults and complete the artifact.',
-        'Keep connector credentials and OD_TOOL_TOKEN private; never print or persist secrets.',
-      ].join('\n'),
-    }, run));
+      const now = Date.now();
+      const projectId = `orbit-${randomUUID()}`;
+      const conversationId = `orbit-conv-${randomUUID()}`;
+      const assistantMessageId = `orbit-assistant-${randomUUID()}`;
+      const projectName = `Orbit · ${formatLocalProjectTimestamp(startedAt)}`;
 
-    const completion = (async () => {
-      const finalStatus = await design.runs.wait(run);
-      db.prepare(
-        `UPDATE messages SET run_status = ?, ended_at = ? WHERE id = ?`,
-      ).run(finalStatus.status, Date.now(), assistantMessageId);
-      const artifacts = await listLiveArtifacts({ projectsRoot: PROJECTS_DIR, projectId });
-      const artifact = artifacts.find((candidate) => candidate.createdByRunId === run.id);
-      const status = finalStatus.status === 'succeeded' && !artifact ? 'failed' : finalStatus.status;
-      return {
-        agentRunId: run.id,
-        status,
-        ...(artifact?.id ? { artifactId: artifact.id, artifactProjectId: projectId } : {}),
-        summary: artifact?.id
-          ? `Agent ${finalStatus.status} and registered live artifact ${artifact.title}.`
-          : `Agent ${finalStatus.status} but did not register a live artifact for this Orbit run.`,
-      };
-    })();
+      const orbitDesignSystemId =
+        template?.designSystemRequired === false
+          ? null
+          : (appConfig.designSystemId ?? null);
 
-    return { projectId, agentRunId: run.id, completion };
-  });
+      insertProject(db, {
+        id: projectId,
+        name: projectName,
+        skillId: "live-artifact",
+        designSystemId: orbitDesignSystemId,
+        pendingPrompt: null,
+        metadata: { kind: "orbit", trigger },
+        createdAt: now,
+        updatedAt: now,
+      });
+      insertConversation(db, {
+        id: conversationId,
+        projectId,
+        title: projectName,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      const run = design.runs.create({
+        projectId,
+        conversationId,
+        assistantMessageId,
+        clientRequestId: `orbit-${trigger}-${randomUUID()}`,
+        agentId,
+      });
+      upsertMessage(db, conversationId, {
+        id: `orbit-user-${run.id}`,
+        role: "user",
+        content: prompt,
+      });
+      upsertMessage(db, conversationId, {
+        id: assistantMessageId,
+        role: "assistant",
+        content: "",
+        agentId,
+        agentName: getAgentDef(agentId)?.name ?? agentId,
+        runId: run.id,
+        runStatus: "queued",
+        startedAt: now,
+      });
+
+      if (template?.dir) {
+        const cwd = await ensureProject(PROJECTS_DIR, projectId);
+        const result = await stageActiveSkill(
+          cwd,
+          path.basename(template.dir),
+          template.dir,
+          (msg) => console.warn(msg),
+        );
+        if (!result.staged) {
+          console.warn(
+            `[od] orbit template skill-stage skipped: ${result.reason ?? "unknown reason"}; falling back to prompt-embedded instructions`,
+          );
+        }
+      }
+
+      const modelPrefs = appConfig.agentModels?.[agentId] ?? {};
+      design.runs.start(run, () =>
+        startChatRun(
+          {
+            agentId,
+            projectId,
+            conversationId: run.conversationId,
+            assistantMessageId: run.assistantMessageId,
+            clientRequestId: run.clientRequestId,
+            skillId: "live-artifact",
+            designSystemId: orbitDesignSystemId,
+            model: modelPrefs.model ?? null,
+            reasoning: modelPrefs.reasoning ?? null,
+            message: prompt,
+            systemPrompt: [
+              renderOrbitTemplateSystemPrompt(template),
+              systemPrompt,
+              "You are Orbit, an autonomous activity-summary agent inside Open Design.",
+              "You must discover connectors and connector tools yourself through the OD CLI; the daemon has not chosen tools for you.",
+              "You must create and register a Live Artifact as the final deliverable. Do not merely describe what you would do.",
+              "Do not ask follow-up questions, do not emit <question-form>, and do not wait for user input. This run is unattended; pick reasonable defaults and complete the artifact.",
+              "Keep connector credentials and OD_TOOL_TOKEN private; never print or persist secrets.",
+            ].join("\n"),
+          },
+          run,
+        ),
+      );
+
+      const completion = (async () => {
+        const finalStatus = await design.runs.wait(run);
+        db.prepare(
+          `UPDATE messages SET run_status = ?, ended_at = ? WHERE id = ?`,
+        ).run(finalStatus.status, Date.now(), assistantMessageId);
+        const artifacts = await listLiveArtifacts({
+          projectsRoot: PROJECTS_DIR,
+          projectId,
+        });
+        const artifact = artifacts.find(
+          (candidate) => candidate.createdByRunId === run.id,
+        );
+        const status =
+          finalStatus.status === "succeeded" && !artifact
+            ? "failed"
+            : finalStatus.status;
+        return {
+          agentRunId: run.id,
+          status,
+          ...(artifact?.id
+            ? { artifactId: artifact.id, artifactProjectId: projectId }
+            : {}),
+          summary: artifact?.id
+            ? `Agent ${finalStatus.status} and registered live artifact ${artifact.title}.`
+            : `Agent ${finalStatus.status} but did not register a live artifact for this Orbit run.`,
+        };
+      })();
+
+      return { projectId, agentRunId: run.id, completion };
+    },
+  );
 
   orbitService.setTemplateResolver(async (skillId) => {
     const skills = await listAllSkills();
     const skill = findSkillById(skills, skillId);
-    if (!skill || skill.scenario !== 'orbit') return null;
+    if (!skill || skill.scenario !== "orbit") return null;
     return {
       id: skill.id,
       name: skill.name,
@@ -7104,20 +8809,25 @@ export async function startServer({
     };
   });
 
-  app.post('/api/runs', (req, res) => {
+  app.post("/api/runs", (req, res) => {
     if (daemonShuttingDown) {
-      return sendApiError(res, 503, 'UPSTREAM_UNAVAILABLE', 'daemon is shutting down');
+      return sendApiError(
+        res,
+        503,
+        "UPSTREAM_UNAVAILABLE",
+        "daemon is shutting down",
+      );
     }
     const run = design.runs.create(req.body || {});
     // Capture which front-end carrier started the run (Electron desktop
     // shell vs. plain browser). Web sets this header explicitly; falls
     // back to a UA sniff if header is absent. Used as a telemetry tag.
-    const declared = String(req.get('x-od-client') ?? '').toLowerCase();
-    if (declared === 'desktop' || declared === 'web') {
+    const declared = String(req.get("x-od-client") ?? "").toLowerCase();
+    if (declared === "desktop" || declared === "web") {
       run.clientType = declared;
     } else {
-      const ua = String(req.get('user-agent') ?? '');
-      run.clientType = ua.includes('Electron/') ? 'desktop' : 'web';
+      const ua = String(req.get("user-agent") ?? "");
+      run.clientType = ua.includes("Electron/") ? "desktop" : "web";
     }
     /** @type {import('@open-design/contracts').ChatRunCreateResponse} */
     const body = { runId: run.id };
@@ -7125,7 +8835,7 @@ export async function startServer({
     design.runs.start(run, () => startChatRun(req.body || {}, run));
   });
 
-  app.get('/api/runs', (req, res) => {
+  app.get("/api/runs", (req, res) => {
     const { projectId, conversationId, status } = req.query;
     const runs = design.runs.list({ projectId, conversationId, status });
     /** @type {import('@open-design/contracts').ChatRunListResponse} */
@@ -7133,30 +8843,381 @@ export async function startServer({
     res.json(body);
   });
 
-  app.get('/api/runs/:id', (req, res) => {
+  app.get("/api/runs/:id", (req, res) => {
     const run = design.runs.get(req.params.id);
-    if (!run) return sendApiError(res, 404, 'NOT_FOUND', 'run not found');
+    if (!run) return sendApiError(res, 404, "NOT_FOUND", "run not found");
     res.json(design.runs.statusBody(run));
   });
 
-  app.get('/api/runs/:id/events', (req, res) => {
+  app.get("/api/runs/:id/events", (req, res) => {
     const run = design.runs.get(req.params.id);
-    if (!run) return sendApiError(res, 404, 'NOT_FOUND', 'run not found');
+    if (!run) return sendApiError(res, 404, "NOT_FOUND", "run not found");
     design.runs.stream(run, req, res);
   });
 
-  app.post('/api/runs/:id/cancel', (req, res) => {
+  app.post("/api/runs/:id/cancel", (req, res) => {
     const run = design.runs.get(req.params.id);
-    if (!run) return sendApiError(res, 404, 'NOT_FOUND', 'run not found');
+    if (!run) return sendApiError(res, 404, "NOT_FOUND", "run not found");
     design.runs.cancel(run);
     /** @type {import('@open-design/contracts').ChatRunCancelResponse} */
     const body = { ok: true };
     res.json(body);
   });
 
-  app.post('/api/chat', (req, res) => {
+  // ---- c1 Global AI Assistant -----------------------------------------------
+  // Streams assistant responses via SSE. The daemon holds the Anthropic API
+  // key server-side; the web layer never sees it. Restricted to local requests.
+  app.post("/api/c1/assistant", async (req, res) => {
+    if (!isLocalSameOrigin(req, resolvedPort)) {
+      return res.status(403).json({ error: "cross-origin request rejected" });
+    }
+    const body = req.body || {};
+
+    // Accept Thesys C1Chat format { threadId, responseId, systemBrief, messages: [{id, role, content}] }
+    // as well as our custom format { messages: [{ role, content }], activeProjectId, ... }
+    const rawMessages: Array<{ id?: string; role: string; content: string }> =
+      Array.isArray(body.messages) ? body.messages : [];
+    if (rawMessages.length === 0) {
+      return res.status(400).json({ error: "messages is required" });
+    }
+    // Strip Thesys-added id field; both Anthropic and Google only accept { role, content }
+    const messages = rawMessages.map(({ role, content }) => ({
+      role,
+      content,
+    }));
+
+    const model =
+      (typeof body.model === "string" && body.model) || "claude-opus-4-7";
+    const isGemini = model.startsWith("gemini-");
+    const mode: "cli" | "byok" =
+      body.mode === "byok" ? "byok" : body.mode === "cli" ? "cli" : "byok";
+
+    // Use systemBrief from Thesys format; fall back to context-field construction
+    let systemPrompt =
+      typeof body.systemBrief === "string" ? body.systemBrief.trim() : "";
+    if (!systemPrompt) {
+      const contextParts: string[] = [];
+      if (body.activeProjectId)
+        contextParts.push(`Active project: ${body.activeProjectId}`);
+      if (body.activeFile) contextParts.push(`Active file: ${body.activeFile}`);
+      if (body.activeSkillId)
+        contextParts.push(`Active skill: ${body.activeSkillId}`);
+      if (body.activeDesignSystemId)
+        contextParts.push(`Active design system: ${body.activeDesignSystemId}`);
+      systemPrompt = contextParts.length
+        ? `You are the Open Design AI assistant.\n${contextParts.join("\n")}`
+        : "You are the Open Design AI assistant.";
+    }
+
+    // Crayon SSE format: event: text\ndata: <chunk>\n\n
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders?.();
+
+    const writeCrayonText = (text: string) => {
+      if (!text) return;
+      const dataLines = text
+        .split("\n")
+        .map((l) => `data: ${l}`)
+        .join("\n");
+      res.write(`event: text\n${dataLines}\n\n`);
+    };
+
+    try {
+      let upstream: Response;
+
+      if (mode === "cli") {
+        // ── Local Claude Code CLI (uses user's Claude subscription) ─────
+        const prompt = [
+          systemPrompt ? `[System]\n${systemPrompt}\n` : "",
+          ...messages.map(
+            (m) =>
+              `[${m.role === "assistant" ? "Assistant" : "User"}]\n${m.content}`,
+          ),
+        ]
+          .filter(Boolean)
+          .join("\n\n");
+
+        await new Promise<void>((resolve) => {
+          const child = spawn(
+            "claude",
+            [
+              "--print",
+              "--output-format",
+              "stream-json",
+              "--verbose",
+              "--include-partial-messages",
+            ],
+            { stdio: ["pipe", "pipe", "pipe"] },
+          );
+
+          let stderr = "";
+          let stdoutBuf = "";
+          let finished = false;
+          const finish = () => {
+            if (!finished) {
+              finished = true;
+              resolve();
+            }
+          };
+
+          child.on("error", (err) => {
+            writeCrayonText(
+              `Error launching claude CLI: ${err instanceof Error ? err.message : String(err)}\n請確認系統已安裝 claude CLI 並登入 Claude Code 訂閱。`,
+            );
+            finish();
+          });
+
+          child.stderr?.on("data", (chunk: Buffer) => {
+            stderr += chunk.toString("utf8");
+          });
+
+          let lastTextLen = 0;
+          child.stdout?.on("data", (chunk: Buffer) => {
+            stdoutBuf += chunk.toString("utf8");
+            const lines = stdoutBuf.split("\n");
+            stdoutBuf = lines.pop() ?? "";
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (!trimmed) continue;
+              let evt: Record<string, unknown>;
+              try {
+                evt = JSON.parse(trimmed);
+              } catch {
+                continue;
+              }
+              const evtType = evt["type"] as string | undefined;
+              if (evtType === "assistant" || evtType === "stream_event") {
+                const message =
+                  (evt["message"] as Record<string, unknown> | undefined) ||
+                  (evt as Record<string, unknown>);
+                const content = message?.["content"] as
+                  | Array<Record<string, unknown>>
+                  | undefined;
+                if (Array.isArray(content)) {
+                  let collected = "";
+                  for (const part of content) {
+                    if (
+                      part?.["type"] === "text" &&
+                      typeof part["text"] === "string"
+                    ) {
+                      collected += part["text"] as string;
+                    }
+                  }
+                  if (collected.length > lastTextLen) {
+                    const delta = collected.slice(lastTextLen);
+                    lastTextLen = collected.length;
+                    writeCrayonText(delta);
+                  }
+                }
+              }
+            }
+          });
+
+          child.on("close", (code) => {
+            if (code !== 0 && lastTextLen === 0) {
+              writeCrayonText(
+                `Error: claude CLI exited with code ${code}.\n${stderr.slice(0, 500)}`,
+              );
+            }
+            finish();
+          });
+
+          if (child.stdin) {
+            child.stdin.write(prompt);
+            child.stdin.end();
+          }
+        });
+
+        return res.end();
+      }
+
+      if (isGemini) {
+        // ── Google Gemini via OpenAI-compatible endpoint ──────────────────
+        let googleKey = "";
+        // Try 'google' provider first, then 'nanobanana' (Open Design's integrated Google gateway)
+        for (const providerId of ["google", "nanobanana"]) {
+          try {
+            const cfg = await resolveProviderConfig(PROJECT_ROOT, providerId);
+            if (cfg.apiKey) {
+              googleKey = cfg.apiKey;
+              break;
+            }
+          } catch {
+            /* fall through */
+          }
+        }
+        if (!googleKey)
+          googleKey =
+            process.env.OD_GOOGLE_API_KEY ||
+            process.env.GOOGLE_API_KEY ||
+            process.env.GEMINI_API_KEY ||
+            "";
+        if (!googleKey) {
+          writeCrayonText(
+            "Error: Google Gemini API key 未設定。請前往「設定」→「執行環境」→「連接器」→ Google AI / Vertex 填入您的 API Key，或設定環境變數 GEMINI_API_KEY。",
+          );
+          return res.end();
+        }
+
+        // Prepend system prompt as first user message for Gemini (no dedicated system field in OAI-compat)
+        const geminiMessages = systemPrompt
+          ? [
+              { role: "user", content: `[System]\n${systemPrompt}` },
+              { role: "assistant", content: "Understood." },
+              ...messages,
+            ]
+          : messages;
+
+        upstream = await fetch(
+          "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${googleKey}`,
+            },
+            body: JSON.stringify({
+              model,
+              messages: geminiMessages,
+              stream: true,
+            }),
+          },
+        );
+
+        if (!upstream.ok) {
+          const errText = await upstream.text();
+          writeCrayonText(
+            `Error from Google API (${upstream.status}): ${errText.slice(0, 300)}`,
+          );
+          return res.end();
+        }
+
+        const reader = upstream.body?.getReader();
+        if (!reader) {
+          writeCrayonText("Error: no response body from Google");
+          return res.end();
+        }
+
+        const decoder = new TextDecoder();
+        let buffer = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const raw = line.slice(6).trim();
+            if (raw === "[DONE]") continue;
+            let chunk: Record<string, unknown>;
+            try {
+              chunk = JSON.parse(raw);
+            } catch {
+              continue;
+            }
+            const choices = chunk["choices"] as
+              | Array<Record<string, unknown>>
+              | undefined;
+            const delta = choices?.[0]?.["delta"] as
+              | Record<string, unknown>
+              | undefined;
+            const text = (delta?.["content"] as string) || "";
+            writeCrayonText(text);
+          }
+        }
+        res.end();
+      } else {
+        // ── Anthropic Claude ──────────────────────────────────────────────
+        let apiKey = "";
+        try {
+          const cfg = await resolveProviderConfig(PROJECT_ROOT, "anthropic");
+          apiKey = cfg.apiKey || "";
+        } catch {
+          /* fall through */
+        }
+        if (!apiKey) apiKey = process.env.ANTHROPIC_API_KEY || "";
+        if (!apiKey) {
+          writeCrayonText("Error: Anthropic API key not configured");
+          return res.end();
+        }
+
+        upstream = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model,
+            max_tokens: 4096,
+            system: systemPrompt,
+            messages,
+            stream: true,
+          }),
+        });
+
+        if (!upstream.ok) {
+          const errText = await upstream.text();
+          writeCrayonText(
+            `Error from Anthropic API (${upstream.status}): ${errText.slice(0, 300)}`,
+          );
+          return res.end();
+        }
+
+        const reader = upstream.body?.getReader();
+        if (!reader) {
+          writeCrayonText("Error: no response body from Anthropic");
+          return res.end();
+        }
+
+        const decoder = new TextDecoder();
+        let buffer = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const raw = line.slice(6).trim();
+            if (raw === "[DONE]") continue;
+            let evt: Record<string, unknown>;
+            try {
+              evt = JSON.parse(raw);
+            } catch {
+              continue;
+            }
+            if ((evt["type"] as string) === "content_block_delta") {
+              const delta = evt["delta"] as Record<string, unknown> | undefined;
+              const text = (delta?.["text"] as string) || "";
+              writeCrayonText(text);
+            }
+          }
+        }
+        res.end();
+      }
+    } catch (err) {
+      writeCrayonText(
+        `Error: ${String(err instanceof Error ? err.message : err)}`,
+      );
+      res.end();
+    }
+  });
+
+  app.post("/api/chat", (req, res) => {
     if (daemonShuttingDown) {
-      return sendApiError(res, 503, 'UPSTREAM_UNAVAILABLE', 'daemon is shutting down');
+      return sendApiError(
+        res,
+        503,
+        "UPSTREAM_UNAVAILABLE",
+        "daemon is shutting down",
+      );
     }
     const run = design.runs.create();
     design.runs.stream(run, req, res);
@@ -7169,7 +9230,7 @@ export async function startServer({
   // failures so the web layer can render a categorized inline status without
   // unwrapping nested error envelopes; real 4xx/5xx here mean a malformed
   // request or daemon bug.
-  app.post('/api/provider/models', async (req, res) => {
+  app.post("/api/provider/models", async (req, res) => {
     const controller = new AbortController();
     const abortIfRequestAborted = () => {
       if ((req.aborted || !req.complete) && !res.writableEnded) {
@@ -7179,32 +9240,32 @@ export async function startServer({
     const abortIfResponseClosed = () => {
       if (!res.writableEnded) controller.abort();
     };
-    req.on('close', abortIfRequestAborted);
-    res.on('close', abortIfResponseClosed);
+    req.on("close", abortIfRequestAborted);
+    res.on("close", abortIfResponseClosed);
     const body = req.body || {};
     const protocol = body.protocol;
     if (
-      typeof protocol !== 'string' ||
-      !['anthropic', 'openai', 'azure', 'google', 'ollama'].includes(protocol)
+      typeof protocol !== "string" ||
+      !["anthropic", "openai", "azure", "google", "ollama"].includes(protocol)
     ) {
       return sendApiError(
         res,
         400,
-        'BAD_REQUEST',
-        'protocol must be one of anthropic|openai|azure|google|ollama',
+        "BAD_REQUEST",
+        "protocol must be one of anthropic|openai|azure|google|ollama",
       );
     }
     if (
-      typeof body.baseUrl !== 'string' ||
-      typeof body.apiKey !== 'string' ||
+      typeof body.baseUrl !== "string" ||
+      typeof body.apiKey !== "string" ||
       !body.baseUrl.trim() ||
       !body.apiKey.trim()
     ) {
       return sendApiError(
         res,
         400,
-        'BAD_REQUEST',
-        'baseUrl and apiKey are required',
+        "BAD_REQUEST",
+        "baseUrl and apiKey are required",
       );
     }
     try {
@@ -7213,7 +9274,7 @@ export async function startServer({
         baseUrl: body.baseUrl,
         apiKey: body.apiKey,
         apiVersion:
-          typeof body.apiVersion === 'string' ? body.apiVersion : undefined,
+          typeof body.apiVersion === "string" ? body.apiVersion : undefined,
         signal: controller.signal,
       });
       return res.json(result);
@@ -7221,11 +9282,16 @@ export async function startServer({
       console.warn(
         `[provider:models] uncaught: ${err instanceof Error ? err.message : String(err)}`,
       );
-      return sendApiError(res, 500, 'INTERNAL', 'Provider model discovery failed');
+      return sendApiError(
+        res,
+        500,
+        "INTERNAL",
+        "Provider model discovery failed",
+      );
     }
   });
 
-  app.post('/api/test/connection', async (req, res) => {
+  app.post("/api/test/connection", async (req, res) => {
     const controller = new AbortController();
     const abortIfRequestAborted = () => {
       if ((req.aborted || !req.complete) && !res.writableEnded) {
@@ -7235,27 +9301,29 @@ export async function startServer({
     const abortIfResponseClosed = () => {
       if (!res.writableEnded) controller.abort();
     };
-    req.on('close', abortIfRequestAborted);
-    res.on('close', abortIfResponseClosed);
+    req.on("close", abortIfRequestAborted);
+    res.on("close", abortIfResponseClosed);
     const body = req.body || {};
     try {
-      if (body.mode === 'provider') {
+      if (body.mode === "provider") {
         const protocol = body.protocol;
         if (
-          typeof protocol !== 'string' ||
-          !['anthropic', 'openai', 'azure', 'google', 'ollama'].includes(protocol)
+          typeof protocol !== "string" ||
+          !["anthropic", "openai", "azure", "google", "ollama"].includes(
+            protocol,
+          )
         ) {
           return sendApiError(
             res,
             400,
-            'BAD_REQUEST',
-            'protocol must be one of anthropic|openai|azure|google|ollama',
+            "BAD_REQUEST",
+            "protocol must be one of anthropic|openai|azure|google|ollama",
           );
         }
         if (
-          typeof body.baseUrl !== 'string' ||
-          typeof body.apiKey !== 'string' ||
-          typeof body.model !== 'string' ||
+          typeof body.baseUrl !== "string" ||
+          typeof body.apiKey !== "string" ||
+          typeof body.model !== "string" ||
           !body.baseUrl.trim() ||
           !body.apiKey.trim() ||
           !body.model.trim()
@@ -7263,8 +9331,8 @@ export async function startServer({
           return sendApiError(
             res,
             400,
-            'BAD_REQUEST',
-            'baseUrl, apiKey, and model are required',
+            "BAD_REQUEST",
+            "baseUrl, apiKey, and model are required",
           );
         }
         try {
@@ -7274,7 +9342,7 @@ export async function startServer({
             apiKey: body.apiKey,
             model: body.model,
             apiVersion:
-              typeof body.apiVersion === 'string' ? body.apiVersion : undefined,
+              typeof body.apiVersion === "string" ? body.apiVersion : undefined,
             signal: controller.signal,
           });
           return res.json(result);
@@ -7282,45 +9350,52 @@ export async function startServer({
           console.warn(
             `[test:provider] uncaught: ${err instanceof Error ? err.message : String(err)}`,
           );
-          return sendApiError(res, 500, 'INTERNAL', 'Connection test failed');
+          return sendApiError(res, 500, "INTERNAL", "Connection test failed");
         }
       }
 
-      if (body.mode === 'agent') {
-        if (typeof body.agentId !== 'string' || !body.agentId.trim()) {
-          return sendApiError(res, 400, 'BAD_REQUEST', 'agentId is required');
+      if (body.mode === "agent") {
+        if (typeof body.agentId !== "string" || !body.agentId.trim()) {
+          return sendApiError(res, 400, "BAD_REQUEST", "agentId is required");
         }
         try {
           const def = getAgentDef(body.agentId);
           const testStart = Date.now();
           const safeModel =
-            def && typeof body.model === 'string'
+            def && typeof body.model === "string"
               ? isKnownModel(def, body.model)
                 ? body.model
                 : sanitizeCustomModel(body.model)
               : undefined;
-          if (def && typeof body.model === 'string' && body.model.trim() && !safeModel) {
+          if (
+            def &&
+            typeof body.model === "string" &&
+            body.model.trim() &&
+            !safeModel
+          ) {
             return res.json({
               ok: false,
-              kind: 'invalid_model_id',
+              kind: "invalid_model_id",
               latencyMs: Date.now() - testStart,
               model: body.model.trim(),
               agentName: def.name,
-              detail: 'Invalid custom model id. Use a model id that starts with a letter or number and contains no spaces.',
+              detail:
+                "Invalid custom model id. Use a model id that starts with a letter or number and contains no spaces.",
             });
           }
           const safeReasoning =
             def &&
-            typeof body.reasoning === 'string' &&
+            typeof body.reasoning === "string" &&
             Array.isArray(def.reasoningOptions)
-              ? (def.reasoningOptions.find((r) => r.id === body.reasoning)?.id ?? undefined)
+              ? (def.reasoningOptions.find((r) => r.id === body.reasoning)
+                  ?.id ?? undefined)
               : undefined;
           const result = await testAgentConnection({
             agentId: body.agentId,
             model: safeModel ?? undefined,
             reasoning: safeReasoning,
             agentCliEnv:
-              body.agentCliEnv && typeof body.agentCliEnv === 'object'
+              body.agentCliEnv && typeof body.agentCliEnv === "object"
                 ? body.agentCliEnv
                 : undefined,
             signal: controller.signal,
@@ -7330,19 +9405,19 @@ export async function startServer({
           console.warn(
             `[test:agent] uncaught: ${err instanceof Error ? err.message : String(err)}`,
           );
-          return sendApiError(res, 500, 'INTERNAL', 'Agent test failed');
+          return sendApiError(res, 500, "INTERNAL", "Agent test failed");
         }
       }
 
       return sendApiError(
         res,
         400,
-        'BAD_REQUEST',
-        'mode must be one of provider|agent',
+        "BAD_REQUEST",
+        "mode must be one of provider|agent",
       );
     } finally {
-      req.off('close', abortIfRequestAborted);
-      res.off('close', abortIfResponseClosed);
+      req.off("close", abortIfRequestAborted);
+      res.off("close", abortIfResponseClosed);
     }
   });
 
@@ -7351,7 +9426,7 @@ export async function startServer({
   // POST /api/projects/:projectId/critique/:runId/interrupt
   // Cascades an AbortController to the in-flight orchestrator for the given run.
   app.post(
-    '/api/projects/:projectId/critique/:runId/interrupt',
+    "/api/projects/:projectId/critique/:runId/interrupt",
     handleCritiqueInterrupt(db, critiqueRunRegistry),
   );
 
@@ -7366,7 +9441,7 @@ export async function startServer({
   // this, raising OD_CRITIQUE_PARSER_MAX_BLOCK_BYTES above the
   // hard-coded ceiling would 404 a valid artifact (codex P2 on PR #1085).
   app.get(
-    '/api/projects/:projectId/critique/:runId/artifact',
+    "/api/projects/:projectId/critique/:runId/artifact",
     handleCritiqueArtifact(db, {
       artifactsRoot: CRITIQUE_ARTIFACTS_DIR,
       responseCapBytes: critiqueCfg.parserMaxBlockBytes,
@@ -7379,25 +9454,25 @@ export async function startServer({
   // one local streaming hop through the daemon.
 
   const redactAuthTokens = (text) =>
-    text.replace(/Bearer [A-Za-z0-9_\-.+/=]+/g, 'Bearer [REDACTED]');
+    text.replace(/Bearer [A-Za-z0-9_\-.+/=]+/g, "Bearer [REDACTED]");
 
   const validateExternalApiBaseUrl = (baseUrl) => {
     return validateBaseUrl(baseUrl);
   };
 
   const proxyErrorCode = (status) => {
-    if (status === 401) return 'UNAUTHORIZED';
-    if (status === 403) return 'FORBIDDEN';
-    if (status === 404) return 'NOT_FOUND';
-    if (status === 429) return 'RATE_LIMITED';
-    return 'UPSTREAM_UNAVAILABLE';
+    if (status === 401) return "UNAUTHORIZED";
+    if (status === 403) return "FORBIDDEN";
+    if (status === 404) return "NOT_FOUND";
+    if (status === 429) return "RATE_LIMITED";
+    return "UPSTREAM_UNAVAILABLE";
   };
 
   const sendProxyError = (sse, message, init = {}) => {
-    sse.send('error', {
+    sse.send("error", {
       message,
       error: {
-        code: init.code || 'UPSTREAM_UNAVAILABLE',
+        code: init.code || "UPSTREAM_UNAVAILABLE",
         message,
         ...(init.details === undefined ? {} : { details: init.details }),
         ...(init.retryable === undefined ? {} : { retryable: init.retryable }),
@@ -7410,7 +9485,7 @@ export async function startServer({
     // `URL.pathname` setter normalizes an empty string back to "/", so
     // we work in a local string to detect the no-path and no-version
     // cases.
-    const trimmed = url.pathname.replace(/\/+$/, '');
+    const trimmed = url.pathname.replace(/\/+$/, "");
     // Auto-inject `/v1` whenever the supplied path doesn't already
     // contain a `/vN` segment. This handles all four preset shapes:
     //   bare host                            → /v1/<route>            (api.openai.com, api.anthropic.com)
@@ -7428,22 +9503,22 @@ export async function startServer({
   };
 
   const collectSseFrame = (frame) => {
-    const lines = frame.replace(/\r/g, '').split('\n');
+    const lines = frame.replace(/\r/g, "").split("\n");
     const dataLines = [];
-    let event = 'message';
+    let event = "message";
     for (const line of lines) {
-      if (line.startsWith('event:')) {
+      if (line.startsWith("event:")) {
         event = line.slice(6).trim();
         continue;
       }
-      if (!line.startsWith('data:')) continue;
+      if (!line.startsWith("data:")) continue;
       let value = line.slice(5);
-      if (value.startsWith(' ')) value = value.slice(1);
+      if (value.startsWith(" ")) value = value.slice(1);
       dataLines.push(value);
     }
-    const payload = dataLines.join('\n');
-    if (!payload) return { event, payload: '', data: null };
-    if (payload === '[DONE]') return { event, payload, data: null };
+    const payload = dataLines.join("\n");
+    if (!payload) return { event, payload: "", data: null };
+    if (payload === "[DONE]") return { event, payload, data: null };
     try {
       return { event, payload, data: JSON.parse(payload) };
     } catch {
@@ -7454,7 +9529,7 @@ export async function startServer({
   const streamUpstreamSse = async (response, onFrame) => {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
-    let buffer = '';
+    let buffer = "";
 
     while (true) {
       const { done, value } = await reader.read();
@@ -7479,18 +9554,18 @@ export async function startServer({
   const streamUpstreamNdjson = async (response, onFrame) => {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
-    let buffer = '';
+    let buffer = "";
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
 
-      let newline = buffer.indexOf('\n');
+      let newline = buffer.indexOf("\n");
       while (newline !== -1) {
         const line = buffer.slice(0, newline).trim();
         buffer = buffer.slice(newline + 1);
-        newline = buffer.indexOf('\n');
+        newline = buffer.indexOf("\n");
         if (!line) continue;
         try {
           const data = JSON.parse(line);
@@ -7514,56 +9589,68 @@ export async function startServer({
 
   const extractOpenAIText = (data) => {
     const choices = data?.choices;
-    if (!Array.isArray(choices) || choices.length === 0) return '';
+    if (!Array.isArray(choices) || choices.length === 0) return "";
     const first = choices[0];
-    if (typeof first?.delta?.content === 'string') return first.delta.content;
-    if (typeof first?.text === 'string') return first.text;
-    return '';
+    if (typeof first?.delta?.content === "string") return first.delta.content;
+    if (typeof first?.text === "string") return first.text;
+    return "";
   };
 
   const extractStreamErrorMessage = (data) => {
     const err = data?.error;
-    if (!err) return '';
-    if (typeof err === 'string') return err;
-    if (typeof err?.message === 'string') return err.message;
+    if (!err) return "";
+    if (typeof err === "string") return err;
+    if (typeof err?.message === "string") return err.message;
     try {
       return JSON.stringify(err);
     } catch {
-      return 'unspecified provider error';
+      return "unspecified provider error";
     }
   };
 
   const extractGeminiText = (data) => {
     const candidates = data?.candidates;
-    if (!Array.isArray(candidates) || candidates.length === 0) return '';
+    if (!Array.isArray(candidates) || candidates.length === 0) return "";
     const parts = candidates[0]?.content?.parts;
-    if (!Array.isArray(parts)) return '';
-    return parts.map((part) => part?.text).filter((text) => typeof text === 'string').join('');
+    if (!Array.isArray(parts)) return "";
+    return parts
+      .map((part) => part?.text)
+      .filter((text) => typeof text === "string")
+      .join("");
   };
 
-  const benignGeminiFinishReasons = new Set(['', 'STOP', 'MAX_TOKENS', 'FINISH_REASON_UNSPECIFIED']);
+  const benignGeminiFinishReasons = new Set([
+    "",
+    "STOP",
+    "MAX_TOKENS",
+    "FINISH_REASON_UNSPECIFIED",
+  ]);
   const extractGeminiBlockMessage = (data) => {
     const feedback = data?.promptFeedback;
-    if (typeof feedback?.blockReason === 'string' && feedback.blockReason) {
-      const tail = typeof feedback.blockReasonMessage === 'string' && feedback.blockReasonMessage
-        ? ` — ${feedback.blockReasonMessage}`
-        : '';
+    if (typeof feedback?.blockReason === "string" && feedback.blockReason) {
+      const tail =
+        typeof feedback.blockReasonMessage === "string" &&
+        feedback.blockReasonMessage
+          ? ` — ${feedback.blockReasonMessage}`
+          : "";
       return `Gemini blocked the prompt (${feedback.blockReason})${tail}.`;
     }
     const candidates = data?.candidates;
-    if (!Array.isArray(candidates)) return '';
+    if (!Array.isArray(candidates)) return "";
     for (const candidate of candidates) {
       const reason = candidate?.finishReason;
-      if (typeof reason !== 'string' || benignGeminiFinishReasons.has(reason)) continue;
-      const tail = typeof candidate?.finishMessage === 'string' && candidate.finishMessage
-        ? ` — ${candidate.finishMessage}`
-        : '';
+      if (typeof reason !== "string" || benignGeminiFinishReasons.has(reason))
+        continue;
+      const tail =
+        typeof candidate?.finishMessage === "string" && candidate.finishMessage
+          ? ` — ${candidate.finishMessage}`
+          : "";
       return `Gemini stopped the response (${reason})${tail}.`;
     }
-    return '';
+    return "";
   };
 
-  app.post('/api/proxy/anthropic/stream', async (req, res) => {
+  app.post("/api/proxy/anthropic/stream", async (req, res) => {
     /** @type {Partial<ProxyStreamRequest>} */
     const proxyBody = req.body || {};
     const { baseUrl, apiKey, model, systemPrompt, messages, maxTokens } =
@@ -7572,8 +9659,8 @@ export async function startServer({
       return sendApiError(
         res,
         400,
-        'BAD_REQUEST',
-        'baseUrl, apiKey, and model are required',
+        "BAD_REQUEST",
+        "baseUrl, apiKey, and model are required",
       );
     }
 
@@ -7582,12 +9669,12 @@ export async function startServer({
       return sendApiError(
         res,
         validated.forbidden ? 403 : 400,
-        validated.forbidden ? 'FORBIDDEN' : 'BAD_REQUEST',
+        validated.forbidden ? "FORBIDDEN" : "BAD_REQUEST",
         validated.error,
       );
     }
 
-    const url = appendVersionedApiPath(baseUrl, '/messages');
+    const url = appendVersionedApiPath(baseUrl, "/messages");
     console.log(
       `[proxy:anthropic] ${req.method} ${validated.parsed.hostname} model=${model}`,
     );
@@ -7595,26 +9682,26 @@ export async function startServer({
     const payload = {
       model,
       max_tokens:
-        typeof maxTokens === 'number' && maxTokens > 0 ? maxTokens : 8192,
+        typeof maxTokens === "number" && maxTokens > 0 ? maxTokens : 8192,
       messages: Array.isArray(messages) ? messages : [],
       stream: true,
     };
-    if (typeof systemPrompt === 'string' && systemPrompt) {
+    if (typeof systemPrompt === "string" && systemPrompt) {
       payload.system = systemPrompt;
     }
 
     const sse = createSseResponse(res);
-    sse.send('start', { model });
+    sse.send("start", { model });
     try {
       const response = await fetch(url, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify(payload),
-        redirect: 'error',
+        redirect: "error",
       });
 
       if (!response.ok) {
@@ -7633,32 +9720,36 @@ export async function startServer({
       let ended = false;
       await streamUpstreamSse(response, ({ event, data }) => {
         if (!data) return false;
-        if (event === 'error' || data.type === 'error') {
-          const message = data.error?.message || data.message || 'Anthropic upstream error';
+        if (event === "error" || data.type === "error") {
+          const message =
+            data.error?.message || data.message || "Anthropic upstream error";
           sendProxyError(sse, message, { details: data });
           ended = true;
           return true;
         }
-        if (event === 'content_block_delta' && typeof data.delta?.text === 'string') {
-          sse.send('delta', { delta: data.delta.text });
+        if (
+          event === "content_block_delta" &&
+          typeof data.delta?.text === "string"
+        ) {
+          sse.send("delta", { delta: data.delta.text });
         }
-        if (event === 'message_stop') {
-          sse.send('end', {});
+        if (event === "message_stop") {
+          sse.send("end", {});
           ended = true;
           return true;
         }
         return false;
       });
-      if (!ended) sse.send('end', {});
+      if (!ended) sse.send("end", {});
       sse.end();
     } catch (err) {
       console.error(`[proxy:anthropic] internal error: ${err.message}`);
-      sendProxyError(sse, err.message, { code: 'INTERNAL_ERROR' });
+      sendProxyError(sse, err.message, { code: "INTERNAL_ERROR" });
       sse.end();
     }
   });
 
-  app.post('/api/proxy/openai/stream', async (req, res) => {
+  app.post("/api/proxy/openai/stream", async (req, res) => {
     /** @type {Partial<ProxyStreamRequest>} */
     const proxyBody = req.body || {};
     const { baseUrl, apiKey, model, systemPrompt, messages, maxTokens } =
@@ -7667,8 +9758,8 @@ export async function startServer({
       return sendApiError(
         res,
         400,
-        'BAD_REQUEST',
-        'baseUrl, apiKey, and model are required',
+        "BAD_REQUEST",
+        "baseUrl, apiKey, and model are required",
       );
     }
 
@@ -7677,40 +9768,40 @@ export async function startServer({
       return sendApiError(
         res,
         validated.forbidden ? 403 : 400,
-        validated.forbidden ? 'FORBIDDEN' : 'BAD_REQUEST',
+        validated.forbidden ? "FORBIDDEN" : "BAD_REQUEST",
         validated.error,
       );
     }
 
-    const url = appendVersionedApiPath(baseUrl, '/chat/completions');
+    const url = appendVersionedApiPath(baseUrl, "/chat/completions");
     console.log(
       `[proxy:openai] ${req.method} ${validated.parsed.hostname} model=${model}`,
     );
 
     const payloadMessages = Array.isArray(messages) ? [...messages] : [];
-    if (typeof systemPrompt === 'string' && systemPrompt) {
-      payloadMessages.unshift({ role: 'system', content: systemPrompt });
+    if (typeof systemPrompt === "string" && systemPrompt) {
+      payloadMessages.unshift({ role: "system", content: systemPrompt });
     }
 
     const payload = {
       model,
       messages: payloadMessages,
       max_tokens:
-        typeof maxTokens === 'number' && maxTokens > 0 ? maxTokens : 8192,
+        typeof maxTokens === "number" && maxTokens > 0 ? maxTokens : 8192,
       stream: true,
     };
 
     const sse = createSseResponse(res);
-    sse.send('start', { model });
+    sse.send("start", { model });
     try {
       const response = await fetch(url, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify(payload),
-        redirect: 'error',
+        redirect: "error",
       });
 
       if (!response.ok) {
@@ -7728,42 +9819,51 @@ export async function startServer({
 
       let ended = false;
       await streamUpstreamSse(response, ({ payload, data }) => {
-        if (payload === '[DONE]') {
-          sse.send('end', {});
+        if (payload === "[DONE]") {
+          sse.send("end", {});
           ended = true;
           return true;
         }
         if (!data) return false;
         const streamError = extractStreamErrorMessage(data);
         if (streamError) {
-          sendProxyError(sse, `Provider error: ${streamError}`, { details: data });
+          sendProxyError(sse, `Provider error: ${streamError}`, {
+            details: data,
+          });
           ended = true;
           return true;
         }
         const delta = extractOpenAIText(data);
-        if (delta) sse.send('delta', { delta });
+        if (delta) sse.send("delta", { delta });
         return false;
       });
-      if (!ended) sse.send('end', {});
+      if (!ended) sse.send("end", {});
       sse.end();
     } catch (err) {
       console.error(`[proxy:openai] internal error: ${err.message}`);
-      sendProxyError(sse, err.message, { code: 'INTERNAL_ERROR' });
+      sendProxyError(sse, err.message, { code: "INTERNAL_ERROR" });
       sse.end();
     }
   });
 
-  app.post('/api/proxy/azure/stream', async (req, res) => {
+  app.post("/api/proxy/azure/stream", async (req, res) => {
     /** @type {Partial<ProxyStreamRequest>} */
     const proxyBody = req.body || {};
-    const { baseUrl, apiKey, model, systemPrompt, messages, maxTokens, apiVersion } =
-      proxyBody;
+    const {
+      baseUrl,
+      apiKey,
+      model,
+      systemPrompt,
+      messages,
+      maxTokens,
+      apiVersion,
+    } = proxyBody;
     if (!baseUrl || !apiKey || !model) {
       return sendApiError(
         res,
         400,
-        'BAD_REQUEST',
-        'baseUrl, apiKey, and model are required',
+        "BAD_REQUEST",
+        "baseUrl, apiKey, and model are required",
       );
     }
 
@@ -7772,57 +9872,57 @@ export async function startServer({
       return sendApiError(
         res,
         validated.forbidden ? 403 : 400,
-        validated.forbidden ? 'FORBIDDEN' : 'BAD_REQUEST',
+        validated.forbidden ? "FORBIDDEN" : "BAD_REQUEST",
         validated.error,
       );
     }
 
     const url = new URL(baseUrl);
-    const basePath = url.pathname.replace(/\/+$/, '');
+    const basePath = url.pathname.replace(/\/+$/, "");
     const usesVersionedOpenAIPath = /\/openai\/v\d+(?:$|\/)/.test(basePath);
     const version =
-      typeof apiVersion === 'string' && apiVersion.trim()
+      typeof apiVersion === "string" && apiVersion.trim()
         ? apiVersion.trim()
         : usesVersionedOpenAIPath
-          ? ''
-          : '2024-10-21';
+          ? ""
+          : "2024-10-21";
     url.pathname = usesVersionedOpenAIPath
       ? `${basePath}/chat/completions`
       : `${basePath}/openai/deployments/${encodeURIComponent(model)}/chat/completions`;
     if (usesVersionedOpenAIPath && !version) {
-      url.searchParams.delete('api-version');
+      url.searchParams.delete("api-version");
     }
     if (version) {
-      url.searchParams.set('api-version', version);
+      url.searchParams.set("api-version", version);
     }
     console.log(
-      `[proxy:azure] ${req.method} ${validated.parsed.hostname} deployment=${model} api-version=${version || 'omitted'}`,
+      `[proxy:azure] ${req.method} ${validated.parsed.hostname} deployment=${model} api-version=${version || "omitted"}`,
     );
 
     const payloadMessages = Array.isArray(messages) ? [...messages] : [];
-    if (typeof systemPrompt === 'string' && systemPrompt) {
-      payloadMessages.unshift({ role: 'system', content: systemPrompt });
+    if (typeof systemPrompt === "string" && systemPrompt) {
+      payloadMessages.unshift({ role: "system", content: systemPrompt });
     }
 
     const payload = {
       ...(usesVersionedOpenAIPath ? { model } : {}),
       messages: payloadMessages,
       max_tokens:
-        typeof maxTokens === 'number' && maxTokens > 0 ? maxTokens : 8192,
+        typeof maxTokens === "number" && maxTokens > 0 ? maxTokens : 8192,
       stream: true,
     };
 
     const sse = createSseResponse(res);
-    sse.send('start', { model });
+    sse.send("start", { model });
     try {
       const response = await fetch(url, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'api-key': apiKey,
+          "Content-Type": "application/json",
+          "api-key": apiKey,
         },
         body: JSON.stringify(payload),
-        redirect: 'error',
+        redirect: "error",
       });
 
       if (!response.ok) {
@@ -7840,8 +9940,8 @@ export async function startServer({
 
       let ended = false;
       await streamUpstreamSse(response, ({ payload: ssePayload, data }) => {
-        if (ssePayload === '[DONE]') {
-          sse.send('end', {});
+        if (ssePayload === "[DONE]") {
+          sse.send("end", {});
           ended = true;
           return true;
         }
@@ -7853,74 +9953,78 @@ export async function startServer({
           return true;
         }
         const delta = extractOpenAIText(data);
-        if (delta) sse.send('delta', { delta });
+        if (delta) sse.send("delta", { delta });
         return false;
       });
-      if (!ended) sse.send('end', {});
+      if (!ended) sse.send("end", {});
       sse.end();
     } catch (err) {
       console.error(`[proxy:azure] internal error: ${err.message}`);
-      sendProxyError(sse, err.message, { code: 'INTERNAL_ERROR' });
+      sendProxyError(sse, err.message, { code: "INTERNAL_ERROR" });
       sse.end();
     }
   });
 
-  app.post('/api/proxy/google/stream', async (req, res) => {
+  app.post("/api/proxy/google/stream", async (req, res) => {
     /** @type {Partial<ProxyStreamRequest>} */
     const proxyBody = req.body || {};
-    const { baseUrl, apiKey, model, systemPrompt, messages, maxTokens } = proxyBody;
+    const { baseUrl, apiKey, model, systemPrompt, messages, maxTokens } =
+      proxyBody;
     if (!apiKey || !model) {
       return sendApiError(
         res,
         400,
-        'BAD_REQUEST',
-        'apiKey and model are required',
+        "BAD_REQUEST",
+        "apiKey and model are required",
       );
     }
 
-    const effectiveBaseUrl = baseUrl || 'https://generativelanguage.googleapis.com';
+    const effectiveBaseUrl =
+      baseUrl || "https://generativelanguage.googleapis.com";
     const validated = validateExternalApiBaseUrl(effectiveBaseUrl);
     if (validated.error) {
       return sendApiError(
         res,
         validated.forbidden ? 403 : 400,
-        validated.forbidden ? 'FORBIDDEN' : 'BAD_REQUEST',
+        validated.forbidden ? "FORBIDDEN" : "BAD_REQUEST",
         validated.error,
       );
     }
 
-    const clean = effectiveBaseUrl.replace(/\/+$/, '');
+    const clean = effectiveBaseUrl.replace(/\/+$/, "");
     const url = `${clean}/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`;
     console.log(
       `[proxy:google] ${req.method} ${validated.parsed.hostname} model=${model}`,
     );
 
-    const contents = (Array.isArray(messages) ? messages : []).map((message) => ({
-      role: message.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: message.content }],
-    }));
+    const contents = (Array.isArray(messages) ? messages : []).map(
+      (message) => ({
+        role: message.role === "assistant" ? "model" : "user",
+        parts: [{ text: message.content }],
+      }),
+    );
     const payload = {
       contents,
       generationConfig: {
         maxOutputTokens:
-          typeof maxTokens === 'number' && maxTokens > 0 ? maxTokens : 8192,
+          typeof maxTokens === "number" && maxTokens > 0 ? maxTokens : 8192,
       },
     };
-    if (typeof systemPrompt === 'string' && systemPrompt) {
+    if (typeof systemPrompt === "string" && systemPrompt) {
       payload.systemInstruction = { parts: [{ text: systemPrompt }] };
     }
 
     const sse = createSseResponse(res);
-    sse.send('start', { model });
+    sse.send("start", { model });
     try {
       const response = await fetch(url, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': apiKey,
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
         },
         body: JSON.stringify(payload),
-        redirect: 'error',
+        redirect: "error",
       });
 
       if (!response.ok) {
@@ -7941,12 +10045,14 @@ export async function startServer({
         if (!data) return false;
         const streamError = extractStreamErrorMessage(data);
         if (streamError) {
-          sendProxyError(sse, `Gemini error: ${streamError}`, { details: data });
+          sendProxyError(sse, `Gemini error: ${streamError}`, {
+            details: data,
+          });
           ended = true;
           return true;
         }
         const delta = extractGeminiText(data);
-        if (delta) sse.send('delta', { delta });
+        if (delta) sse.send("delta", { delta });
         const blockMessage = extractGeminiBlockMessage(data);
         if (blockMessage) {
           sendProxyError(sse, blockMessage, { details: data });
@@ -7955,48 +10061,49 @@ export async function startServer({
         }
         return false;
       });
-      if (!ended) sse.send('end', {});
+      if (!ended) sse.send("end", {});
       sse.end();
     } catch (err) {
       console.error(`[proxy:google] internal error: ${err.message}`);
-      sendProxyError(sse, err.message, { code: 'INTERNAL_ERROR' });
+      sendProxyError(sse, err.message, { code: "INTERNAL_ERROR" });
       sse.end();
     }
   });
 
-  app.post('/api/proxy/ollama/stream', async (req, res) => {
+  app.post("/api/proxy/ollama/stream", async (req, res) => {
     /** @type {Partial<ProxyStreamRequest>} */
     const proxyBody = req.body || {};
-    const { baseUrl, apiKey, model, systemPrompt, messages, maxTokens } = proxyBody;
+    const { baseUrl, apiKey, model, systemPrompt, messages, maxTokens } =
+      proxyBody;
     if (!apiKey || !model) {
       return sendApiError(
         res,
         400,
-        'BAD_REQUEST',
-        'apiKey and model are required',
+        "BAD_REQUEST",
+        "apiKey and model are required",
       );
     }
 
-    const effectiveBaseUrl = baseUrl || 'https://ollama.com';
+    const effectiveBaseUrl = baseUrl || "https://ollama.com";
     const validated = validateExternalApiBaseUrl(effectiveBaseUrl);
     if (validated.error) {
       return sendApiError(
         res,
         validated.forbidden ? 403 : 400,
-        validated.forbidden ? 'FORBIDDEN' : 'BAD_REQUEST',
+        validated.forbidden ? "FORBIDDEN" : "BAD_REQUEST",
         validated.error,
       );
     }
 
-    const clean = effectiveBaseUrl.replace(/\/+$/, '').replace(/\/api\/?$/, '');
+    const clean = effectiveBaseUrl.replace(/\/+$/, "").replace(/\/api\/?$/, "");
     const url = `${clean}/api/chat`;
     console.log(
       `[proxy:ollama] ${req.method} ${validated.parsed.hostname} model=${model}`,
     );
 
     const payloadMessages = Array.isArray(messages) ? [...messages] : [];
-    if (typeof systemPrompt === 'string' && systemPrompt) {
-      payloadMessages.unshift({ role: 'system', content: systemPrompt });
+    if (typeof systemPrompt === "string" && systemPrompt) {
+      payloadMessages.unshift({ role: "system", content: systemPrompt });
     }
 
     const payload = {
@@ -8004,17 +10111,17 @@ export async function startServer({
       messages: payloadMessages,
       stream: true,
     };
-    if (typeof maxTokens === 'number' && maxTokens > 0) {
+    if (typeof maxTokens === "number" && maxTokens > 0) {
       payload.options = { num_predict: maxTokens };
     }
 
     const sse = createSseResponse(res);
-    sse.send('start', { model });
+    sse.send("start", { model });
     try {
       const response = await fetch(url, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify(payload),
@@ -8037,21 +10144,21 @@ export async function startServer({
       await streamUpstreamNdjson(response, ({ data }) => {
         if (!data) return false;
         if (data.done) {
-          sse.send('end', {});
+          sse.send("end", {});
           ended = true;
           return true;
         }
         const content = data.message?.content;
-        if (typeof content === 'string' && content) {
-          sse.send('delta', { delta: content });
+        if (typeof content === "string" && content) {
+          sse.send("delta", { delta: content });
         }
         return false;
       });
-      if (!ended) sse.send('end', {});
+      if (!ended) sse.send("end", {});
       sse.end();
     } catch (err) {
       console.error(`[proxy:ollama] internal error: ${err.message}`);
-      sendProxyError(sse, err.message, { code: 'INTERNAL_ERROR' });
+      sendProxyError(sse, err.message, { code: "INTERNAL_ERROR" });
       sse.end();
     }
   });
@@ -8074,7 +10181,9 @@ export async function startServer({
       if (daemonShutdownStarted) return;
       daemonShutdownStarted = true;
       daemonShuttingDown = true;
-      await design.runs.shutdownActive({ graceMs: resolveChatRunShutdownGraceMs() });
+      await design.runs.shutdownActive({
+        graceMs: resolveChatRunShutdownGraceMs(),
+      });
     };
     let server;
     try {
@@ -8085,7 +10194,7 @@ export async function startServer({
         // is belt-and-braces so an unexpected null never silently produces a
         // `http://127.0.0.1:0` URL that callers would then try to fetch.
         const boundPort =
-          address && typeof address === 'object' ? address.port : null;
+          address && typeof address === "object" ? address.port : null;
         if (!boundPort) {
           reject(
             new Error(
@@ -8098,27 +10207,30 @@ export async function startServer({
         // When binding to all interfaces report localhost for local callers;
         // when binding to a specific address (e.g. a Tailscale IP) report that
         // address so remote callers and the sidecar use the correct URL.
-        const reportHost = host === '0.0.0.0' || host === '::' ? '127.0.0.1' : host;
+        const reportHost =
+          host === "0.0.0.0" || host === "::" ? "127.0.0.1" : host;
         const url = `http://${reportHost}:${resolvedPort}`;
         if (!returnServer) {
           console.log(`[od] daemon listening on ${url}`);
         }
         daemonUrl = url;
-        resolve(returnServer ? { url, server, shutdown: shutdownDaemonRuns } : url);
+        resolve(
+          returnServer ? { url, server, shutdown: shutdownDaemonRuns } : url,
+        );
       });
     } catch (error) {
       cleanupDaemonBackgroundWork();
       reject(error);
       return;
     }
-    server.once('close', () => {
+    server.once("close", () => {
       void shutdownDaemonRuns().finally(cleanupDaemonBackgroundWork);
     });
     // `app.listen` throws synchronously when the port is already in use on
     // some Node versions, but emits an `error` event on others (and for
     // EACCES / EADDRNOTAVAIL even on the same Node). Wire the event so the
     // returned Promise always settles instead of hanging forever.
-    server.on('error', (error) => {
+    server.on("error", (error) => {
       cleanupDaemonBackgroundWork();
       reject(error);
     });
@@ -8132,15 +10244,15 @@ function randomId() {
 function sanitizeSlug(text) {
   return String(text)
     .toLowerCase()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/[\s_]+/g, '-')
-    .replace(/^-+|-+$/g, '')
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s_]+/g, "-")
+    .replace(/^-+|-+$/g, "")
     .slice(0, 64);
 }
 
 function assembleExample(templateHtml, slidesHtml, title) {
   return templateHtml
-    .replace('<!-- SLIDES_HERE -->', slidesHtml)
+    .replace("<!-- SLIDES_HERE -->", slidesHtml)
     .replace(
       /<title>.*?<\/title>/,
       `<title>${title} | Open Design Example</title>`,
@@ -8156,14 +10268,22 @@ function assembleExample(templateHtml, slidesHtml, title) {
 // places — the disk preview keeps working, and the in-app preview now
 // fetches assets through the matching route below.
 export function rewriteSkillAssetUrls(html: string, skillId: string): string {
-  if (typeof html !== 'string' || html.length === 0) return html;
+  if (typeof html !== "string" || html.length === 0) return html;
   // Match src/href attributes whose values point at the current skill's
   // assets (`./assets/...` or `assets/...`) or a sibling skill's assets
   // (`../other-skill/assets/...`). Quote style is preserved so we do not
   // disturb the surrounding markup.
   return html.replace(
     /(\s(?:src|href)\s*=\s*)(['"])((?:\.\.\/([^/'"#?]+)\/)?(?:\.\/)?assets\/([^'"#?]+))(\2)/gi,
-    (_match, attr, openQuote, _fullPath, siblingSkillId, relPath, closeQuote) => {
+    (
+      _match,
+      attr,
+      openQuote,
+      _fullPath,
+      siblingSkillId,
+      relPath,
+      closeQuote,
+    ) => {
       const resolvedSkillId = siblingSkillId || skillId;
       const prefix = `/api/skills/${encodeURIComponent(resolvedSkillId)}/assets/`;
       return `${attr}${openQuote}${prefix}${relPath}${closeQuote}`;

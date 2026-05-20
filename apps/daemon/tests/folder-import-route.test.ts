@@ -55,11 +55,53 @@ describe('POST /api/import/folder', () => {
       project: { id: string; metadata?: { baseDir?: string; importedFrom?: string } };
       conversationId: string;
       entryFile: string | null;
+      resolvedDir?: string;
     };
     expect(body.project.metadata?.baseDir).toBeTruthy();
     expect(body.project.metadata?.importedFrom).toBe('folder');
     expect(body.conversationId).toBeTruthy();
     expect(body.entryFile).toBe('index.html');
+    expect(body.resolvedDir).toBe(body.project.metadata?.baseDir);
+  });
+
+  it('creates a path-backed project in use-existing mode', async () => {
+    const folder = makeFolder();
+    await writeFile(path.join(folder, 'index.html'), '<!doctype html>');
+    const resp = await fetch(`${baseUrl}/api/projects/path-backed`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'path-backed-existing',
+        baseDir: folder,
+        createMode: 'use-existing',
+      }),
+    });
+    expect(resp.status).toBe(200);
+    const body = (await resp.json()) as {
+      project: { metadata?: { baseDir?: string; importedFrom?: string } };
+      resolvedDir: string;
+      entryFile: string | null;
+    };
+    expect(body.project.metadata?.importedFrom).toBe('folder');
+    expect(body.project.metadata?.baseDir).toBe(body.resolvedDir);
+    expect(body.entryFile).toBe('index.html');
+  });
+
+  it('rejects create-if-empty when target directory is non-empty', async () => {
+    const folder = makeFolder();
+    await writeFile(path.join(folder, 'README.md'), '# hello');
+    const resp = await fetch(`${baseUrl}/api/projects/path-backed`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'path-backed-empty-check',
+        baseDir: folder,
+        createMode: 'create-if-empty',
+      }),
+    });
+    expect(resp.status).toBe(400);
+    const body = (await resp.json()) as { error?: { message?: string } };
+    expect(body.error?.message).toMatch(/empty target directory/i);
   });
 
   it('auto-detects the entry file when present', async () => {

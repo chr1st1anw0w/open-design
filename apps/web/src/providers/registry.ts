@@ -1,10 +1,15 @@
+import type { C1AssistantRequest, C1AssistantResponse, C1SseEvent } from '@open-design/contracts';
 import type {
+  ComposioDesktopSyncResponse,
+  DesktopProfileStatusResponse,
   ConnectorAuthConfigPrepareResponse,
   ConnectorDetail,
   ConnectorConnectResponse,
   ConnectorDiscoveryResponse,
   ConnectorDetailResponse,
   ConnectorListResponse,
+  McpDesktopSyncResponse,
+  SkillDesktopSyncResponse,
   ConnectorStatusResponse,
 } from '@open-design/contracts';
 import type {
@@ -43,6 +48,78 @@ import type {
 import type { ArtifactManifest } from '../artifacts/types';
 
 // Window.electronAPI is declared globally in apps/web/src/types/electron.d.ts.
+
+export type { C1AssistantRequest, C1AssistantResponse, C1SseEvent };
+
+export interface C1StreamCallbacks {
+  onToken: (text: string) => void;
+  onDone: (response: C1AssistantResponse) => void;
+  onError: (code: string, message: string) => void;
+}
+
+export async function c1AssistantStream(
+  request: C1AssistantRequest,
+  callbacks: C1StreamCallbacks,
+  signal?: AbortSignal,
+): Promise<void> {
+  const resp = await fetch('/api/c1/assistant', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+    signal,
+  });
+
+  if (!resp.ok) {
+    const text = await resp.text().catch(() => '');
+    let message = `Assistant request failed (${resp.status})`;
+    try {
+      const json = JSON.parse(text) as { error?: string };
+      if (json.error) message = json.error;
+    } catch { /* ignore */ }
+    callbacks.onError(`http_${resp.status}`, message);
+    return;
+  }
+
+  const reader = resp.body?.getReader();
+  if (!reader) {
+    callbacks.onError('no_body', 'No response body from assistant endpoint');
+    return;
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+
+    let currentEvent = '';
+    for (const line of lines) {
+      if (line.startsWith('event: ')) {
+        currentEvent = line.slice(7).trim();
+      } else if (line.startsWith('data: ')) {
+        const raw = line.slice(6).trim();
+        let parsed: C1SseEvent;
+        try { parsed = JSON.parse(raw) as C1SseEvent; } catch { continue; }
+        const event = { event: currentEvent, data: parsed } as unknown as C1SseEvent;
+        void event;
+        if (currentEvent === 'token') {
+          const payload = parsed as { text?: string };
+          if (payload.text) callbacks.onToken(payload.text);
+        } else if (currentEvent === 'done') {
+          callbacks.onDone(parsed as unknown as C1AssistantResponse);
+        } else if (currentEvent === 'error') {
+          const payload = parsed as { code?: string; message?: string };
+          callbacks.onError(payload.code ?? 'unknown', payload.message ?? 'Unknown error');
+        }
+        currentEvent = '';
+      }
+    }
+  }
+}
 
 export const DEFAULT_DEPLOY_PROVIDER_ID = 'vercel-self';
 export const CLOUDFLARE_PAGES_PROVIDER_ID = 'cloudflare-pages';
@@ -91,6 +168,28 @@ export async function fetchSkills(): Promise<SkillSummary[]> {
     return json.skills ?? [];
   } catch {
     return [];
+  }
+}
+
+export interface ResourceRescanResponse<T> {
+  kind: string;
+  sourceDir: string;
+  sourceExists?: boolean;
+  count: number;
+  errors: string[];
+  scannedAt: number;
+  skills?: T[];
+  designSystems?: T[];
+}
+
+export async function rescanSkills(): Promise<ResourceRescanResponse<SkillSummary> | { error: string }> {
+  try {
+    const resp = await fetch('/api/skills/rescan', { method: 'POST' });
+    const json = await resp.json();
+    if (!resp.ok) return { error: json.error?.message ?? json.error ?? 'Rescan failed' };
+    return json as ResourceRescanResponse<SkillSummary>;
+  } catch {
+    return { error: 'Network error' };
   }
 }
 
@@ -175,6 +274,137 @@ export async function fetchDesignSystems(): Promise<DesignSystemSummary[]> {
     return json.designSystems ?? [];
   } catch {
     return [];
+  }
+}
+
+export async function fetchDesktopProfileStatus(): Promise<DesktopProfileStatusResponse | { error: string }> {
+  try {
+    const resp = await fetch('/api/desktop-profile/status');
+    const json = await resp.json();
+    if (!resp.ok) return { error: json.error?.message ?? json.error ?? 'Desktop profile status failed' };
+    return json as DesktopProfileStatusResponse;
+  } catch {
+    return { error: 'Network error' };
+  }
+}
+
+export async function rescanDesignSystems(): Promise<ResourceRescanResponse<DesignSystemSummary> | { error: string }> {
+  try {
+    const resp = await fetch('/api/design-systems/rescan', { method: 'POST' });
+    const json = await resp.json();
+    if (!resp.ok) return { error: json.error?.message ?? json.error ?? 'Rescan failed' };
+    return json as ResourceRescanResponse<DesignSystemSummary>;
+  } catch {
+    return { error: 'Network error' };
+  }
+}
+
+export async function syncDesktopMcp(
+  input: {
+    dryRun?: boolean;
+    direction?: 'desktop-to-runtime';
+    conflictPolicy?: 'skip' | 'overwrite';
+  } = {},
+): Promise<McpDesktopSyncResponse | { error: string }> {
+  try {
+    const resp = await fetch('/api/mcp/sync-desktop', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
+    const text = await resp.text();
+    let json: Record<string, unknown> = {};
+    try {
+      json = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+    } catch {
+      if (!resp.ok) {
+        return {
+          error: `Desktop MCP sync failed (${resp.status}) ${resp.statusText}${text ? `: ${text.slice(0, 240)}` : ''}`,
+        };
+      }
+      return { error: 'Desktop MCP sync returned a non-JSON response.' };
+    }
+    if (!resp.ok) {
+      const detail = typeof json.error === 'string'
+        ? json.error
+        : typeof (json.error as { message?: unknown })?.message === 'string'
+          ? String((json.error as { message?: string }).message)
+          : '';
+      return { error: detail || `Desktop MCP sync failed (${resp.status}) ${resp.statusText}` };
+    }
+    return json as unknown as McpDesktopSyncResponse;
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Network error' };
+  }
+}
+
+export async function syncDesktopComposio(
+  input: { dryRun?: boolean; conflictPolicy?: 'skip' | 'overwrite' } = {},
+): Promise<ComposioDesktopSyncResponse | { error: string }> {
+  try {
+    const resp = await fetch('/api/connectors/composio/sync-desktop', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
+    const text = await resp.text();
+    let json: Record<string, unknown> = {};
+    try {
+      json = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+    } catch {
+      if (!resp.ok) {
+        return {
+          error: `Desktop Composio sync failed (${resp.status}) ${resp.statusText}${text ? `: ${text.slice(0, 240)}` : ''}`,
+        };
+      }
+      return { error: 'Desktop Composio sync returned a non-JSON response.' };
+    }
+    if (!resp.ok) {
+      const detail = typeof json.error === 'string'
+        ? json.error
+        : typeof (json.error as { message?: unknown })?.message === 'string'
+          ? String((json.error as { message?: string }).message)
+          : '';
+      return { error: detail || `Desktop Composio sync failed (${resp.status}) ${resp.statusText}` };
+    }
+    return json as unknown as ComposioDesktopSyncResponse;
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Network error' };
+  }
+}
+
+export async function syncDesktopSkills(
+  input: { dryRun?: boolean; sourceDir?: string; targetDir?: string } = {},
+): Promise<SkillDesktopSyncResponse | { error: string }> {
+  try {
+    const resp = await fetch('/api/skills/sync-desktop', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
+    const text = await resp.text();
+    let json: Record<string, unknown> = {};
+    try {
+      json = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+    } catch {
+      if (!resp.ok) {
+        return {
+          error: `Desktop skills sync failed (${resp.status}) ${resp.statusText}${text ? `: ${text.slice(0, 240)}` : ''}`,
+        };
+      }
+      return { error: 'Desktop skills sync returned a non-JSON response.' };
+    }
+    if (!resp.ok) {
+      const detail = typeof json.error === 'string'
+        ? json.error
+        : typeof (json.error as { message?: unknown })?.message === 'string'
+          ? String((json.error as { message?: string }).message)
+          : '';
+      return { error: detail || `Desktop skills sync failed (${resp.status}) ${resp.statusText}` };
+    }
+    return json as unknown as SkillDesktopSyncResponse;
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Network error' };
   }
 }
 
@@ -735,6 +965,22 @@ export async function fetchProjectFiles(projectId: string): Promise<ProjectFile[
   }
 }
 
+export async function fetchProjectFilesWithFolders(
+  projectId: string,
+): Promise<{ files: ProjectFile[]; folders: Array<{ name: string; path: string; type: 'folder' }> }> {
+  try {
+    const resp = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files`);
+    if (!resp.ok) return { files: [], folders: [] };
+    const json = (await resp.json()) as {
+      files?: ProjectFile[];
+      folders?: Array<{ name: string; path: string; type: 'folder' }>;
+    };
+    return { files: json.files ?? [], folders: json.folders ?? [] };
+  } catch {
+    return { files: [], folders: [] };
+  }
+}
+
 export async function fetchLiveArtifacts(projectId: string): Promise<LiveArtifactSummary[]> {
   try {
     const resp = await fetch(`/api/live-artifacts?projectId=${encodeURIComponent(projectId)}`);
@@ -1256,6 +1502,43 @@ export async function renameProjectFile(
     throw new Error(errorBody.message);
   }
   return (await resp.json()) as RenameProjectFileResponse;
+}
+
+export async function createProjectFolder(projectId: string, name: string): Promise<{ name: string; path: string; type: 'folder' }> {
+  const resp = await fetch(`/api/projects/${encodeURIComponent(projectId)}/folders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+  if (!resp.ok) {
+    const errorBody = await readApiErrorBody(resp);
+    throw new Error(errorBody.message);
+  }
+  const data = await resp.json();
+  return data.folder;
+}
+
+export async function renameProjectFolder(projectId: string, from: string, to: string): Promise<void> {
+  const resp = await fetch(`/api/projects/${encodeURIComponent(projectId)}/folders/rename`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from, to }),
+  });
+  if (!resp.ok) {
+    const errorBody = await readApiErrorBody(resp);
+    throw new Error(errorBody.message);
+  }
+}
+
+export async function deleteProjectFolder(projectId: string, name: string): Promise<void> {
+  const resp = await fetch(
+    `/api/projects/${encodeURIComponent(projectId)}/folders/${encodeURIComponent(name)}`,
+    { method: 'DELETE' },
+  );
+  if (!resp.ok) {
+    const errorBody = await readApiErrorBody(resp);
+    throw new Error(errorBody.message);
+  }
 }
 
 export async function openFolderDialog(): Promise<string | null> {

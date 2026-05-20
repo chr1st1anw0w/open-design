@@ -446,6 +446,86 @@ export async function deleteProjectFile(projectsRoot, projectId, name, metadata?
   await unlink(file);
 }
 
+// List immediate (first-level) subdirectories under the project root. Used by
+// the file panel to surface user-created folders even when empty. Hidden
+// dotfile dirs and build/install caches (for folder-imported projects) stay
+// filtered, matching listFiles().
+export async function listFolders(projectsRoot, projectId, opts: { metadata?: unknown } = {}) {
+  const dir = resolveProjectDir(projectsRoot, projectId, opts.metadata);
+  const skipDirs = (opts.metadata as { baseDir?: string } | undefined)?.baseDir ? SKIP_DIRS : undefined;
+  let entries: import('node:fs').Dirent[] = [];
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch (err) {
+    if (err && (err as NodeJS.ErrnoException).code === 'ENOENT') return [];
+    throw err;
+  }
+  const out: Array<{ name: string; path: string; type: 'folder' }> = [];
+  for (const e of entries) {
+    if (!e.isDirectory()) continue;
+    if (e.name.startsWith('.')) continue;
+    if (skipDirs && skipDirs.has(e.name)) continue;
+    out.push({ name: e.name, path: e.name, type: 'folder' });
+  }
+  out.sort((a, b) => a.name.localeCompare(b.name));
+  return out;
+}
+
+export async function createProjectFolder(projectsRoot, projectId, name: string, metadata?) {
+  const dir = resolveProjectDir(projectsRoot, projectId, metadata);
+  const safe = sanitizeName(name);
+  if (!safe) throw new Error('invalid folder name');
+  const target = resolveSafe(dir, safe);
+  await mkdir(target, { recursive: false }).catch((err) => {
+    if (err && (err as NodeJS.ErrnoException).code === 'EEXIST') {
+      const e = new Error('folder already exists');
+      (e as NodeJS.ErrnoException).code = 'EEXIST';
+      throw e;
+    }
+    throw err;
+  });
+  return { name: safe, path: safe, type: 'folder' as const };
+}
+
+export async function deleteProjectFolder(projectsRoot, projectId, name: string, metadata?) {
+  const dir = resolveProjectDir(projectsRoot, projectId, metadata);
+  const safe = validateProjectPath(name);
+  const target = await resolveSafeReal(dir, safe);
+  const st = await stat(target);
+  if (!st.isDirectory()) {
+    const err = new Error('target is not a folder') as NodeJS.ErrnoException;
+    err.code = 'ENOTDIR';
+    throw err;
+  }
+  await rm(target, { recursive: true, force: false });
+}
+
+export async function renameProjectFolder(projectsRoot, projectId, fromName: string, toName: string, metadata?) {
+  const dir = resolveProjectDir(projectsRoot, projectId, metadata);
+  const oldName = validateProjectPath(fromName);
+  const newName = sanitizePath(toName);
+  if (oldName === newName) return { oldName, newName };
+  const source = await resolveSafeReal(dir, oldName);
+  const sourceStat = await stat(source);
+  if (!sourceStat.isDirectory()) {
+    const err = new Error('source is not a folder') as NodeJS.ErrnoException;
+    err.code = 'ENOTDIR';
+    throw err;
+  }
+  const target = resolveSafe(dir, newName);
+  try {
+    await stat(target);
+    const err = new Error('target folder already exists') as NodeJS.ErrnoException;
+    err.code = 'EEXIST';
+    throw err;
+  } catch (err) {
+    if (!err || (err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
+  }
+  await mkdir(path.dirname(target), { recursive: true });
+  await rename(source, target);
+  return { oldName, newName };
+}
+
 export async function renameProjectFile(projectsRoot, projectId, fromName, toName, metadata?) {
   const dir = resolveProjectDir(projectsRoot, projectId, metadata);
   const oldName = validateProjectPath(fromName);

@@ -26,6 +26,8 @@ import type {
   McpServerConfig,
   McpTemplate,
 } from '../state/mcp';
+import type { DesktopProfileStatusResponse } from '@open-design/contracts';
+import { fetchDesktopProfileStatus, syncDesktopMcp } from '../providers/registry';
 import { Icon } from './Icon';
 
 interface Props {
@@ -261,6 +263,10 @@ export const McpClientSection = forwardRef<McpClientSectionHandle, Props>(
   // picker preserves the user's last query while they scan through it.
   const [pickerQuery, setPickerQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [syncingDesktop, setSyncingDesktop] = useState(false);
+  const [desktopProfileStatus, setDesktopProfileStatus] =
+    useState<DesktopProfileStatusResponse | null>(null);
+  const [desktopProfileError, setDesktopProfileError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -277,6 +283,23 @@ export const McpClientSection = forwardRef<McpClientSectionHandle, Props>(
       setSavedSig(signature(fresh));
       setTemplates(data.templates);
       setLoaded(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const status = await fetchDesktopProfileStatus();
+      if (cancelled) return;
+      if ('error' in status) {
+        setDesktopProfileError(status.error);
+        return;
+      }
+      setDesktopProfileStatus(status);
+      setDesktopProfileError(null);
     })();
     return () => {
       cancelled = true;
@@ -343,6 +366,39 @@ export const McpClientSection = forwardRef<McpClientSectionHandle, Props>(
     return true;
   };
 
+  const syncDesktop = async () => {
+    setError(null);
+    setSyncingDesktop(true);
+    const preview = await syncDesktopMcp({ dryRun: true, direction: 'desktop-to-runtime' });
+    if ('error' in preview) {
+      setError(preview.error);
+      setSyncingDesktop(false);
+      return;
+    }
+    const summary = `Desktop MCP sync preview:\nAdded: ${preview.added}\nUpdated: ${preview.updated}\nUnchanged: ${preview.unchanged}\nConflicts: ${preview.conflicts}\n\nImport non-conflicting desktop MCP servers into this web profile?`;
+    if (!window.confirm(summary)) {
+      setSyncingDesktop(false);
+      return;
+    }
+    const result = await syncDesktopMcp({ dryRun: false, direction: 'desktop-to-runtime' });
+    setSyncingDesktop(false);
+    if ('error' in result) {
+      setError(result.error);
+      return;
+    }
+    const refreshed = await fetchMcpServers();
+    if (!refreshed) {
+      setError('Desktop sync finished, but reloading MCP servers failed. Reopen Settings to refresh.');
+      return;
+    }
+    const fresh = rowsFromServers(refreshed.servers);
+    setRows(fresh);
+    setSavedSig(signature(fresh));
+    setTemplates(refreshed.templates);
+    setSavedAt(Date.now());
+    onServersChanged?.(refreshed.servers);
+  };
+
   useImperativeHandle(ref, () => ({
     save,
     hasDirty: () => dirty,
@@ -370,16 +426,38 @@ export const McpClientSection = forwardRef<McpClientSectionHandle, Props>(
             Surface tools from third-party MCP servers (Higgsfield, GitHub,
             filesystem…) to your coding agent.
           </p>
+          {desktopProfileStatus ? (
+            <p className="hint">
+              Desktop profile: <code>{desktopProfileStatus.dataDir}</code> ·
+              Runtime profile: <code>{desktopProfileStatus.runtimeDataDir}</code> ·
+              {desktopProfileStatus.isRuntimeUsingDesktopProfile
+                ? ' currently attached'
+                : ' not attached'}
+            </p>
+          ) : null}
+          {desktopProfileError ? (
+            <p className="mcp-error">{desktopProfileError}</p>
+          ) : null}
         </div>
-        <button
-          type="button"
-          className="primary mcp-add-btn"
-          onClick={() => setPickerOpen((v) => !v)}
-          aria-expanded={pickerOpen}
-        >
-          <Icon name="sparkles" size={13} />
-          <span>Add server</span>
-        </button>
+        <div className="section-head-actions">
+          <button
+            type="button"
+            className="ghost"
+            onClick={() => void syncDesktop()}
+            disabled={syncingDesktop}
+          >
+            {syncingDesktop ? 'Syncing…' : 'Sync Desktop'}
+          </button>
+          <button
+            type="button"
+            className="primary mcp-add-btn"
+            onClick={() => setPickerOpen((v) => !v)}
+            aria-expanded={pickerOpen}
+          >
+            <Icon name="sparkles" size={13} />
+            <span>Add server</span>
+          </button>
+        </div>
       </div>
 
       {pickerOpen ? (

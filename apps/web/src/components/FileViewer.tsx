@@ -24,6 +24,7 @@ import {
   LiveArtifactRefreshError,
   refreshLiveArtifact,
   updateDeployConfig,
+  uploadProjectFiles,
   type WebDeployConfigResponse,
   type WebCloudflarePagesDeploySelection,
   type WebDeploymentInfo,
@@ -59,6 +60,7 @@ import type {
 import { Icon } from './Icon';
 import {
   buildBoardCommentAttachments,
+  buildVisualAnnotationAttachment,
   isOverlayableSnapshot,
   liveSnapshotForComment,
   overlayBoundsFromSnapshot,
@@ -67,6 +69,7 @@ import {
   type PreviewCommentSnapshot,
 } from '../comments';
 import type {
+  ChatAttachment,
   ChatCommentAttachment,
   PreviewComment,
   PreviewCommentMember,
@@ -1428,9 +1431,14 @@ function BoardComposerPopover({
   existing,
   draft,
   notes,
+  imageAttachments,
+  imageUploadError,
+  uploadingImages,
   onDraft,
   onAddDraft,
   onRemoveQueuedNote,
+  onUploadImages,
+  onRemoveImageAttachment,
   onClose,
   onSaveComment,
   onSendBatch,
@@ -1442,9 +1450,14 @@ function BoardComposerPopover({
   existing: PreviewComment | null;
   draft: string;
   notes: string[];
+  imageAttachments: ChatAttachment[];
+  imageUploadError: string | null;
+  uploadingImages: boolean;
   onDraft: (value: string) => void;
   onAddDraft: () => void;
   onRemoveQueuedNote: (index: number) => void;
+  onUploadImages: (files: FileList | File[]) => void;
+  onRemoveImageAttachment: (index: number) => void;
   onClose: () => void;
   onSaveComment: () => void | Promise<void>;
   onSendBatch: () => void | Promise<void>;
@@ -1452,9 +1465,10 @@ function BoardComposerPopover({
   sending: boolean;
   t: TranslateFn;
 }) {
-  const pendingCount = notes.length + (draft.trim() ? 1 : 0);
+  const pendingCount = notes.length + (draft.trim() ? 1 : 0) + imageAttachments.length;
   const podMembers = target.podMembers ?? [];
   const titleId = useId();
+  const imageInputId = useId();
   return (
     <div
       className="comment-popover"
@@ -1503,6 +1517,18 @@ function BoardComposerPopover({
           ))}
         </div>
       ) : null}
+      {imageAttachments.length > 0 ? (
+        <div className="board-note-list board-image-list">
+          {imageAttachments.map((image, index) => (
+            <div key={`${image.path}-${index}`} className="board-note-item board-image-item">
+              <span title={image.path}>{image.name}</span>
+              <button type="button" className="ghost" onClick={() => onRemoveImageAttachment(index)}>
+                Remove
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
       <textarea
         data-testid="comment-popover-input"
         value={draft}
@@ -1511,6 +1537,9 @@ function BoardComposerPopover({
         placeholder={t('chat.comments.placeholder')}
         onChange={(event) => onDraft(event.target.value)}
       />
+      {imageUploadError ? (
+        <p className="comment-popover-error" role="alert">{imageUploadError}</p>
+      ) : null}
       <div className="comment-popover-actions">
         {existing ? (
           <button type="button" className="comment-popover-remove" onClick={() => onRemove(existing.id)}>
@@ -1525,6 +1554,25 @@ function BoardComposerPopover({
         >
           Add note
         </button>
+        <input
+          id={imageInputId}
+          type="file"
+          accept="image/*"
+          multiple
+          className="sr-only"
+          onChange={(event) => {
+            const files = event.currentTarget.files;
+            if (files && files.length > 0) onUploadImages(files);
+            event.currentTarget.value = '';
+          }}
+        />
+        <label
+          className={`ghost board-image-upload${uploadingImages ? ' disabled' : ''}`}
+          htmlFor={uploadingImages ? undefined : imageInputId}
+          aria-disabled={uploadingImages}
+        >
+          {uploadingImages ? 'Uploading...' : 'Attach image'}
+        </label>
         {target.selectionKind === 'pod' ? null : (
           <button
             type="button"
@@ -3042,6 +3090,9 @@ function HtmlViewer({
   const [inspectSavedAt, setInspectSavedAt] = useState<number | null>(null);
   const [inspectError, setInspectError] = useState<string | null>(null);
   const [queuedBoardNotes, setQueuedBoardNotes] = useState<string[]>([]);
+  const [queuedBoardImages, setQueuedBoardImages] = useState<ChatAttachment[]>([]);
+  const [boardImageUploadError, setBoardImageUploadError] = useState<string | null>(null);
+  const [uploadingBoardImages, setUploadingBoardImages] = useState(false);
   const [sendingBoardBatch, setSendingBoardBatch] = useState(false);
   const [strokePoints, setStrokePoints] = useState<StrokePoint[]>([]);
   const previewStateKey = `${projectId}:${file.name}`;
@@ -4196,6 +4247,8 @@ function HtmlViewer({
     setHoveredCommentTarget(null);
     setCommentDraft('');
     setQueuedBoardNotes([]);
+    setQueuedBoardImages([]);
+    setBoardImageUploadError(null);
     setStrokePoints([]);
   }
 
@@ -4214,18 +4267,64 @@ function HtmlViewer({
     setCommentDraft('');
   }
 
+  async function uploadBoardImages(filesInput: FileList | File[]) {
+    const files = Array.from(filesInput).filter(
+      (file) => file.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(file.name),
+    );
+    if (files.length === 0) {
+      setBoardImageUploadError('Only image files can be attached to a preview comment.');
+      return;
+    }
+    setUploadingBoardImages(true);
+    setBoardImageUploadError(null);
+    try {
+      const result = await uploadProjectFiles(projectId, files);
+      const images = result.uploaded.filter((item) => item.kind === 'image');
+      if (images.length > 0) {
+        setQueuedBoardImages((current) => [...current, ...images]);
+      }
+      if (result.failed.length > 0 || images.length < files.length) {
+        setBoardImageUploadError(
+          result.error ?? `Attached ${images.length} image(s), but ${files.length - images.length} failed.`,
+        );
+      }
+    } finally {
+      setUploadingBoardImages(false);
+    }
+  }
+
+  function removeBoardImage(index: number) {
+    setQueuedBoardImages((current) => current.filter((_, currentIndex) => currentIndex !== index));
+  }
+
   async function sendBoardBatch() {
     if (!activeCommentTarget || !onSendBoardCommentAttachments) return;
     const nextNotes = [...queuedBoardNotes];
     if (commentDraft.trim()) nextNotes.push(commentDraft.trim());
-    if (nextNotes.length === 0) return;
+    if (nextNotes.length === 0 && queuedBoardImages.length === 0) return;
     setSendingBoardBatch(true);
     try {
-      await onSendBoardCommentAttachments(
-        buildBoardCommentAttachments({
-          target: targetFromSnapshot(activeCommentTarget),
-          notes: nextNotes,
+      const target = targetFromSnapshot(activeCommentTarget);
+      const elementAttachments = buildBoardCommentAttachments({
+        target,
+        notes: nextNotes,
+      });
+      const imageNote = nextNotes.length > 0
+        ? nextNotes.join('\n')
+        : 'Use the attached image as a visual reference for this selected preview target.';
+      const imageAttachments = queuedBoardImages.map((image, index) =>
+        buildVisualAnnotationAttachment({
+          order: elementAttachments.length + index + 1,
+          idSeed: image.path,
+          screenshotPath: image.path,
+          markKind: 'click',
+          note: imageNote,
+          bounds: target.position,
+          target,
         }),
+      );
+      await onSendBoardCommentAttachments(
+        [...elementAttachments, ...imageAttachments],
       );
       clearBoardComposer();
     } finally {
@@ -4848,11 +4947,16 @@ function HtmlViewer({
                 existing={previewComments.find((comment) => comment.elementId === activeCommentTarget.elementId) ?? null}
                 draft={commentDraft}
                 notes={queuedBoardNotes}
+                imageAttachments={queuedBoardImages}
+                imageUploadError={boardImageUploadError}
+                uploadingImages={uploadingBoardImages}
                 onDraft={setCommentDraft}
                 onAddDraft={queueCurrentDraft}
                 onRemoveQueuedNote={(index) =>
                   setQueuedBoardNotes((current) => current.filter((_, currentIndex) => currentIndex !== index))
                 }
+                onUploadImages={(files) => void uploadBoardImages(files)}
+                onRemoveImageAttachment={removeBoardImage}
                 onClose={clearBoardComposer}
                 onSaveComment={savePersistentComment}
                 onSendBatch={sendBoardBatch}

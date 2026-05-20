@@ -5,7 +5,12 @@
 // These helpers fail soft (returning null / [] on transport errors) so
 // the UI can stay rendered when the daemon is briefly unreachable.
 
-import type { ImportFolderRequest, ImportFolderResponse } from '@open-design/contracts';
+import type {
+  CreatePathBackedProjectRequest,
+  CreatePathBackedProjectResponse,
+  ImportFolderRequest,
+  ImportFolderResponse,
+} from '@open-design/contracts';
 import { randomUUID } from '../utils/uuid';
 import type {
   ChatMessage,
@@ -67,17 +72,51 @@ export async function createProject(input: {
 
 export async function importFolderProject(
   input: ImportFolderRequest,
-): Promise<ImportFolderResponse | null> {
+): Promise<ImportFolderResponse | { error: string }> {
   try {
     const resp = await fetch('/api/import/folder', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
     });
-    if (!resp.ok) return null;
+    if (!resp.ok) {
+      const text = await resp.text();
+      try {
+        const json = text ? JSON.parse(text) as { error?: { message?: string } | string } : {};
+        const msg = typeof json.error === 'string' ? json.error : json.error?.message;
+        return { error: msg || `Import failed (${resp.status})` };
+      } catch {
+        return { error: `Import failed (${resp.status}) ${resp.statusText}` };
+      }
+    }
     return (await resp.json()) as ImportFolderResponse;
   } catch {
-    return null;
+    return { error: 'Network error' };
+  }
+}
+
+export async function createPathBackedProject(
+  input: CreatePathBackedProjectRequest,
+): Promise<CreatePathBackedProjectResponse | { error: string }> {
+  try {
+    const resp = await fetch('/api/projects/path-backed', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
+    if (!resp.ok) {
+      const text = await resp.text();
+      try {
+        const json = text ? JSON.parse(text) as { error?: { message?: string } | string } : {};
+        const msg = typeof json.error === 'string' ? json.error : json.error?.message;
+        return { error: msg || `Create path-backed project failed (${resp.status})` };
+      } catch {
+        return { error: `Create path-backed project failed (${resp.status}) ${resp.statusText}` };
+      }
+    }
+    return (await resp.json()) as CreatePathBackedProjectResponse;
+  } catch {
+    return { error: 'Network error' };
   }
 }
 

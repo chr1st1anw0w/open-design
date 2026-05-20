@@ -9,6 +9,9 @@ import {
   type SettingsSection,
 } from './components/SettingsDialog';
 import { PrivacyConsentModal } from './components/PrivacyConsentModal';
+import { AssistantProvider } from './components/assistant/AssistantProvider';
+import { AssistantFab } from './components/assistant/AssistantFab';
+import { AssistantSidebar } from './components/assistant/AssistantSidebar';
 import {
   daemonIsLive,
   fetchAppVersionInfo,
@@ -36,6 +39,7 @@ import {
 import { applyAppearanceToDocument } from './state/appearance';
 import { isMacPlatform } from './utils/platform';
 import {
+  createPathBackedProject,
   createProject,
   deleteProject as deleteProjectApi,
   importClaudeDesignZip,
@@ -637,13 +641,30 @@ export function App() {
 
   const handleImportFolder = useCallback(async (baseDir: string) => {
     const result = await importFolderProject({ baseDir });
-    if (!result) return;
+    if ('error' in result) return { error: result.error };
     setProjects((curr) => [result.project, ...curr.filter((p) => p.id !== result.project.id)]);
     navigate({
       kind: 'project',
       projectId: result.project.id,
       fileName: result.entryFile,
     });
+    return {};
+  }, []);
+
+  const handleCreatePathBackedProject = useCallback(async (input: {
+    name: string;
+    baseDir: string;
+    createMode: 'use-existing' | 'create-if-empty';
+  }) => {
+    const result = await createPathBackedProject(input);
+    if ('error' in result) return { error: result.error };
+    setProjects((curr) => [result.project, ...curr.filter((p) => p.id !== result.project.id)]);
+    navigate({
+      kind: 'project',
+      projectId: result.project.id,
+      fileName: result.entryFile,
+    });
+    return {};
   }, []);
 
   // PR #974: on Electron, the desktop main process owns the picker and
@@ -859,7 +880,7 @@ export function App() {
   );
 
   return (
-    <>
+    <AssistantProvider>
       {activeProject ? (
         <ProjectView
           key={activeProject.id}
@@ -902,6 +923,7 @@ export function App() {
           onCreateProject={handleCreateProject}
           onImportClaudeDesign={handleImportClaudeDesign}
           onImportFolder={handleImportFolder}
+          onCreatePathBackedProject={handleCreatePathBackedProject}
           onImportFolderResponse={handleImportFolderResponse}
           onOpenProject={handleOpenProject}
           onOpenLiveArtifact={handleOpenLiveArtifact}
@@ -987,7 +1009,9 @@ export function App() {
           }}
         />
       ) : null}
-    </>
+      <AssistantFab />
+      <AssistantSidebar />
+    </AssistantProvider>
   );
 }
 

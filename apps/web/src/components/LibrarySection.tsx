@@ -13,6 +13,9 @@ import {
   uninstallSkill,
   installDesignSystem,
   uninstallDesignSystem,
+  rescanSkills,
+  rescanDesignSystems,
+  syncDesktopSkills,
 } from '../providers/registry';
 
 type Tab = 'skills' | 'design-systems';
@@ -51,6 +54,10 @@ export function LibrarySection({ cfg, setCfg }: Props) {
   const [installPath, setInstallPath] = useState('');
   const [installing, setInstalling] = useState(false);
   const [installError, setInstallError] = useState<string | null>(null);
+  const [rescanStatus, setRescanStatus] =
+    useState<'idle' | 'running' | 'error' | 'done'>('idle');
+  const [rescanMessage, setRescanMessage] = useState<string | null>(null);
+  const [skillSyncing, setSkillSyncing] = useState(false);
 
   const reloadData = useCallback(() => {
     fetchSkills().then(setSkills);
@@ -192,6 +199,40 @@ export function LibrarySection({ cfg, setCfg }: Props) {
     reloadData();
   }
 
+  async function handleRescan() {
+    setRescanStatus('running');
+    setRescanMessage(null);
+    if (tab === 'skills') {
+      const result = await rescanSkills();
+      if ('error' in result) {
+        setRescanStatus('error');
+        setRescanMessage(result.error);
+        return;
+      }
+      setSkills(result.skills ?? []);
+      const hasIssues = Array.isArray(result.errors) && result.errors.length > 0;
+      const issueSummary = hasIssues
+        ? ` Issues (${result.errors.length}): ${result.errors.slice(0, 2).join(' | ')}`
+        : '';
+      setRescanStatus(hasIssues ? 'error' : 'done');
+      setRescanMessage(`Scanned ${result.count} item(s) from ${result.sourceDir}.${issueSummary}`);
+      return;
+    }
+    const result = await rescanDesignSystems();
+    if ('error' in result) {
+      setRescanStatus('error');
+      setRescanMessage(result.error);
+      return;
+    }
+    setDesignSystems(result.designSystems ?? []);
+    const hasIssues = Array.isArray(result.errors) && result.errors.length > 0;
+    const issueSummary = hasIssues
+      ? ` Issues (${result.errors.length}): ${result.errors.slice(0, 2).join(' | ')}`
+      : '';
+    setRescanStatus(hasIssues ? 'error' : 'done');
+    setRescanMessage(`Scanned ${result.count} item(s) from ${result.sourceDir}.${issueSummary}`);
+  }
+
   async function handleUninstallSkill(id: string) {
     const result = await uninstallSkill(id);
     if ('error' in result) return;
@@ -201,6 +242,38 @@ export function LibrarySection({ cfg, setCfg }: Props) {
   async function handleUninstallDS(id: string) {
     const result = await uninstallDesignSystem(id);
     if ('error' in result) return;
+    reloadData();
+  }
+
+  async function handleSyncDesktopSkills() {
+    if (skillSyncing) return;
+    setSkillSyncing(true);
+    setRescanMessage(null);
+    const preview = await syncDesktopSkills({ dryRun: true });
+    if ('error' in preview) {
+      setRescanStatus('error');
+      setRescanMessage(preview.error);
+      setSkillSyncing(false);
+      return;
+    }
+    const confirmed = window.confirm(
+      `Desktop skills sync preview\nAdded: ${preview.added}\nUpdated: ${preview.updated}\nUnchanged: ${preview.unchanged}\nDeleted(managed only): ${preview.deleted}\nSkipped: ${preview.skipped}\n\nApply sync now?`,
+    );
+    if (!confirmed) {
+      setSkillSyncing(false);
+      return;
+    }
+    const applied = await syncDesktopSkills({ dryRun: false });
+    setSkillSyncing(false);
+    if ('error' in applied) {
+      setRescanStatus('error');
+      setRescanMessage(applied.error);
+      return;
+    }
+    setRescanStatus(applied.errors.length > 0 ? 'error' : 'done');
+    setRescanMessage(
+      `Synced skills to desktop. Added ${applied.added}, updated ${applied.updated}, deleted ${applied.deleted}, skipped ${applied.skipped}.`,
+    );
     reloadData();
   }
 
@@ -267,7 +340,33 @@ export function LibrarySection({ cfg, setCfg }: Props) {
             <Icon name="plus" size={14} />
             {t('settings.libraryInstall')}
           </button>
+          <button
+            type="button"
+            className="library-install-btn"
+            onClick={() => void handleRescan()}
+            disabled={rescanStatus === 'running'}
+          >
+            <Icon name="refresh" size={14} />
+            {rescanStatus === 'running' ? 'Scanning…' : '重新掃描'}
+          </button>
+          {tab === 'skills' ? (
+            <button
+              type="button"
+              className="library-install-btn"
+              onClick={() => void handleSyncDesktopSkills()}
+              disabled={skillSyncing}
+            >
+              <Icon name="upload" size={14} />
+              {skillSyncing ? 'Syncing…' : 'Sync Desktop'}
+            </button>
+          ) : null}
         </div>
+
+        {rescanMessage ? (
+          <p className={rescanStatus === 'error' ? 'library-install-error' : 'hint'}>
+            {rescanMessage}
+          </p>
+        ) : null}
 
         {installOpen && (
           <div className="library-install-form">

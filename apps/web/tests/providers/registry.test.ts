@@ -7,6 +7,7 @@ import {
   DEFAULT_DEPLOY_PROVIDER_ID,
   deployProjectFile,
   fetchCloudflarePagesZones,
+  fetchDesktopProfileStatus,
   fetchDeployConfig,
   fetchAppVersionInfo,
   fetchConnectorDetail,
@@ -14,6 +15,9 @@ import {
   fetchProjectFileText,
   fetchSkillExample,
   isDeployProviderId,
+  syncDesktopComposio,
+  syncDesktopSkills,
+  syncDesktopMcp,
   updateDeployConfig,
   uploadProjectFiles,
 } from '../../src/providers/registry';
@@ -663,6 +667,95 @@ describe('deploy provider registry helpers', () => {
           domainPrefix: 'demo',
         },
       }),
+    });
+  });
+});
+
+describe('desktop profile and sync helpers', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('reads desktop profile status and runtime-attachment flag', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({
+        namespace: 'release-stable-intel',
+        dataDir: '/Users/test/DesktopProfile/data',
+        exists: true,
+        skillsDir: '/Users/test/DesktopProfile/data/skills',
+        designSystemsDir: '/Users/test/DesktopProfile/data/design-systems',
+        mcpConfigPath: '/Users/test/DesktopProfile/data/mcp-config.json',
+        composioConfigPath: '/Users/test/DesktopProfile/data/connectors/composio-config.json',
+        runtimeDataDir: '/Users/test/DesktopProfile/data',
+        isRuntimeUsingDesktopProfile: true,
+        runtimeSqlitePath: '/Users/test/DesktopProfile/data/app.sqlite',
+        desktopSqlitePath: '/Users/test/DesktopProfile/data/app.sqlite',
+      }), { status: 200 })),
+    );
+
+    await expect(fetchDesktopProfileStatus()).resolves.toMatchObject({
+      namespace: 'release-stable-intel',
+      exists: true,
+      isRuntimeUsingDesktopProfile: true,
+    });
+  });
+
+  it('surfaces non-json daemon failures for MCP desktop sync', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('route not found', { status: 404, statusText: 'Not Found' })),
+    );
+
+    await expect(syncDesktopMcp({ dryRun: true })).resolves.toEqual({
+      error: 'Desktop MCP sync failed (404) Not Found: route not found',
+    });
+  });
+
+  it('parses successful Composio desktop sync responses', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({
+        sourceDir: '/Users/test/desktop',
+        targetDir: '/Users/test/runtime',
+        dryRun: true,
+        apiKey: 'unchanged',
+        authConfigIds: { added: 1, updated: 0, unchanged: 2, conflicts: 0 },
+        requiresReauth: false,
+        errors: [],
+        publicConfig: { configured: true, apiKeyTail: '1234' },
+      }), { status: 200 })),
+    );
+
+    await expect(syncDesktopComposio({ dryRun: true })).resolves.toMatchObject({
+      dryRun: true,
+      apiKey: 'unchanged',
+      authConfigIds: { added: 1, unchanged: 2 },
+    });
+  });
+
+  it('parses successful desktop skills sync responses', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({
+        sourceDir: '/Users/test/source',
+        targetDir: '/Users/test/target',
+        dryRun: true,
+        added: 1,
+        updated: 0,
+        unchanged: 2,
+        deleted: 0,
+        skipped: 1,
+        errors: [],
+      }), { status: 200 })),
+    );
+
+    await expect(syncDesktopSkills({ dryRun: true })).resolves.toMatchObject({
+      dryRun: true,
+      added: 1,
+      unchanged: 2,
+      skipped: 1,
     });
   });
 });

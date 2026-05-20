@@ -183,6 +183,24 @@ export interface ImportFolderResponse {
   project: Project;
   conversationId: string;
   entryFile: string | null;
+  resolvedDir?: string;
+}
+
+export type PathBackedCreateMode = 'use-existing' | 'create-if-empty';
+
+export interface CreatePathBackedProjectRequest {
+  name: string;
+  baseDir: string;
+  createMode: PathBackedCreateMode;
+  skillId?: string | null;
+  designSystemId?: string | null;
+  pendingPrompt?: string;
+  metadata?: Omit<ProjectMetadata, 'baseDir' | 'fromTrustedPicker' | 'importedFrom'>;
+}
+
+export interface CreatePathBackedProjectResponse extends CreateProjectResponse {
+  resolvedDir: string;
+  entryFile: string | null;
 }
 
 export interface ConversationsResponse {
