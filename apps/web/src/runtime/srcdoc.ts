@@ -448,31 +448,128 @@ function injectSelectionBridge(
       };
     } catch (_) { return null; }
   }
-  function targetFrom(el){
-    var id = el.getAttribute('data-od-id') || el.getAttribute('data-screen-label');
-    if (!id) return null;
+  var extraSelectors = [];
+  var EXCLUDED_TAGS = {
+    html: true, head: true, body: true, script: true, style: true,
+    noscript: true, meta: true, link: true
+  };
+  function shouldExclude(el) {
+    var tag = el.tagName ? el.tagName.toLowerCase() : '';
+    return !!EXCLUDED_TAGS[tag];
+  }
+  function isVisible(el) {
+    if (!el.getBoundingClientRect) return false;
     var rect = el.getBoundingClientRect();
-    var tag = el.tagName ? el.tagName.toLowerCase() : 'element';
-    var cls = typeof el.className === 'string' && el.className.trim() ? '.' + el.className.trim().split(/\\s+/).slice(0,2).join('.') : '';
+    if (rect.width < 4 || rect.height < 4) return false;
+    try {
+      var style = window.getComputedStyle(el);
+      if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
+    } catch (_) {
+      return false;
+    }
+    return true;
+  }
+  function stableHash(str) {
+    var hash = 0;
+    for (var i = 0; i < str.length; i++) {
+      hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+    }
+    return Math.abs(hash).toString(36);
+  }
+  function getCssPath(el) {
+    var path = [];
+    var cur = el;
+    while (cur && cur.nodeType === Node.ELEMENT_NODE) {
+      var id = cur.getAttribute('data-od-id') || cur.getAttribute('data-screen-label');
+      if (id) {
+        var sel = cur.hasAttribute('data-od-id') ? '[data-od-id="' + esc(id) + '"]' : '[data-screen-label="' + esc(id) + '"]';
+        path.unshift(sel);
+        break;
+      }
+      var tag = cur.nodeName.toLowerCase();
+      if (cur.id) {
+        path.unshift(tag + '#' + esc(cur.id));
+        break;
+      }
+      var sib = cur, nth = 1;
+      while (sib = sib.previousElementSibling) {
+        if (sib.nodeName.toLowerCase() === tag) nth++;
+      }
+      if (nth > 1) {
+        tag += ':nth-of-type(' + nth + ')';
+      }
+      path.unshift(tag);
+      cur = cur.parentElement;
+    }
+    return path.join(' > ');
+  }
+  function targetFrom(el){
+    if (!el || el.nodeType !== Node.ELEMENT_NODE) return null;
+    var id = el.getAttribute('data-od-id') || el.getAttribute('data-screen-label');
+    var isSourceBacked = true;
+    var selector = '';
+    var label = '';
+    if (id) {
+      selector = el.hasAttribute('data-od-id') ? '[data-od-id="' + esc(id) + '"]' : '[data-screen-label="' + esc(id) + '"]';
+      var tag = el.tagName ? el.tagName.toLowerCase() : 'element';
+      var cls = typeof el.className === 'string' && el.className.trim() ? '.' + el.className.trim().split(/\\s+/).slice(0,2).join('.') : '';
+      label = tag + cls;
+    } else {
+      if (shouldExclude(el) || !isVisible(el)) return null;
+      var path = getCssPath(el);
+      if (!path) return null;
+      id = 'runtime-' + stableHash(path);
+      selector = path;
+      var tag = el.tagName ? el.tagName.toLowerCase() : 'element';
+      var cls = typeof el.className === 'string' && el.className.trim() ? '.' + el.className.trim().split(/\\s+/).slice(0,2).join('.') : '';
+      var elId = el.id ? '#' + el.id : '';
+      label = tag + cls + elId;
+      isSourceBacked = false;
+    }
+    var rect = el.getBoundingClientRect();
     var html = '';
+    var imageSrc = '';
+    var tagName = el.tagName ? el.tagName.toLowerCase() : '';
+    if (tagName === 'img' || tagName === 'iframe') {
+      imageSrc = el.getAttribute('src') || '';
+    }
     try { html = (el.outerHTML || '').replace(/\\s+/g, ' ').match(/^<[^>]+>/)?.[0] || ''; } catch (_) {}
     return {
       type: 'od:comment-target',
       elementId: id,
-      selector: el.hasAttribute('data-od-id') ? '[data-od-id="' + esc(id) + '"]' : '[data-screen-label="' + esc(id) + '"]',
-      label: tag + cls,
+      selector: selector,
+      label: label,
+      tagName: tagName,
+      imageSrc: imageSrc,
       text: (el.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 160),
       position: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) },
       htmlHint: html.slice(0, 180),
-      style: styleSnapshot(el)
+      style: styleSnapshot(el),
+      sourceBacked: isSourceBacked
     };
   }
   function allTargets(){
-    var nodes = document.querySelectorAll('[data-od-id], [data-screen-label]');
     var items = [];
+    var seen = Object.create(null);
+    var nodes = document.querySelectorAll('[data-od-id], [data-screen-label]');
     for (var i = 0; i < nodes.length; i++) {
       var item = targetFrom(nodes[i]);
-      if (item) items.push(item);
+      if (item) {
+        items.push(item);
+        seen[item.elementId] = true;
+      }
+    }
+    for (var j = 0; j < extraSelectors.length; j++) {
+      try {
+        var el = document.querySelector(extraSelectors[j]);
+        if (el) {
+          var item = targetFrom(el);
+          if (item && !seen[item.elementId]) {
+            items.push(item);
+            seen[item.elementId] = true;
+          }
+        }
+      } catch (_) {}
     }
     return items;
   }
@@ -501,9 +598,15 @@ function injectSelectionBridge(
   }
   function closestTarget(event){
     var el = event.target;
-    while (el && el !== document.documentElement) {
-      if (el.getAttribute && (el.hasAttribute('data-od-id') || el.hasAttribute('data-screen-label'))) return el;
-      el = el.parentElement;
+    var cur = el;
+    while (cur && cur !== document.documentElement) {
+      if (cur.getAttribute && (cur.hasAttribute('data-od-id') || cur.hasAttribute('data-screen-label'))) return cur;
+      cur = cur.parentElement;
+    }
+    cur = el;
+    while (cur && cur !== document.documentElement) {
+      if (cur.tagName && !shouldExclude(cur) && isVisible(cur)) return cur;
+      cur = cur.parentElement;
     }
     return null;
   }
@@ -541,6 +644,11 @@ function injectSelectionBridge(
   window.addEventListener('message', function(ev){
     var data = ev && ev.data;
     if (!data || !data.type) return;
+    if (data.type === 'od:comment-selectors') {
+      extraSelectors = Array.isArray(data.selectors) ? data.selectors : [];
+      schedulePostTargets();
+      return;
+    }
     if (data.type === 'od:comment-mode') {
       commentEnabled = !!data.enabled;
       mode = data.mode === 'pod' ? 'pod' : 'picker';
@@ -639,7 +747,11 @@ function injectSelectionBridge(
     ev.preventDefault();
     ev.stopPropagation();
     var payload = targetFrom(el);
-    if (payload) window.parent.postMessage(payload, '*');
+    if (payload) {
+      payload.multi = !!ev.shiftKey;
+      payload.additive = !!ev.shiftKey;
+      window.parent.postMessage(payload, '*');
+    }
   }, true);
   // Pod drawing — only active in comment mode with the 'pod' tool.
   document.addEventListener('pointerdown', function(ev){

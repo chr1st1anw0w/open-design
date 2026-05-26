@@ -1552,6 +1552,36 @@ export async function openFolderDialog(): Promise<string | null> {
   }
 }
 
+export async function importProjectImagesFromDialog(projectId: string): Promise<UploadProjectFilesResult> {
+  try {
+    const resp = await fetch(`/api/projects/${encodeURIComponent(projectId)}/import-images-from-dialog`, {
+      method: 'POST',
+    });
+    if (!resp.ok) {
+      const payload = (await resp.json().catch(() => null)) as { error?: string; message?: string } | null;
+      return {
+        uploaded: [],
+        failed: [],
+        error: payload?.error || payload?.message || `image import failed (${resp.status})`,
+      };
+    }
+    const json = (await resp.json()) as {
+      files?: { name: string; path: string; size?: number; originalName?: string }[];
+    };
+    return {
+      uploaded: (json.files ?? []).map((f) => ({
+        path: f.path,
+        name: f.originalName ?? f.name,
+        kind: 'image' as const,
+        size: f.size,
+      })),
+      failed: [],
+    };
+  } catch {
+    return { uploaded: [], failed: [], error: 'image import request failed' };
+  }
+}
+
 export async function fetchDesignSystemPreview(id: string): Promise<string | null> {
   try {
     const resp = await fetch(`/api/design-systems/${encodeURIComponent(id)}/preview`);

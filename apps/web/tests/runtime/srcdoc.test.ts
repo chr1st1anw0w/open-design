@@ -189,4 +189,13 @@ describe('buildSrcdoc', () => {
     expect(srcdoc).not.toContain('<script data-od-source-path=');
     expect(srcdoc.indexOf('data-od-source-path="path-0"')).toBeLessThan(srcdoc.indexOf('document.body.prepend'));
   });
+
+  it('injects DOM fallback target selector discovery utilities', () => {
+    const srcdoc = buildSrcdoc('<main>Hero</main>', { commentBridge: true });
+    expect(srcdoc).toContain('function getCssPath(');
+    expect(srcdoc).toContain('function isVisible(');
+    expect(srcdoc).toContain('function shouldExclude(');
+    expect(srcdoc).toContain('var extraSelectors = [];');
+    expect(srcdoc).toContain("data.type === 'od:comment-selectors'");
+  });
 });

@@ -18,6 +18,7 @@ import {
   fetchProjectDeployments,
   fetchProjectFilePreview,
   fetchProjectFileText,
+  importProjectImagesFromDialog,
   liveArtifactPreviewUrl,
   projectFileUrl,
   projectRawUrl,
@@ -1434,11 +1435,15 @@ function BoardComposerPopover({
   imageAttachments,
   imageUploadError,
   uploadingImages,
+  canReplaceImage,
+  replacingImage,
+  replaceImageError,
   onDraft,
   onAddDraft,
   onRemoveQueuedNote,
   onUploadImages,
   onRemoveImageAttachment,
+  onReplaceImage,
   onClose,
   onSaveComment,
   onSendBatch,
@@ -1453,11 +1458,15 @@ function BoardComposerPopover({
   imageAttachments: ChatAttachment[];
   imageUploadError: string | null;
   uploadingImages: boolean;
+  canReplaceImage: boolean;
+  replacingImage: boolean;
+  replaceImageError: string | null;
   onDraft: (value: string) => void;
   onAddDraft: () => void;
   onRemoveQueuedNote: (index: number) => void;
   onUploadImages: (files: FileList | File[]) => void;
   onRemoveImageAttachment: (index: number) => void;
+  onReplaceImage: () => void | Promise<void>;
   onClose: () => void;
   onSaveComment: () => void | Promise<void>;
   onSendBatch: () => void | Promise<void>;
@@ -1495,7 +1504,7 @@ function BoardComposerPopover({
       </div>
       {podMembers.length > 0 ? (
         <div className="board-pod-summary">
-          <strong>{target.memberCount || podMembers.length} captured items</strong>
+          <strong>{target.memberCount || podMembers.length} selected elements</strong>
           <div className="board-pod-members">
             {podMembers.slice(0, 6).map((member) => (
               <span key={member.elementId} className="board-pod-chip">
@@ -1537,8 +1546,8 @@ function BoardComposerPopover({
         placeholder={t('chat.comments.placeholder')}
         onChange={(event) => onDraft(event.target.value)}
       />
-      {imageUploadError ? (
-        <p className="comment-popover-error" role="alert">{imageUploadError}</p>
+      {imageUploadError || replaceImageError ? (
+        <p className="comment-popover-error" role="alert">{imageUploadError || replaceImageError}</p>
       ) : null}
       <div className="comment-popover-actions">
         {existing ? (
@@ -1573,6 +1582,16 @@ function BoardComposerPopover({
         >
           {uploadingImages ? 'Uploading...' : 'Attach image'}
         </label>
+        {canReplaceImage ? (
+          <button
+            type="button"
+            className="ghost"
+            disabled={replacingImage}
+            onClick={() => void onReplaceImage()}
+          >
+            {replacingImage ? 'Replacing...' : 'Replace'}
+          </button>
+        ) : null}
         {target.selectionKind === 'pod' ? null : (
           <button
             type="button"
@@ -2553,6 +2572,83 @@ function buildPodSnapshot(input: {
   };
 }
 
+function buildPickerGroupSnapshot(input: {
+  filePath: string;
+  selected: PreviewCommentSnapshot[];
+}): PreviewCommentSnapshot | null {
+  const selected = pruneContainerSelections(input.selected);
+  if (selected.length === 0) return null;
+  const bounds = selected.reduce(
+    (acc, snapshot) => {
+      const rect = snapshot.position;
+      return {
+        left: Math.min(acc.left, rect.x),
+        top: Math.min(acc.top, rect.y),
+        right: Math.max(acc.right, rect.x + rect.width),
+        bottom: Math.max(acc.bottom, rect.y + rect.height),
+      };
+    },
+    {
+      left: Number.POSITIVE_INFINITY,
+      top: Number.POSITIVE_INFINITY,
+      right: Number.NEGATIVE_INFINITY,
+      bottom: Number.NEGATIVE_INFINITY,
+    },
+  );
+  const podMembers: PreviewCommentMember[] = selected.map((snapshot) => ({
+    elementId: snapshot.elementId,
+    selector: snapshot.selector,
+    label: snapshot.label,
+    text: snapshot.text,
+    position: snapshot.position,
+    htmlHint: snapshot.htmlHint,
+  }));
+  const summary = selected
+    .slice(0, 3)
+    .map((snapshot) => summarizeSnapshot(snapshot))
+    .join(' · ');
+  const htmlHint = selected
+    .slice(0, 4)
+    .map((snapshot) => snapshot.htmlHint)
+    .filter(Boolean)
+    .join(' ');
+  const combinedSelector = selected
+    .slice(0, 8)
+    .map((snapshot) => snapshot.selector)
+    .filter(Boolean)
+    .join(', ');
+  return {
+    filePath: input.filePath,
+    elementId: `group-${stableGroupId(selected.map((snapshot) => snapshot.elementId))}`,
+    selector: combinedSelector || 'body *',
+    label: summary || `${selected.length} selected elements`,
+    text: selected
+      .slice(0, 4)
+      .map((snapshot) => snapshot.text)
+      .filter(Boolean)
+      .join(' · '),
+    position: {
+      x: Math.round(bounds.left),
+      y: Math.round(bounds.top),
+      width: Math.max(1, Math.round(bounds.right - bounds.left)),
+      height: Math.max(1, Math.round(bounds.bottom - bounds.top)),
+    },
+    htmlHint: htmlHint.slice(0, 180),
+    selectionKind: 'pod',
+    memberCount: selected.length,
+    podMembers,
+  };
+}
+
+function stableGroupId(ids: string[]): string {
+  const input = ids.slice().sort().join('|');
+  let hash = 0;
+  for (let i = 0; i < input.length; i++) {
+    hash = ((hash << 5) - hash + input.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash).toString(36) || 'selection';
+}
+
 function pruneContainerSelections(
   snapshots: PreviewCommentSnapshot[],
 ): PreviewCommentSnapshot[] {
@@ -3065,6 +3161,7 @@ function HtmlViewer({
   );
   const [activeCommentTarget, setActiveCommentTarget] = useState<PreviewCommentSnapshot | null>(null);
   const [hoveredCommentTarget, setHoveredCommentTarget] = useState<PreviewCommentSnapshot | null>(null);
+  const [selectedCommentTargets, setSelectedCommentTargets] = useState<Map<string, PreviewCommentSnapshot>>(() => new Map());
   const [liveCommentTargets, setLiveCommentTargets] = useState<Map<string, PreviewCommentSnapshot>>(() => new Map());
   const liveCommentTargetsRef = useRef(liveCommentTargets);
   const [commentDraft, setCommentDraft] = useState('');
@@ -3094,6 +3191,8 @@ function HtmlViewer({
   const [boardImageUploadError, setBoardImageUploadError] = useState<string | null>(null);
   const [uploadingBoardImages, setUploadingBoardImages] = useState(false);
   const [sendingBoardBatch, setSendingBoardBatch] = useState(false);
+  const [replacingBoardImage, setReplacingBoardImage] = useState(false);
+  const [boardReplaceError, setBoardReplaceError] = useState<string | null>(null);
   const [strokePoints, setStrokePoints] = useState<StrokePoint[]>([]);
   const previewStateKey = `${projectId}:${file.name}`;
   const previewScale = zoom / 100;
@@ -3355,6 +3454,10 @@ function HtmlViewer({
     if (!win) return;
     win.postMessage({ type: 'od:comment-mode', enabled: boardMode, mode: boardTool }, '*');
     win.postMessage({ type: 'od-edit-mode', enabled: manualEditMode }, '*');
+    win.postMessage({
+      type: 'od:comment-selectors',
+      selectors: previewComments.map((c) => c.selector).filter(Boolean),
+    }, '*');
   }
 
   useEffect(() => {
@@ -3362,6 +3465,15 @@ function HtmlViewer({
     if (!win) return;
     win.postMessage({ type: 'od:inspect-mode', enabled: inspectMode }, '*');
   }, [inspectMode, srcDoc]);
+
+  useEffect(() => {
+    const win = iframeRef.current?.contentWindow;
+    if (!win) return;
+    win.postMessage({
+      type: 'od:comment-selectors',
+      selectors: previewComments.map((c) => c.selector).filter(Boolean),
+    }, '*');
+  }, [previewComments, srcDoc]);
 
   // Mirror the bridge's `od:comment-targets` broadcast into
   // `liveCommentTargets` whenever EITHER Inspect or Comments mode is
@@ -3405,6 +3517,8 @@ function HtmlViewer({
             height: clampBridgeCoordinate(item?.position?.height),
           },
           htmlHint: String(item?.htmlHint || ''),
+          tagName: String(item?.tagName || ''),
+          imageSrc: String(item?.imageSrc || ''),
           selectionKind: 'element',
           memberCount: undefined,
         });
@@ -3424,7 +3538,11 @@ function HtmlViewer({
     setInspectOverrides({});
     setInspectSavedAt(null);
     setInspectError(null);
+    setSelectedCommentTargets(new Map());
     setQueuedBoardNotes([]);
+    setQueuedBoardImages([]);
+    setBoardImageUploadError(null);
+    setBoardReplaceError(null);
     setStrokePoints([]);
     setManualEditTargets([]);
     setSelectedManualEditTarget(null);
@@ -3476,8 +3594,12 @@ function HtmlViewer({
     if (!boardMode) {
       setActiveCommentTarget((current) => (current ? null : current));
       setHoveredCommentTarget((current) => (current ? null : current));
+      setSelectedCommentTargets((current) => (current.size > 0 ? new Map() : current));
       setLiveCommentTargets((current) => (current.size > 0 ? new Map() : current));
       setQueuedBoardNotes((current) => (current.length > 0 ? [] : current));
+      setQueuedBoardImages((current) => (current.length > 0 ? [] : current));
+      setBoardImageUploadError(null);
+      setBoardReplaceError(null);
       setStrokePoints((current) => (current.length > 0 ? [] : current));
       return;
     }
@@ -3494,6 +3616,8 @@ function HtmlViewer({
         height: clampBridgeCoordinate(data.position?.height),
       },
       htmlHint: String(data.htmlHint || ''),
+      tagName: String(data.tagName || ''),
+      imageSrc: String(data.imageSrc || ''),
       selectionKind: data.selectionKind === 'pod' ? 'pod' : 'element',
       memberCount: finiteBridgeInteger(data.memberCount),
       podMembers: Array.isArray(data.podMembers) ? data.podMembers : undefined,
@@ -3502,6 +3626,8 @@ function HtmlViewer({
       if (ev.source !== iframeRef.current?.contentWindow) return;
       const data = ev.data as (Partial<PreviewCommentSnapshot> & {
         type?: string;
+        multi?: boolean;
+        additive?: boolean;
         targets?: Array<Partial<PreviewCommentSnapshot>>;
         points?: StrokePoint[];
       }) | null;
@@ -3543,12 +3669,11 @@ function HtmlViewer({
       if (data.type === 'od:comment-target') {
         const snapshot = snapshotFromData(data);
         if (!snapshot.elementId) return;
-        const existing = previewComments.find((comment) => comment.elementId === snapshot.elementId);
-        setActiveCommentTarget(snapshot);
-        setHoveredCommentTarget(snapshot);
-        setLiveCommentTargets((current) => new Map(current).set(snapshot.elementId, snapshot));
-        setCommentDraft(existing?.note ?? '');
+        selectPickerCommentTarget(snapshot, Boolean(data.multi || data.additive));
         setQueuedBoardNotes([]);
+        setQueuedBoardImages([]);
+        setBoardImageUploadError(null);
+        setBoardReplaceError(null);
         return;
       }
       if (data.type === 'od:pod-clear') {
@@ -3582,6 +3707,9 @@ function HtmlViewer({
         setActiveCommentTarget(nextTarget);
         setHoveredCommentTarget(nextTarget);
         setQueuedBoardNotes([]);
+        setQueuedBoardImages([]);
+        setBoardImageUploadError(null);
+        setBoardReplaceError(null);
         setCommentDraft('');
         setStrokePoints([]);
       }
@@ -4245,10 +4373,12 @@ function HtmlViewer({
   function clearBoardComposer() {
     setActiveCommentTarget(null);
     setHoveredCommentTarget(null);
+    setSelectedCommentTargets(new Map());
     setCommentDraft('');
     setQueuedBoardNotes([]);
     setQueuedBoardImages([]);
     setBoardImageUploadError(null);
+    setBoardReplaceError(null);
     setStrokePoints([]);
   }
 
@@ -4295,6 +4425,81 @@ function HtmlViewer({
 
   function removeBoardImage(index: number) {
     setQueuedBoardImages((current) => current.filter((_, currentIndex) => currentIndex !== index));
+  }
+
+  function selectPickerCommentTarget(snapshot: PreviewCommentSnapshot, additive: boolean) {
+    setLiveCommentTargets((current) => new Map(current).set(snapshot.elementId, snapshot));
+    setHoveredCommentTarget(snapshot);
+    setSelectedCommentTargets((current) => {
+      const next = additive ? new Map(current) : new Map<string, PreviewCommentSnapshot>();
+      if (additive && next.has(snapshot.elementId)) {
+        next.delete(snapshot.elementId);
+      } else {
+        next.set(snapshot.elementId, snapshot);
+      }
+      const selected = Array.from(next.values());
+      const nextActive = selected.length > 1
+        ? buildPickerGroupSnapshot({ filePath: file.name, selected })
+        : selected[0] ?? null;
+      setActiveCommentTarget(nextActive);
+      const existing = selected.length === 1
+        ? previewComments.find((comment) => comment.elementId === selected[0]?.elementId)
+        : null;
+      setCommentDraft(existing?.note ?? '');
+      return next;
+    });
+  }
+
+  async function replaceActiveBoardImage() {
+    if (!activeCommentTarget || source == null || replacingBoardImage) return;
+    if (!isReplaceableImageTarget(activeCommentTarget)) return;
+    setReplacingBoardImage(true);
+    setBoardReplaceError(null);
+    try {
+      const result = await importProjectImagesFromDialog(projectId);
+      if (result.error) {
+        setBoardReplaceError(result.error);
+        return;
+      }
+      const image = result.uploaded.find((item) => item.kind === 'image');
+      if (!image) return;
+      const nextSrc = projectRelativeAssetRef(file.name, image.path);
+      const tagName = (activeCommentTarget.tagName || '').toLowerCase();
+      const patch: ManualEditPatch = tagName === 'iframe'
+        ? {
+            id: activeCommentTarget.elementId,
+            kind: 'set-attributes',
+            attributes: { src: nextSrc },
+          }
+        : {
+            id: activeCommentTarget.elementId,
+            kind: 'set-image',
+            src: nextSrc,
+            alt: activeCommentTarget.label || image.name,
+          };
+      const patched = applyManualEditPatch(source, patch);
+      if (!patched.ok) {
+        setBoardReplaceError(patched.error ?? 'Could not replace this image target.');
+        return;
+      }
+      const saved = await writeProjectTextFile(projectId, file.name, patched.source, {
+        artifactManifest: file.artifactManifest,
+      });
+      if (!saved) {
+        setBoardReplaceError('Could not save the image replacement.');
+        return;
+      }
+      setSource(patched.source);
+      setReloadKey((key) => key + 1);
+      setActiveCommentTarget((current) =>
+        current?.elementId === activeCommentTarget.elementId
+          ? { ...current, imageSrc: nextSrc }
+          : current,
+      );
+      await onFileSaved?.();
+    } finally {
+      setReplacingBoardImage(false);
+    }
   }
 
   async function sendBoardBatch() {
@@ -4521,7 +4726,7 @@ function HtmlViewer({
                 return;
               }
               setManualEditMode(false);
-              activateBoard(boardTool);
+              activateBoard('inspect');
             }}
           >
             <Icon name="tweaks" size={13} />
@@ -4535,25 +4740,13 @@ function HtmlViewer({
                 type="button"
                 data-testid="comment-mode-toggle"
                 disabled={!boardAvailable}
-                title="Pick one element"
+                title="Pick elements. Shift-click to select multiple."
                 aria-label="Picker"
                 aria-pressed={boardTool === 'inspect'}
                 onClick={() => activateBoard('inspect')}
               >
                 <Icon name="edit" size={13} />
                 <span>Picker</span>
-              </button>
-              <button
-                className={`viewer-action${boardTool === 'pod' ? ' active' : ''}`}
-                type="button"
-                disabled={!boardAvailable}
-                title="Draw a pod selection"
-                aria-label="Pods"
-                aria-pressed={boardTool === 'pod'}
-                onClick={() => activateBoard('pod')}
-              >
-                <Icon name="draw" size={13} />
-                <span>Pods</span>
               </button>
             </>
           ) : null}
@@ -4936,8 +5129,12 @@ function HtmlViewer({
                 onOpenComment={(comment, snapshot) => {
                   setActiveCommentTarget(snapshot);
                   setHoveredCommentTarget(snapshot);
+                  setSelectedCommentTargets(new Map([[snapshot.elementId, snapshot]]));
                   setCommentDraft(comment.note);
                   setQueuedBoardNotes([]);
+                  setQueuedBoardImages([]);
+                  setBoardImageUploadError(null);
+                  setBoardReplaceError(null);
                 }}
               />
             ) : null}
@@ -4950,6 +5147,9 @@ function HtmlViewer({
                 imageAttachments={queuedBoardImages}
                 imageUploadError={boardImageUploadError}
                 uploadingImages={uploadingBoardImages}
+                canReplaceImage={isReplaceableImageTarget(activeCommentTarget)}
+                replacingImage={replacingBoardImage}
+                replaceImageError={boardReplaceError}
                 onDraft={setCommentDraft}
                 onAddDraft={queueCurrentDraft}
                 onRemoveQueuedNote={(index) =>
@@ -4957,6 +5157,7 @@ function HtmlViewer({
                 }
                 onUploadImages={(files) => void uploadBoardImages(files)}
                 onRemoveImageAttachment={removeBoardImage}
+                onReplaceImage={replaceActiveBoardImage}
                 onClose={clearBoardComposer}
                 onSaveComment={savePersistentComment}
                 onSendBatch={sendBoardBatch}
@@ -5408,6 +5609,35 @@ function HtmlViewer({
 function baseDirFor(fileName: string): string {
   const idx = fileName.lastIndexOf('/');
   return idx >= 0 ? fileName.slice(0, idx + 1) : '';
+}
+
+function projectRelativeAssetRef(ownerFileName: string, assetPath: string): string {
+  const baseDir = baseDirFor(ownerFileName);
+  if (!baseDir) return assetPath;
+  const rel = posixRelative(baseDir.replace(/\/$/, ''), assetPath);
+  return rel || assetPath.split('/').pop() || assetPath;
+}
+
+function posixRelative(fromDir: string, toPath: string): string {
+  const from = fromDir.split('/').filter(Boolean);
+  const to = toPath.split('/').filter(Boolean);
+  while (from.length > 0 && to.length > 0 && from[0] === to[0]) {
+    from.shift();
+    to.shift();
+  }
+  return [...from.map(() => '..'), ...to].join('/');
+}
+
+function isReplaceableImageTarget(snapshot: PreviewCommentSnapshot): boolean {
+  if (snapshot.selectionKind === 'pod') return false;
+  const tagName = (snapshot.tagName || '').toLowerCase();
+  if (tagName === 'img') return true;
+  if (tagName !== 'iframe') return false;
+  return looksLikeImageAsset(snapshot.imageSrc || snapshot.htmlHint);
+}
+
+function looksLikeImageAsset(value: string): boolean {
+  return /\.(png|jpe?g|webp|gif|svg|avif)(?:[?#].*)?$/i.test(value);
 }
 
 function hasRelativeAssetRefs(html: string): boolean {

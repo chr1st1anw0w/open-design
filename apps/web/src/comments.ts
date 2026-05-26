@@ -17,6 +17,8 @@ export interface PreviewCommentSnapshot {
   text: string;
   position: { x: number; y: number; width: number; height: number };
   htmlHint: string;
+  tagName?: string;
+  imageSrc?: string;
   selectionKind?: PreviewCommentSelectionKind;
   memberCount?: number;
   podMembers?: PreviewCommentMember[];
@@ -263,7 +265,7 @@ export function selectionKindLabel(
 ): string {
   if (selectionKind === 'visual') return 'Visual mark';
   if (selectionKind === 'pod') {
-    return memberCount && memberCount > 0 ? `Pod · ${memberCount} items` : 'Pod';
+    return memberCount && memberCount > 0 ? `${memberCount} selected elements` : 'Selected elements';
   }
   return 'Element';
 }

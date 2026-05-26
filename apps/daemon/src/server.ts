@@ -2476,6 +2476,103 @@ function openNativeFolderDialog() {
   });
 }
 
+const NATIVE_IMAGE_EXTENSIONS = new Set([
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".webp",
+  ".gif",
+  ".svg",
+  ".avif",
+]);
+
+function openNativeImageFilesDialog() {
+  return new Promise((resolve) => {
+    const platform = process.platform;
+    if (platform === "darwin") {
+      execFile(
+        "osascript",
+        [
+          "-e",
+          [
+            'set chosenFiles to choose file with prompt "Select replacement image" of type {"public.image"} with multiple selections allowed',
+            'set output to ""',
+            'repeat with f in chosenFiles',
+            "set output to output & POSIX path of f & linefeed",
+            "end repeat",
+            "return output",
+          ].join("\n"),
+        ],
+        { timeout: 120_000 },
+        (err, stdout) => {
+          if (err) return resolve([]);
+          resolve(parseNativeDialogPaths(stdout));
+        },
+      );
+    } else if (platform === "linux") {
+      execFile(
+        "zenity",
+        [
+          "--file-selection",
+          "--multiple",
+          "--separator=\n",
+          "--title=Select replacement image",
+          "--file-filter=Images | *.png *.jpg *.jpeg *.webp *.gif *.svg *.avif",
+        ],
+        { timeout: 120_000 },
+        (err, stdout) => {
+          if (err) return resolve([]);
+          resolve(parseNativeDialogPaths(stdout));
+        },
+      );
+    } else if (platform === "win32") {
+      const script = [
+        "Add-Type -AssemblyName System.Windows.Forms;",
+        "$dialog = New-Object System.Windows.Forms.OpenFileDialog;",
+        "$dialog.Title = 'Select replacement image';",
+        "$dialog.Multiselect = $true;",
+        "$dialog.Filter = 'Images|*.png;*.jpg;*.jpeg;*.webp;*.gif;*.svg;*.avif';",
+        "if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { $dialog.FileNames -join \"`n\" }",
+      ].join(" ");
+      execFile(
+        "powershell.exe",
+        ["-NoProfile", "-Sta", "-Command", script],
+        { timeout: 120_000 },
+        (err, stdout) => {
+          if (err) return resolve([]);
+          resolve(parseNativeDialogPaths(stdout));
+        },
+      );
+    } else {
+      resolve([]);
+    }
+  });
+}
+
+function parseNativeDialogPaths(stdout) {
+  return String(stdout || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function isSupportedImagePath(filePath) {
+  return NATIVE_IMAGE_EXTENSIONS.has(path.extname(filePath).toLowerCase());
+}
+
+async function nextAvailableProjectFilename(dir, originalName) {
+  const safe = sanitizeName(originalName);
+  if (!fs.existsSync(path.join(dir, safe))) return safe;
+  const dot = safe.lastIndexOf(".");
+  const stem = dot > 0 ? safe.slice(0, dot) : safe;
+  const ext = dot > 0 ? safe.slice(dot) : "";
+  for (let i = 1; i < 1000; i++) {
+    const candidate = `${stem} (${i})${ext}`;
+    if (!fs.existsSync(path.join(dir, candidate))) return candidate;
+  }
+  return `${stem}-${Date.now().toString(36)}${ext}`;
+}
+
 /**
  * @param {ApiErrorCode} code
  * @param {string} message
@@ -7175,6 +7272,48 @@ export async function startServer({
       res
         .status(500)
         .json({ error: String(err && err.message ? err.message : err) });
+    }
+  });
+
+  app.post("/api/projects/:id/import-images-from-dialog", async (req, res) => {
+    if (!isLocalSameOrigin(req, resolvedPort)) {
+      return res.status(403).json({ error: "cross-origin request rejected" });
+    }
+    const project = getProject(db, req.params.id);
+    if (!project) return res.status(404).json({ error: "project not found" });
+    try {
+      const selected = await openNativeImageFilesDialog();
+      if (!Array.isArray(selected) || selected.length === 0) {
+        return res.json({ files: [] });
+      }
+      const dir = await ensureProject(PROJECTS_DIR, req.params.id, project.metadata);
+      const out = [];
+      for (const sourcePath of selected) {
+        if (!isSupportedImagePath(sourcePath)) continue;
+        const stat = await fs.promises.stat(sourcePath).catch(() => null);
+        if (!stat?.isFile()) continue;
+        const name = await nextAvailableProjectFilename(dir, path.basename(sourcePath));
+        const targetPath = path.join(dir, name);
+        await fs.promises.copyFile(sourcePath, targetPath);
+        const copied = await fs.promises.stat(targetPath);
+        out.push({
+          name,
+          path: name,
+          size: copied.size,
+          mtime: copied.mtimeMs,
+          originalName: path.basename(sourcePath),
+          kind: "image",
+          mime: mimeFor(name),
+        });
+      }
+      res.json({ files: out });
+    } catch (err) {
+      sendApiError(
+        res,
+        500,
+        "INTERNAL_ERROR",
+        String(err && err.message ? err.message : err),
+      );
     }
   });
 
