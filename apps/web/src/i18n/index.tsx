@@ -8,67 +8,67 @@ import {
   useMemo,
   useState,
   type ReactNode,
-} from 'react';
-import { de } from './locales/de';
-import { en } from './locales/en';
-import { id } from './locales/id';
-import { esES } from './locales/es-ES';
-import { fa } from './locales/fa';
-import { ar } from './locales/ar';
-import { ja } from './locales/ja';
-import { ko } from './locales/ko';
-import { ptBR } from './locales/pt-BR';
-import { ru } from './locales/ru';
-import { zhCN } from './locales/zh-CN';
-import { zhTW } from './locales/zh-TW';
-import { pl } from './locales/pl';
-import { hu } from './locales/hu';
-import { fr } from './locales/fr';
-import { uk } from './locales/uk';
-import { tr } from './locales/tr';
-import { th } from './locales/th';
-import { LOCALES, type Dict, type Locale } from './types';
+} from "react";
+import { de } from "./locales/de";
+import { en } from "./locales/en";
+import { id } from "./locales/id";
+import { esES } from "./locales/es-ES";
+import { fa } from "./locales/fa";
+import { ar } from "./locales/ar";
+import { ja } from "./locales/ja";
+import { ko } from "./locales/ko";
+import { ptBR } from "./locales/pt-BR";
+import { ru } from "./locales/ru";
+import { zhCN } from "./locales/zh-CN";
+import { zhTW } from "./locales/zh-TW";
+import { pl } from "./locales/pl";
+import { hu } from "./locales/hu";
+import { fr } from "./locales/fr";
+import { uk } from "./locales/uk";
+import { tr } from "./locales/tr";
+import { th } from "./locales/th";
+import { LOCALES, type Dict, type Locale } from "./types";
 
-export { LOCALES, LOCALE_LABEL } from './types';
-export type { Locale } from './types';
+export { LOCALES, LOCALE_LABEL } from "./types";
+export type { Locale } from "./types";
 
 type DictKey = keyof Dict;
 
 const DICTS: Record<Locale, Dict> = {
-  'en': en,
-  'id': id,
-  'de': de,
-  'zh-CN': zhCN,
-  'zh-TW': zhTW,
-  'pt-BR': ptBR,
-  'es-ES': esES,
-  'ru': ru,
-  'fa': fa,
-  'ar': ar,
-  'ja': ja,
-  'ko': ko,
-  'pl': pl,
-  'hu': hu,
-  'fr': fr,
-  'uk': uk,
-  'tr': tr,
-  'th': th,
+  en: en,
+  id: id,
+  de: de,
+  "zh-CN": zhCN,
+  "zh-TW": zhTW,
+  "pt-BR": ptBR,
+  "es-ES": esES,
+  ru: ru,
+  fa: fa,
+  ar: ar,
+  ja: ja,
+  ko: ko,
+  pl: pl,
+  hu: hu,
+  fr: fr,
+  uk: uk,
+  tr: tr,
+  th: th,
 };
 
-const LS_KEY = 'open-design:locale';
+const LS_KEY = "open-design:locale";
 
 // First-run default is English. We honor an explicit user pick saved to
 // localStorage but never auto-detect from `navigator.language`, so the
 // initial experience is consistent and predictable.
 function detectInitialLocale(): Locale {
-  if (typeof window === 'undefined') return 'en';
+  if (typeof window === "undefined") return "en";
 
   const saved = localStorage.getItem(LS_KEY) as Locale;
   if (saved && LOCALES.includes(saved)) {
     return saved;
   }
 
-  return 'en';
+  return "en";
 }
 
 interface I18nContextValue {
@@ -103,7 +103,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       }
       return val;
     },
-    [dict]
+    [dict],
   );
 
   const value = useMemo(
@@ -113,7 +113,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       t,
       dict,
     }),
-    [locale, setLocale, t, dict]
+    [locale, setLocale, t, dict],
   );
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
@@ -122,7 +122,11 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 export function useI18n() {
   const context = useContext(I18nContext);
   if (!context) {
-    throw new Error('useI18n must be used within an I18nProvider');
+    throw new Error("useI18n must be used within an I18nProvider");
   }
   return context;
+}
+
+export function useT() {
+  return useI18n().t;
 }
