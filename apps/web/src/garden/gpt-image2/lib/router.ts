@@ -5,10 +5,24 @@ function parseHash(): Route {
   const h = window.location.hash.replace(/^#\/?/, '');
   if (!h) return { name: 'home' };
   if (h === 'skills') return { name: 'skills' };
+  if (h === 'c1') return { name: 'c1' };
   if (h === 'workbench') return { name: 'workbench' };
   if (h.startsWith('workbench/')) {
-    const templateId = decodeURIComponent(h.slice('workbench/'.length));
-    return { name: 'workbench', templateId };
+    const parts = h
+      .slice('workbench/'.length)
+      .split('/')
+      .filter(Boolean)
+      .map((part) => decodeURIComponent(part));
+    const categoryId = parts[0];
+    const templateName = parts[1];
+    if (categoryId && templateName) {
+      return {
+        name: 'workbench',
+        categoryId,
+        templateId: `${categoryId}/${templateName}`,
+      };
+    }
+    if (categoryId) return { name: 'workbench', categoryId };
   }
   if (h === 'prompt-studio') return { name: 'promptStudio' };
   if (h === 'prompt-studio/uiux') return { name: 'uiuxStudio' };
@@ -26,7 +40,18 @@ function routeToHash(route: Route): string {
     case 'skills':
       return '#/skills';
     case 'workbench':
-      return route.templateId ? `#/workbench/${encodeURIComponent(route.templateId)}` : '#/workbench';
+      if (route.templateId) {
+        const [categoryId, templateName] = route.templateId.split('/');
+        if (categoryId && templateName) {
+          return `#/workbench/${encodeURIComponent(categoryId)}/${encodeURIComponent(templateName)}`;
+        }
+        return `#/workbench/${encodeURIComponent(route.templateId)}`;
+      }
+      return route.categoryId
+        ? `#/workbench/${encodeURIComponent(route.categoryId)}`
+        : '#/workbench';
+    case 'c1':
+      return '#/c1';
     case 'promptStudio':
       return '#/prompt-studio';
     case 'uiuxStudio':

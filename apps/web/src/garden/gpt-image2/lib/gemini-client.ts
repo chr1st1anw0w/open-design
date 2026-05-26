@@ -1,30 +1,10 @@
 /**
- * Gemini API Client
- * 負責處理 Prompt Studio 中的 AI 輔助功能（單一欄位最佳化、全域性重構、一鍵填表）
+ * Prompt Expert client (Thesys C1 first, Open Design fallback optional).
+ * Kept under the historical filename to avoid touching all call sites.
  */
 
-const GEMINI_API_KEY = '';
-const BACKUP_KEY_1 = '';
-const BACKUP_KEY_2 = '';
-
-const apiKeys = [GEMINI_API_KEY, BACKUP_KEY_1, BACKUP_KEY_2].filter(Boolean);
-let currentKeyIndex = 0;
-
-function getActiveKey() {
-  return apiKeys[currentKeyIndex];
-}
-
-function rotateKey() {
-  if (apiKeys.length > 1) {
-    currentKeyIndex = (currentKeyIndex + 1) % apiKeys.length;
-    console.warn(`[Gemini Client] 切換至備用 API Key (Index: ${currentKeyIndex})`);
-    return true;
-  }
-  return false;
-}
-
 export interface AiRefineRequest {
-  action: 'refine_field' | 'refine_global' | 'magic_fill';
+  action: "refine_field" | "refine_global" | "magic_fill";
   intent: string;
   context?: {
     template?: string;
@@ -32,103 +12,167 @@ export interface AiRefineRequest {
     currentArgs?: Record<string, string>;
     targetField?: string;
     currentFieldValue?: string;
+    [key: string]: unknown;
   };
 }
 
-/**
- * 呼叫 Gemini 進行欄位或整體的最佳化
- */
-export async function callGeminiCopilot(request: AiRefineRequest, attempt = 1): Promise<any> {
-  const currentKey = getActiveKey();
-  if (!currentKey) {
-    return { success: false, error: '環境變數中未設定 VITE_GEMINI_API_KEY' };
-  }
+type PromptExpertAction = {
+  action?: string;
+  payload?: unknown;
+};
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${currentKey}`;
-  
-  let promptText = '';
+type PromptExpertResponse = {
+  provider?: string;
+  status?: string;
+  message?: string;
+  content?: string;
+  fallbackAvailable?: boolean;
+  actions?: PromptExpertAction[];
+};
 
-  if (request.action === 'refine_field') {
-    promptText = `You are an expert prompt engineer assistant. 
-Your task is to refine and expand the value of a specific field in a template based on the user's intent.
-Field Name: "${request.context?.targetField}"
-Current Value: "${request.context?.currentFieldValue}"
-User Intent: "${request.intent}"
+function cleanString(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
 
-Return ONLY the refined text for this field. Do not wrap in markdown or explain your reasoning.`;
-  } else if (request.action === 'magic_fill') {
-    const placeholders = request.context?.placeholders || [];
-    promptText = `You are an expert prompt engineer assistant.
-Your task is to auto-fill the following placeholders based on the user's overall intent.
-Template Context:
-${request.context?.template || ''}
+function stripCodeFence(input: string): string {
+  const text = input.trim();
+  if (!text.startsWith("```")) return text;
+  return text
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/, "")
+    .trim();
+}
 
-Current Arguments:
-${JSON.stringify(request.context?.currentArgs || {}, null, 2)}
-
-User Intent: "${request.intent}"
-
-Placeholders to fill: ${placeholders.join(', ')}
-
-Return a valid JSON object where keys are the placeholders and values are the generated text. DO NOT include markdown formatting like \`\`\`json. Return only raw JSON.`;
-  } else {
-    return { success: false, error: 'Unknown action' };
-  }
-
+function extractJsonObject(input: string): Record<string, string> | null {
+  const text = stripCodeFence(input);
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start === -1 || end === -1 || end <= start) return null;
   try {
-    console.log(`[Gemini Client] 傳送請求: ${request.action} (Attempt: ${attempt})`);
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{ text: promptText }]
-        }],
-        generationConfig: {
-          temperature: 0.7
-        }
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      // 如果遇到 429 或是 API Key 問題，且還有備用金鑰，則切換並重試
-      if ((response.status === 429 || response.status === 403 || response.status === 400) && attempt < apiKeys.length) {
-        console.warn(`API Error ${response.status}: ${errorText}`);
-        if (rotateKey()) {
-          return callGeminiCopilot(request, attempt + 1);
-        }
-      }
-      throw new Error(`API Error: ${response.status} - ${errorText}`);
+    const parsed = JSON.parse(text.slice(start, end + 1));
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return null;
     }
-
-    const data = await response.json();
-    const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-    if (request.action === 'refine_field') {
-      return { success: true, result: generatedText.trim() };
-    } else if (request.action === 'magic_fill') {
-      let cleanedJson = generatedText.trim();
-      if (cleanedJson.startsWith('\`\`\`json')) cleanedJson = cleanedJson.replace(/\`\`\`json/g, '');
-      if (cleanedJson.startsWith('\`\`\`')) cleanedJson = cleanedJson.replace(/\`\`\`/g, '');
-      cleanedJson = cleanedJson.trim();
-      
-      try {
-        const parsed = JSON.parse(cleanedJson);
-        return { success: true, result: parsed };
-      } catch (e) {
-        console.error('Failed to parse magic_fill JSON:', cleanedJson);
-        return { success: false, error: 'AI did not return valid JSON' };
-      }
+    const out: Record<string, string> = {};
+    for (const [k, v] of Object.entries(parsed)) {
+      out[String(k)] = typeof v === "string" ? v : JSON.stringify(v);
     }
-  } catch (error: any) {
-    console.error('[Gemini Client] API 錯誤:', error);
-    // 網路錯誤等例外狀況也可嘗試切換金鑰
-    if (attempt < apiKeys.length && rotateKey()) {
-      return callGeminiCopilot(request, attempt + 1);
-    }
-    return { success: false, error: error.message };
+    return out;
+  } catch {
+    return null;
   }
 }
+
+function parseActionPayload(
+  action: "refine_field" | "magic_fill",
+  actions: PromptExpertAction[] | undefined,
+): string | Record<string, string> | null {
+  if (!Array.isArray(actions)) return null;
+  for (const item of actions) {
+    if (!item || typeof item !== "object") continue;
+    const id = cleanString(item.action);
+    if (action === "refine_field" && id === "refine_field") {
+      const payload = item.payload as Record<string, unknown> | undefined;
+      const result = cleanString(payload?.value ?? payload?.text ?? payload?.result);
+      if (result) return result;
+    }
+    if (action === "magic_fill" && id === "magic_fill") {
+      const payload = item.payload;
+      if (!payload || typeof payload !== "object" || Array.isArray(payload)) continue;
+      const out: Record<string, string> = {};
+      for (const [k, v] of Object.entries(payload as Record<string, unknown>)) {
+        out[k] = typeof v === "string" ? v : JSON.stringify(v);
+      }
+      if (Object.keys(out).length > 0) return out;
+    }
+  }
+  return null;
+}
+
+function buildPrompt(request: AiRefineRequest): string {
+  const intent = cleanString(request.intent);
+  if (request.action === "refine_field") {
+    return [
+      "請只輸出最佳化後內容本體，不要多餘解釋，不要 markdown。",
+      `目標欄位: ${cleanString(request.context?.targetField) || "unknown"}`,
+      `目前內容: ${cleanString(request.context?.currentFieldValue) || "(empty)"}`,
+      `使用者意圖: ${intent}`,
+    ].join("\n");
+  }
+  if (request.action === "magic_fill") {
+    const placeholders = request.context?.placeholders ?? [];
+    return [
+      "請根據使用者意圖補全模板欄位。",
+      "回傳格式必須是純 JSON 物件，key=欄位名，value=字串，不要 markdown。",
+      `欄位清單: ${placeholders.join(", ") || "(none)"}`,
+      `使用者意圖: ${intent}`,
+    ].join("\n");
+  }
+  return intent;
+}
+
+export async function callGeminiCopilot(request: AiRefineRequest): Promise<any> {
+  if (request.action === "refine_global") {
+    return { success: false, error: "refine_global is not implemented" };
+  }
+  const message = buildPrompt(request);
+  try {
+    const response = await fetch("/api/garden/gpt-image2/prompt-expert/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        provider: "thesys",
+        message,
+        context: request.context || {},
+      }),
+    });
+    const data = (await response.json()) as PromptExpertResponse;
+    if (!response.ok) {
+      return {
+        success: false,
+        error: cleanString(data.message) || cleanString(data.content) || `HTTP ${response.status}`,
+        provider: cleanString(data.provider) || "thesys-c1",
+        status: cleanString(data.status) || "error",
+      };
+    }
+
+    const provider = cleanString(data.provider) || "thesys-c1";
+    const status = cleanString(data.status) || "ok";
+    const content = cleanString(data.content);
+
+    if (request.action === "refine_field") {
+      const fromAction = parseActionPayload("refine_field", data.actions);
+      const result =
+        typeof fromAction === "string"
+          ? fromAction
+          : stripCodeFence(content);
+      if (!result) {
+        return { success: false, error: "AI 回傳空內容", provider, status };
+      }
+      return { success: true, result, provider, status };
+    }
+
+    const fromAction = parseActionPayload("magic_fill", data.actions);
+    const parsed =
+      (fromAction && typeof fromAction === "object" ? fromAction : null) ||
+      extractJsonObject(content);
+    if (!parsed) {
+      return {
+        success: false,
+        error: "AI 未回傳有效 JSON",
+        provider,
+        status,
+        raw: content,
+      };
+    }
+    return { success: true, result: parsed, provider, status };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "request failed",
+      provider: "thesys-c1",
+      status: "request-failed",
+    };
+  }
+}
+
