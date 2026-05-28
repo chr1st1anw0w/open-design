@@ -57,6 +57,19 @@ const DICTS: Record<Locale, Dict> = {
 
 const LS_KEY = "open-design:locale";
 
+// Right-to-left locales. Used to flip <html dir="rtl"> when the user picks
+// Farsi or Arabic.
+const RTL_LOCALES: ReadonlySet<Locale> = new Set<Locale>(["fa", "ar"]);
+
+function applyLocaleToDocument(locale: Locale): void {
+  if (typeof document === "undefined") return;
+  document.documentElement.setAttribute("lang", locale);
+  document.documentElement.setAttribute(
+    "dir",
+    RTL_LOCALES.has(locale) ? "rtl" : "ltr",
+  );
+}
+
 // First-run default is English. We honor an explicit user pick saved to
 // localStorage but never auto-detect from `navigator.language`, so the
 // initial experience is consistent and predictable.
@@ -78,18 +91,56 @@ interface I18nContextValue {
   dict: Dict;
 }
 
+// Fallback context: used when a component renders outside <I18nProvider>
+// (typically in tests). Returns English strings and a no-op setLocale so
+// passive consumers like useT() don't throw. The provider strictly overrides
+// this with real reactive state and persistence.
+const fallbackI18n: I18nContextValue = {
+  locale: "en",
+  setLocale: () => {},
+  t: (key, params) => {
+    let val = (en[key] as string | undefined) || (key as string);
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        val = val.replace(`{${k}}`, String(v));
+      });
+    }
+    return val;
+  },
+  dict: en,
+};
+
 const I18nContext = createContext<I18nContextValue | null>(null);
 
-export function I18nProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(detectInitialLocale());
+export function I18nProvider({
+  children,
+  initial,
+}: {
+  children: ReactNode;
+  // Tests use `initial` to seed the locale deterministically without relying
+  // on localStorage. Production never sets this.
+  initial?: Locale;
+}) {
+  const [locale, setLocaleState] = useState<Locale>(
+    initial ?? detectInitialLocale(),
+  );
 
   const setLocale = useCallback((newLocale: Locale) => {
     setLocaleState(newLocale);
     localStorage.setItem(LS_KEY, newLocale);
+    // Apply lang/dir before reload so observers (and tests) see the change
+    // synchronously, even though the reload would also re-derive them.
+    applyLocaleToDocument(newLocale);
     // Force a reload to ensure all providers and side-effects see the new locale
     // consistently, and the font-family changes (if any) are applied.
     window.location.reload();
   }, []);
+
+  // Mirror the active locale onto <html lang/dir> on mount and whenever it
+  // changes (covers the initial render before any setLocale call).
+  useEffect(() => {
+    applyLocaleToDocument(locale);
+  }, [locale]);
 
   const dict = useMemo(() => DICTS[locale] || en, [locale]);
 
@@ -121,10 +172,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
 export function useI18n() {
   const context = useContext(I18nContext);
-  if (!context) {
-    throw new Error("useI18n must be used within an I18nProvider");
-  }
-  return context;
+  return context ?? fallbackI18n;
 }
 
 export function useT() {
