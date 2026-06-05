@@ -365,6 +365,22 @@ const DE_DESIGN_SYSTEM_CATEGORIES: Record<string, string> = {
 };
 
 const DE_SKILL_IDS_WITH_EN_FALLBACK = [
+  'diagram-design',
+  'html-effectiveness',
+  'huashu-design',
+  'hue',
+  'iiot-dashboard-ui',
+  'image-analysis',
+  'image-compare',
+  'image-to-text',
+  'notion-cli',
+  'opencli-notion',
+  'openui',
+  'proposal-deck',
+  'react:components',
+  'shadcn-ui',
+  'taste-design',
+  'zh-tw-design-brief',
   'clinical-case-report',
   'dcf-valuation',
   'editorial-burgundy-principles-template',
