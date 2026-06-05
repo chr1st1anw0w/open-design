@@ -2809,6 +2809,14 @@ export interface Dict {
   'pet.adopt': string;
   'pet.adoptedBadge': string;
   'pet.adoptCallout': string;
+  'pet.railAria': string;
+  'pet.railTitle': string;
+  'pet.railHint': string;
+  'pet.railExpand': string;
+  'pet.railCollapse': string;
+  'pet.railHide': string;
+  'pet.railCustomFlavor': string;
+  'pet.railCustomize': string;
   'pet.changePet': string;
   'pet.wake': string;
   'pet.tuck': string;

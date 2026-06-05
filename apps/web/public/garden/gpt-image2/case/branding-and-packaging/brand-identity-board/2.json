@@ -1,0 +1,64 @@
+{
+  "type": "品牌識別系統板",
+  "goal": "生成一張社群咖啡館視覺識別單頁，偏溫暖工業風，3:4",
+  "brand": {
+    "name": "磚縫光 Bricklight",
+    "tagline": "在裂縫裡，借一道日常的光",
+    "industry": "獨立精品咖啡與烘焙",
+    "personality": "實在、好聊、不裝"
+  },
+  "regions": {
+    "logo": {
+      "position": "左上",
+      "primary_logo": "B 與 L 共用筆觸形成磚縫，一道斜向光束負形從縫中穿過；下排小字「BRICKLIGHT COFFEE」",
+      "secondary_logos": [
+        "僅光束 + 磚線圖示",
+        "橫排長字標去圖示",
+        "單黑版反白在燒橙色底"
+      ],
+      "background_test": "淺暖灰 + 深燧石黑"
+    },
+    "color_palette": {
+      "position": "右上",
+      "primary": [
+        "#1E1E1E 燧石黑",
+        "#D36135 窯變橙"
+      ],
+      "secondary": [
+        "#EDE6DB 米窯白",
+        "#5C6670 鋼藍灰"
+      ],
+      "swatch_design": "長條色帶 + HEX + 用途小字如「主背景」「強強調」"
+    },
+    "typography": {
+      "position": "左下",
+      "headline_font": "無襯線類似 Space Grotesk 的略幾何英文 + 中文黑體",
+      "body_font": "中文小字號說明體",
+      "demo_block": "Menu · 今日手衝 · 01234，三行假選單價目"
+    },
+    "applications": {
+      "position": "右下",
+      "mockups": [
+        "外帶紙杯 + 熱杯套，logo 不繞杯過滿一圈",
+        "門頭髮光字夜間 mockup 小方圖",
+        "微信小程式碼立牌，上方一行「點單取號」小字，整體留白 40%"
+      ]
+    }
+  },
+  "style": {
+    "art_style": "水泥質感淺底 + 極輕劃痕紋理",
+    "grid": "僅用於 logo 與 app 區對齊的淡灰 12 列"
+  },
+  "aspect_ratio": "3:4",
+  "constraints": {
+    "must_keep": [
+      "HEX 與圓角色塊對應",
+      "四區呼吸感，避免色塊糊滿",
+      "杯上 logo 不跨越杯縫可識別區"
+    ],
+    "avoid": [
+      "過強鏽跡與髒漬紋理",
+      "超過 6 個品牌色點"
+    ]
+  }
+}

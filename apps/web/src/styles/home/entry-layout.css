@@ -42,6 +42,12 @@
 .entry-shell--no-header .entry.entry--rail-open {
   grid-template-columns: var(--entry-rail-width, 56px) minmax(0, 1fr);
 }
+.entry-shell--no-header .entry.entry--pet-rail {
+  grid-template-columns: 0 minmax(0, 1fr) auto;
+}
+.entry-shell--no-header .entry.entry--rail-open.entry--pet-rail {
+  grid-template-columns: var(--entry-rail-width, 56px) minmax(0, 1fr) auto;
+}
 
 /* Left rail — docked column. Lives in the grid's first track; collapsed the
    track is 0-wide so the rail is clipped away, expanded it occupies the rail
@@ -727,6 +733,146 @@
    while the hero card self-constrains to a readable column. */
 .entry-main__inner--wide {
   max-width: 1440px;
+}
+
+.pet-rail {
+  width: 260px;
+  min-width: 260px;
+  height: 100%;
+  overflow-y: auto;
+  border-left: 1px solid var(--border-soft);
+  background: var(--bg-panel);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.pet-rail.collapsed {
+  width: 48px;
+  min-width: 48px;
+  padding: 10px 8px;
+  align-items: center;
+}
+.pet-rail-toggle,
+.pet-rail-collapse,
+.pet-rail-status-pill,
+.pet-rail-item,
+.pet-rail-customize {
+  border: 1px solid var(--border-soft);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+}
+.pet-rail-toggle,
+.pet-rail-collapse {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.pet-rail-toggle {
+  flex-direction: column;
+  gap: 4px;
+  height: auto;
+  padding: 8px 0;
+}
+.pet-rail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.pet-rail-head-actions,
+.pet-rail-title,
+.pet-rail-status-pill,
+.pet-rail-customize {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.pet-rail-title strong {
+  font-size: 13px;
+}
+.pet-rail-hint,
+.pet-rail-item-flavor {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.pet-rail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pet-rail-item {
+  width: 100%;
+  min-height: 58px;
+  border-radius: var(--radius-md);
+  padding: 8px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+}
+.pet-rail-item:hover,
+.pet-rail-status-pill:hover,
+.pet-rail-customize:hover,
+.pet-rail-toggle:hover,
+.pet-rail-collapse:hover {
+  border-color: var(--accent);
+}
+.pet-rail-item.active {
+  background: color-mix(in srgb, var(--pet-accent, var(--accent)) 12%, var(--bg));
+  border-color: color-mix(in srgb, var(--pet-accent, var(--accent)) 55%, var(--border-soft));
+}
+.pet-rail-item-glyph {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--pet-accent, var(--accent)) 16%, var(--bg));
+  font-size: 18px;
+}
+.pet-rail-item-meta {
+  min-width: 0;
+}
+.pet-rail-item-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 650;
+}
+.pet-rail-status-pill,
+.pet-rail-customize {
+  min-height: 32px;
+  border-radius: var(--radius-sm);
+  padding: 0 10px;
+  justify-content: center;
+}
+.pet-rail-customize {
+  width: 100%;
+}
+.pet-rail-fresh {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+@media (max-width: 1180px) {
+  .entry-shell--no-header .entry.entry--pet-rail,
+  .entry-shell--no-header .entry.entry--rail-open.entry--pet-rail {
+    grid-template-columns: var(--entry-rail-width, 0) minmax(0, 1fr);
+  }
+  .pet-rail {
+    display: none;
+  }
 }
 
 /* Sticky top-right control strip inside the main scroll area.

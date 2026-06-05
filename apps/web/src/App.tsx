@@ -16,6 +16,7 @@ import {
 import type { AmrModelsResponse, ChatSessionMode } from '@open-design/contracts';
 import { EntryView } from './components/EntryView';
 import type { IntegrationTab } from './components/IntegrationsView';
+import { App as GptImage2GardenApp } from './garden/gpt-image2/App';
 import { MarketplaceView } from './components/MarketplaceView';
 import { PluginDetailView } from './components/PluginDetailView';
 import type { CreateInput, ImportClaudeDesignOutcome } from './components/NewProjectPanel';
@@ -1826,7 +1827,9 @@ function AppInner() {
   // EntryView / ProjectView split so the discovery surface stays
   // independent of any active project.
   let appMain: ReactNode;
-  if (route.kind === 'marketplace') {
+  if (route.kind === 'garden-gpt-image2') {
+    appMain = <GptImage2GardenApp />;
+  } else if (route.kind === 'marketplace') {
     appMain = <MarketplaceView />;
   } else if (route.kind === 'marketplace-detail') {
     appMain = <PluginDetailView pluginId={route.pluginId} />;
@@ -1929,6 +1932,9 @@ function AppInner() {
         onConfigPersist={handleConfigPersist}
         onRefreshAgents={refreshAgents}
         onThemeChange={handleThemeChange}
+        onAdoptPetInline={handleAdoptPet}
+        onTogglePet={handleTogglePet}
+        onOpenPetSettings={openPetSettings}
         skillsLoading={skillsLoading}
         designSystemsLoading={dsLoading}
         projectsLoading={projectsLoading}

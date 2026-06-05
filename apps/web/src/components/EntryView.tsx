@@ -131,6 +131,9 @@ interface Props {
   onDesignSystemsRefresh?: () => Promise<void> | void;
   onPersistComposioKey: (composio: AppConfig['composio']) => Promise<void> | void;
   onOpenSettings: (section?: 'execution' | 'media' | 'composio' | 'orbit' | 'integrations' | 'mcpClient' | 'language' | 'appearance' | 'notifications' | 'pet' | 'projectLocations' | 'library' | 'about' | 'memory' | 'designSystems') => void;
+  onAdoptPetInline?: (petId: string) => void;
+  onTogglePet?: () => void;
+  onOpenPetSettings?: () => void;
   onCompleteOnboarding: () => void;
 }
 
@@ -291,6 +294,9 @@ export function EntryView({
   onDesignSystemsRefresh,
   onPersistComposioKey,
   onOpenSettings,
+  onAdoptPetInline = () => {},
+  onTogglePet = () => {},
+  onOpenPetSettings = () => {},
   onCompleteOnboarding,
 }: Props) {
   const [connectors, setConnectors] = useState<ConnectorDetail[]>([]);
@@ -388,6 +394,9 @@ export function EntryView({
       onDesignSystemsRefresh={onDesignSystemsRefresh}
       onPersistComposioKey={onPersistComposioKey}
       onOpenSettings={onOpenSettings}
+      onAdoptPetInline={onAdoptPetInline}
+      onTogglePet={onTogglePet}
+      onOpenPetSettings={onOpenPetSettings}
       onCompleteOnboarding={onCompleteOnboarding}
     />
   );

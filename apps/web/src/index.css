@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
 @import './styles/remixicon/remixicon.css';
 @import './styles/design-system-flow.css';
@@ -28,3 +29,16 @@
 @import './styles/viewer/routines.css';
 @import './styles/modal-window-drag.css';
 @import './styles/entrance.css';
+@import './garden/gpt-image2/styles/globals.css';
+@import './garden/gpt-image2/components/shared/Header.css';
+@import './garden/gpt-image2/components/shared/Footer.css';
+@import './garden/gpt-image2/components/shared/AutomationPanel.css';
+@import './garden/gpt-image2/components/shared/ThemeToggle.css';
+@import './garden/gpt-image2/components/hero/Hero.css';
+@import './garden/gpt-image2/components/hero/ModelCard.css';
+@import './garden/gpt-image2/components/gallery/CaseDetail.css';
+@import './garden/gpt-image2/components/gallery/Gallery.css';
+@import './garden/gpt-image2/components/gallery/gallery-views.css';
+@import './garden/gpt-image2/components/skills/SkillsPage.css';
+@import './garden/gpt-image2/components/skills/Workbench.css';
+@import './garden/gpt-image2/components/prompt-studio/prompt-studio.css';

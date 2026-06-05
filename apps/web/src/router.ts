@@ -20,6 +20,7 @@ export type EntryHomeView =
 
 export type Route =
   | { kind: 'home'; view: EntryHomeView }
+  | { kind: 'garden-gpt-image2' }
   | { kind: 'design-system-create' }
   | { kind: 'design-system-detail'; designSystemId: string }
   | {
@@ -41,6 +42,9 @@ export type Route =
 export function parseRoute(pathname: string): Route {
   const parts = pathname.replace(/\/+$/, '').split('/').filter(Boolean);
   if (parts.length === 0) return { kind: 'home', view: 'home' };
+  if (parts[0] === 'tools' && parts[1] === 'gpt-image2') {
+    return { kind: 'garden-gpt-image2' };
+  }
   if (parts[0] === 'onboarding') {
     return { kind: 'home', view: 'onboarding' };
   }
@@ -115,6 +119,7 @@ export function buildPath(route: Route): string {
     if (route.view === 'integrations') return '/integrations';
     return '/';
   }
+  if (route.kind === 'garden-gpt-image2') return '/tools/gpt-image2';
   if (route.kind === 'marketplace') return '/marketplace';
   if (route.kind === 'marketplace-detail') return `/marketplace/${encodeURIComponent(route.pluginId)}`;
   if (route.kind === 'design-system-create') return '/design-systems/create';

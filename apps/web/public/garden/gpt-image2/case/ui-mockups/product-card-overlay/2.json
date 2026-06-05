@@ -1,0 +1,63 @@
+{
+  "type": "暗色科技品牌落地頁 hero 樣機",
+  "goal": "生成一張面向男士護膚的高階感落地頁主視覺，整體硬朗、專業、可信賴",
+  "theme": "男士全效護膚",
+  "brand": {
+    "name": "NEX SKIN",
+    "subtext": "MEN · ALL-IN-ONE"
+  },
+  "color_palette": [
+    "深海軍藍 #0A1A33",
+    "白",
+    "電光藍漸變"
+  ],
+  "header": {
+    "logo": "左上 'NEX SKIN' 極細無襯線大寫字 + 下方銀灰色 'MEN · ALL-IN-ONE'",
+    "navigation": [
+      "HOME",
+      "PRODUCT",
+      "TECH",
+      "FEATURE",
+      "FAQ"
+    ],
+    "cta_button": "立即開始 → （藍色高光按鈕）"
+  },
+  "hero": {
+    "left_column": {
+      "headline": "清爽感，從每日 30 秒護理開始",
+      "sub_headline": "男士肌膚，更需要簡單",
+      "feature_highlights": [
+        "● 去油控亮：智慧調節皮脂",
+        "● 長效保溼：12h 持續潤澤",
+        "● 一瓶搞定：化妝水 + 精華 + 乳液"
+      ]
+    },
+    "center_image": {
+      "subject": "30 歲前後的亞洲清爽幹練男性，乾淨短髮，鬍鬚修剪整齊，身穿深灰色高領針織衫",
+      "pose": "右手輕託下巴，眼神看向左前方，自信而剋制"
+    },
+    "right_column": {
+      "product_shot": "高瘦的深海軍藍色磨砂瓶身（120ml），瓶身印電光藍色 'NEX SKIN' 字與水分子結構圖，瓶口微掛水珠"
+    }
+  },
+  "bottom_stats_bar": {
+    "items": [
+      "累計銷量 120 萬瓶",
+      "使用者滿意度 92.1%",
+      "30 天覆購率 85.3%",
+      "京東天貓雙榜 男士護膚 TOP 1"
+    ]
+  },
+  "style": {
+    "rendering": "深空藍底 + 高光金屬反光 + 電光藍粒子 + 乾淨商業攝影",
+    "lighting": "左側主光打在模特輪廓，右側產品逆光勾邊"
+  },
+  "constraints": {
+    "must_feel": "硬朗、專業、可信賴，像高階男士護膚品牌的真實落地頁",
+    "avoid": [
+      "出現粉色、暖色等少女風元素",
+      "模特表情過度溫柔或假笑",
+      "瓶身字模糊不可讀"
+    ]
+  }
+}

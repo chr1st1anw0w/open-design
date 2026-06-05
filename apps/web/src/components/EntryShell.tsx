@@ -98,6 +98,7 @@ import {
   type EntrySettingsSection,
 } from './EntrySettingsMenu';
 import { NewProjectModal } from './NewProjectModal';
+import { PetRail } from './pet/PetRail';
 import { PluginsView } from './PluginsView';
 import type { CreateInput, CreateTab, ImportClaudeDesignOutcome } from './NewProjectPanel';
 import type { PluginLoopSubmit } from './PluginLoopHome';
@@ -134,6 +135,7 @@ import {
 
 const DISCORD_URL = 'https://discord.gg/mHAjSMV6gz';
 const X_URL = 'https://x.com/nexudotio';
+const PET_RAIL_HIDDEN_KEY = 'open-design:pet-rail-hidden';
 
 // The topbar chips (GitHub star, model switcher, Use everywhere)
 // collapse into the settings dropdown when the viewport gets
@@ -313,6 +315,9 @@ interface Props {
   onDesignSystemsRefresh?: () => Promise<void> | void;
   onPersistComposioKey: (composio: AppConfig['composio']) => Promise<void> | void;
   onOpenSettings: (section?: EntrySettingsSection) => void;
+  onAdoptPetInline?: (petId: string) => void;
+  onTogglePet?: () => void;
+  onOpenPetSettings?: () => void;
   onCompleteOnboarding: () => void;
 }
 
@@ -360,6 +365,15 @@ function inactiveViewProps(active: boolean) {
   };
 }
 
+function loadPetRailHidden(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem(PET_RAIL_HIDDEN_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
 export function EntryShell({
   skills,
   designTemplates,
@@ -405,6 +419,9 @@ export function EntryShell({
   onDesignSystemsRefresh,
   onPersistComposioKey,
   onOpenSettings,
+  onAdoptPetInline = () => {},
+  onTogglePet = () => {},
+  onOpenPetSettings = () => {},
   onCompleteOnboarding,
 }: Props) {
   const t = useT();
@@ -417,6 +434,7 @@ export function EntryShell({
   const view: EntryViewKind = route.kind === 'home' ? route.view : 'home';
   const [previewSystemId, setPreviewSystemId] = useState<string | null>(null);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
+  const [petRailHidden, setPetRailHiddenState] = useState<boolean>(() => loadPetRailHidden());
   // The entry nav rail is collapsed by default (Manus-style) so the entry
   // view opens clean and full-width; the panel toggle in the topbar opens it
   // as an overlay that dismisses on selection / backdrop click / Escape.
@@ -456,6 +474,15 @@ export function EntryShell({
       });
     }
     navigate({ kind: 'home', view: next });
+  }
+
+  function setPetRailHidden(next: boolean) {
+    setPetRailHiddenState(next);
+    try {
+      window.localStorage.setItem(PET_RAIL_HIDDEN_KEY, next ? '1' : '0');
+    } catch {
+      /* ignore */
+    }
   }
 
   function startPluginAuthoring(goal?: string) {
@@ -630,7 +657,9 @@ export function EntryShell({
 
   return (
     <div className="entry-shell entry-shell--no-header">
-      <div className={`entry${railOpen ? ' entry--rail-open' : ''}`}>
+      <div
+        className={`entry${railOpen ? ' entry--rail-open' : ''}${petRailHidden ? '' : ' entry--pet-rail'}`}
+      >
         <EntryNavRail
           view={view}
           onViewChange={changeView}
@@ -796,6 +825,15 @@ export function EntryShell({
             ) : null}
           </div>
         </main>
+        {petRailHidden ? null : (
+          <PetRail
+            config={config}
+            onAdoptInline={onAdoptPetInline}
+            onOpenPetSettings={onOpenPetSettings}
+            onTuck={onTogglePet}
+            onHide={() => setPetRailHidden(true)}
+          />
+        )}
       </div>
       <AnimatePresence>
         {previewSystem ? (

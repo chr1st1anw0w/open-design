@@ -10103,6 +10103,217 @@ export async function startServer({
     });
   });
 
+  const gardenGptImage2Dir = path.join(RUNTIME_DATA_DIR, 'garden', 'gpt-image2');
+  const gardenPromptArchiveDir = path.join(gardenGptImage2Dir, 'archive');
+  const gardenRevisionDir = path.join(gardenGptImage2Dir, 'revisions');
+  const gardenPromptTemplateRoot = path.join(
+    PROJECT_ROOT,
+    'apps',
+    'web',
+    'src',
+    'garden',
+    'gpt-image2',
+    'data',
+  );
+
+  const safeGardenSlug = (value, fallback = 'item') => {
+    const raw = String(value || '').trim().toLowerCase();
+    return (
+      raw
+        .replace(/[^a-z0-9._-]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 96) || fallback
+    );
+  };
+
+  const readGardenJsonArray = async (filePath) => {
+    try {
+      const raw = await fs.promises.readFile(filePath, 'utf8');
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (err) {
+      if (err?.code === 'ENOENT') return [];
+      throw err;
+    }
+  };
+
+  const writeGardenJsonArray = async (filePath, entries) => {
+    await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.promises.writeFile(filePath, `${JSON.stringify(entries, null, 2)}\n`, 'utf8');
+  };
+
+  app.post('/api/garden/gpt-image2/archive', async (req, res) => {
+    try {
+      const body = req.body || {};
+      const category = safeGardenSlug(body.category, 'uncategorized');
+      const template = safeGardenSlug(body.template, 'prompt');
+      const slug = `${Date.now()}-${safeGardenSlug(body.filename || body.title || template)}`;
+      const record = {
+        category,
+        template,
+        slug,
+        timestamp: new Date().toISOString(),
+        format: body.format === 'json-flat' ? 'json-flat' : 'structured',
+        tags: Array.isArray(body.tags) ? body.tags.map(String).slice(0, 20) : [],
+        args: body.args && typeof body.args === 'object' ? body.args : {},
+        renderedPrompt: String(body.content || body.prompt || ''),
+        sourceTemplate: String(body.sourceTemplate || body.template || template),
+      };
+      const target = path.join(gardenPromptArchiveDir, category, template, `${slug}.json`);
+      await fs.promises.mkdir(path.dirname(target), { recursive: true });
+      await fs.promises.writeFile(target, `${JSON.stringify(record, null, 2)}\n`, 'utf8');
+      res.json({ ok: true, success: true, path: target, slug });
+    } catch (err) {
+      res.status(500).json({ ok: false, success: false, error: String(err?.message || err) });
+    }
+  });
+
+  app.post('/api/garden/gpt-image2/save-prompt', async (req, res) => {
+    try {
+      const body = req.body || {};
+      const category = safeGardenSlug(body.category, 'uncategorized');
+      const template = safeGardenSlug(body.template, 'prompt');
+      const slug = `${Date.now()}-${safeGardenSlug(body.title || body.template || template)}`;
+      const record = {
+        category,
+        template,
+        slug,
+        timestamp: new Date().toISOString(),
+        format: body.format === 'json-flat' ? 'json-flat' : 'structured',
+        tags: Array.isArray(body.tags) ? body.tags.map(String).slice(0, 20) : [],
+        args: body.args && typeof body.args === 'object' ? body.args : {},
+        renderedPrompt: String(body.prompt || ''),
+        sourceTemplate: template,
+      };
+      const target = path.join(gardenPromptArchiveDir, category, template, `${slug}.json`);
+      await fs.promises.mkdir(path.dirname(target), { recursive: true });
+      await fs.promises.writeFile(target, `${JSON.stringify(record, null, 2)}\n`, 'utf8');
+      res.json({ ok: true, success: true, path: target, slug });
+    } catch (err) {
+      res.status(500).json({ ok: false, success: false, error: String(err?.message || err) });
+    }
+  });
+
+  app.get('/api/garden/gpt-image2/list-archive', async (req, res) => {
+    try {
+      const categoryFilter = String(req.query.category || '').toLowerCase();
+      const templateFilter = String(req.query.template || '').toLowerCase();
+      const q = String(req.query.q || '').toLowerCase();
+      const entries = [];
+      const walk = async (dir) => {
+        let children = [];
+        try {
+          children = await fs.promises.readdir(dir, { withFileTypes: true });
+        } catch (err) {
+          if (err?.code === 'ENOENT') return;
+          throw err;
+        }
+        for (const child of children) {
+          const childPath = path.join(dir, child.name);
+          if (child.isDirectory()) {
+            await walk(childPath);
+          } else if (child.isFile() && child.name.endsWith('.json')) {
+            try {
+              entries.push(JSON.parse(await fs.promises.readFile(childPath, 'utf8')));
+            } catch {
+              // Ignore malformed local archive entries.
+            }
+          }
+        }
+      };
+      await walk(gardenPromptArchiveDir);
+      const filtered = entries
+        .filter((entry) => !categoryFilter || String(entry.category || '').toLowerCase() === categoryFilter)
+        .filter((entry) => !templateFilter || String(entry.template || '').toLowerCase() === templateFilter)
+        .filter((entry) => !q || JSON.stringify(entry).toLowerCase().includes(q))
+        .sort((a, b) => String(b.timestamp || '').localeCompare(String(a.timestamp || '')));
+      res.json({ entries: filtered });
+    } catch (err) {
+      res.status(500).json({ entries: [], error: String(err?.message || err) });
+    }
+  });
+
+  app.get('/api/garden/gpt-image2/load-template-md', async (req, res) => {
+    try {
+      const category = safeGardenSlug(req.query.category, 'uncategorized');
+      const template = safeGardenSlug(req.query.template, 'prompt');
+      const casesManifestPath = path.join(gardenPromptTemplateRoot, 'cases.json');
+      const promptPath = path.join(PROJECT_ROOT, 'apps', 'web', 'public', 'garden', 'gpt-image2', 'case', category, template, '1.txt');
+      let md = '';
+      try {
+        md = await fs.promises.readFile(promptPath, 'utf8');
+      } catch (err) {
+        if (err?.code !== 'ENOENT') throw err;
+        const raw = await fs.promises.readFile(casesManifestPath, 'utf8').catch(() => '');
+        md = raw ? JSON.stringify(JSON.parse(raw).templates?.[`${category}/${template}`] || {}, null, 2) : '';
+      }
+      const placeholders = Array.from(md.matchAll(/\{\{\s*([a-zA-Z0-9_-]+)\s*\}\}/g)).map((match) => match[1]);
+      res.json({ md, placeholders: Array.from(new Set(placeholders)) });
+    } catch (err) {
+      res.status(500).json({ md: '', placeholders: [], error: String(err?.message || err) });
+    }
+  });
+
+  app.get('/api/garden/gpt-image2/list-revisions', async (req, res) => {
+    try {
+      const sessionId = safeGardenSlug(req.query.sessionId, 'default');
+      const entries = await readGardenJsonArray(path.join(gardenRevisionDir, `${sessionId}.json`));
+      res.json({ entries });
+    } catch (err) {
+      res.status(500).json({ entries: [], error: String(err?.message || err) });
+    }
+  });
+
+  app.post('/api/garden/gpt-image2/save-revision', async (req, res) => {
+    try {
+      const body = req.body || {};
+      const sessionId = safeGardenSlug(body.sessionId, 'default');
+      const target = path.join(gardenRevisionDir, `${sessionId}.json`);
+      const entries = await readGardenJsonArray(target);
+      const entry = {
+        id: randomUUID(),
+        createdAt: new Date().toISOString(),
+        imageNote: String(body.imageNote || ''),
+        revisionNote: String(body.revisionNote || ''),
+        prompt: String(body.prompt || ''),
+      };
+      entries.unshift(entry);
+      await writeGardenJsonArray(target, entries.slice(0, 100));
+      res.json({ ok: true, success: true, entry });
+    } catch (err) {
+      res.status(500).json({ ok: false, success: false, error: String(err?.message || err) });
+    }
+  });
+
+  app.post('/api/garden/gpt-image2/prompt-expert/chat', async (req, res) => {
+    const message = String(req.body?.message || '').trim();
+    if (!message) {
+      return res.status(400).json({ provider: 'local', status: 'error', message: 'message is required' });
+    }
+    res.json({
+      provider: 'local',
+      status: 'fallback',
+      content: message,
+      fallbackAvailable: false,
+      actions: [],
+    });
+  });
+
+  app.post('/api/garden/gpt-image2/generate', async (req, res) => {
+    const prompt = String(req.body?.prompt || '').trim();
+    if (!prompt) {
+      return res.status(400).json({ status: 'error', error: { message: 'prompt is required' } });
+    }
+    res.status(501).json({
+      status: 'error',
+      provider: String(req.body?.provider || 'chatgpt-web'),
+      error: {
+        message:
+          'Garden GPT-Image2 generation API is connected, but the local ChatGPT Web/OpenAI image provider is not configured in this daemon build yet.',
+      },
+    });
+  });
+
   app.get('/api/media/config', async (_req, res) => {
     try {
       const cfg = await readMaskedConfig(PROJECT_ROOT);

@@ -1,0 +1,206 @@
+{
+  "type": "工程感流程圖 / 決策圖",
+  "goal": "生成 3:4 豎版暗色點陣圖，展示註冊全鏈路及風控分支",
+  "canvas": {
+    "aspect_ratio": "3:4",
+    "background": "deep slate #0F172A with subtle 1px grid #1E293B at 32px spacing",
+    "outer_padding": "60px"
+  },
+  "title_strip": {
+    "title": "使用者註冊與啟用流程",
+    "subtitle": "簡訊 OTP + 郵箱 + 裝置風控",
+    "position": "top-left, JetBrains Mono"
+  },
+  "flow_direction": "top-to-bottom",
+  "shape_legend": "與模板一致（起止圓/藥丸、過程矩形、決策菱形、IO 平行四邊形、子流程雙框）",
+  "nodes": {
+    "count": "15",
+    "items": [
+      {
+        "id": "S",
+        "type": "start_end",
+        "label": "開始"
+      },
+      {
+        "id": "I1",
+        "type": "io",
+        "label": "使用者提交 手機號+密碼+裝置指紋 device_id"
+      },
+      {
+        "id": "P1",
+        "type": "process",
+        "label": "校驗 E.164 與密碼強度 (zxcvbn≥3)"
+      },
+      {
+        "id": "D1",
+        "type": "decision",
+        "label": "手機號已註冊？"
+      },
+      {
+        "id": "P2",
+        "type": "process",
+        "label": "返回 409 並提示 微信 一鍵登入"
+      },
+      {
+        "id": "P3",
+        "type": "process",
+        "label": "建立 users 行 status= PENDING"
+      },
+      {
+        "id": "D2",
+        "type": "decision",
+        "label": "風控分數 risk_score < 0.4？"
+      },
+      {
+        "id": "SP1",
+        "type": "subprocess",
+        "label": "子流程: 進人工 queue_id 風控複核"
+      },
+      {
+        "id": "P4",
+        "type": "process",
+        "label": "簡訊閘道器傳送 6 位 OTP (5min TTL)"
+      },
+      {
+        "id": "D3",
+        "type": "decision",
+        "label": "OTP 與 Redis 中 digest 一致？"
+      },
+      {
+        "id": "P5",
+        "type": "process",
+        "label": "發驗證郵件 含 token (HKDF-SHA256)"
+      },
+      {
+        "id": "D4",
+        "type": "decision",
+        "label": "24h 內點選驗證連結？"
+      },
+      {
+        "id": "P6",
+        "type": "process",
+        "label": "status= VERIFIED, email_verified_at 寫入"
+      },
+      {
+        "id": "P7",
+        "type": "process",
+        "label": "刪除過期 token+軟刪未啟用"
+      },
+      {
+        "id": "E",
+        "type": "start_end",
+        "label": "結束"
+      }
+    ]
+  },
+  "edges": {
+    "items": [
+      {
+        "from": "S",
+        "to": "I1"
+      },
+      {
+        "from": "I1",
+        "to": "P1"
+      },
+      {
+        "from": "P1",
+        "to": "D1"
+      },
+      {
+        "from": "D1",
+        "to": "P2",
+        "label": "Yes"
+      },
+      {
+        "from": "D1",
+        "to": "P3",
+        "label": "No"
+      },
+      {
+        "from": "P2",
+        "to": "E"
+      },
+      {
+        "from": "P3",
+        "to": "D2"
+      },
+      {
+        "from": "D2",
+        "to": "SP1",
+        "label": "No"
+      },
+      {
+        "from": "D2",
+        "to": "P4",
+        "label": "Yes"
+      },
+      {
+        "from": "SP1",
+        "to": "E"
+      },
+      {
+        "from": "P4",
+        "to": "D3"
+      },
+      {
+        "from": "D3",
+        "to": "P5",
+        "label": "Yes"
+      },
+      {
+        "from": "D3",
+        "to": "E",
+        "label": "No"
+      },
+      {
+        "from": "P5",
+        "to": "D4"
+      },
+      {
+        "from": "D4",
+        "to": "P6",
+        "label": "Yes"
+      },
+      {
+        "from": "D4",
+        "to": "P7",
+        "label": "No"
+      },
+      {
+        "from": "P6",
+        "to": "E"
+      },
+      {
+        "from": "P7",
+        "to": "E"
+      }
+    ],
+    "edge_style": {
+      "default": "slate 1.5px + 三角箭頭",
+      "yes_branch": "emerald #34D399",
+      "no_branch": "slate",
+      "exception_branch": {
+        "enabled": "true",
+        "style": "dashed rose",
+        "use_on": "D3=No 快速退出"
+      }
+    }
+  },
+  "swim_lanes": {
+    "enabled": "false"
+  },
+  "legend": {
+    "enabled": true,
+    "position": "bottom-right"
+  },
+  "constraints": {
+    "must_keep": [
+      "決策必有 Yes/No 或等義標籤",
+      "子流程為雙框"
+    ],
+    "avoid": [
+      ">15 節點"
+    ]
+  }
+}

@@ -1,0 +1,152 @@
+{
+  "type": "工程感技術思維導圖（放射式 mind map）",
+  "goal": "生成一張 Kubernetes 體系腦圖，中央寫 Kubernetes 平臺工程，6 個一級域覆蓋架構、工作負載、網路、安全、儲存、交付與 SRE 可觀測，強調 CNCF 元件名用英文、中文說明在二級節點可中英混排",
+  "canvas": {
+    "aspect_ratio": "3:4 portrait",
+    "background": "deep slate #0F172A with subtle 1px grid #1E293B at 32px spacing",
+    "outer_padding": "60px"
+  },
+  "title_strip": {
+    "title": "Kubernetes 知識譜系（平臺與 SRE）",
+    "subtitle": "1.30+ 發行線 · 生產導向",
+    "position": "top-left, JetBrains Mono / SF Mono, light gray"
+  },
+  "central_node": {
+    "label": "Kubernetes\nPlatform",
+    "shape": "rounded rectangle, corner radius 16px",
+    "size": "280×120px",
+    "fill": "amber #FBBF24 × 18% opacity",
+    "border": "2px solid amber #FBBF24",
+    "label_style": "mono bold 16pt",
+    "position": "幾何中心略偏上，為底部 legend 預留白"
+  },
+  "primary_branches": {
+    "count": 6,
+    "items": [
+      {
+        "id": "B1",
+        "label": "Cluster Lifecycle",
+        "color": "cyan #22D3EE",
+        "angle_position": "11 o'clock"
+      },
+      {
+        "id": "B2",
+        "label": "Workload",
+        "color": "blue #60A5FA",
+        "angle_position": "1 o'clock"
+      },
+      {
+        "id": "B3",
+        "label": "Networking",
+        "color": "emerald #34D399",
+        "angle_position": "3 o'clock"
+      },
+      {
+        "id": "B4",
+        "label": "Security & Policy",
+        "color": "violet #A78BFA",
+        "angle_position": "5 o'clock"
+      },
+      {
+        "id": "B5",
+        "label": "Storage",
+        "color": "rose #FB7185",
+        "angle_position": "7 o'clock"
+      },
+      {
+        "id": "B6",
+        "label": "GitOps + Observability",
+        "color": "orange #FB923C",
+        "angle_position": "9 o'clock"
+      }
+    ],
+    "branch_node_style": {
+      "shape": "rounded rectangle, corner radius 10px",
+      "size": "200×56px",
+      "fill": "branch color × 14% opacity",
+      "border": "1.5px solid branch color",
+      "label": "mono bold 13pt"
+    },
+    "connector_style": "2px 曲線，從中央連向各 primary，顏色=分支色"
+  },
+  "secondary_nodes": {
+    "rule": "每 primary 4-5 個 secondary",
+    "items_per_primary": {
+      "B1": [
+        "kubeadm / kops / 託管：EKS·ACK·GKE 選型",
+        "etcd 備份：快照週期 + 跨 region 容災",
+        "升級策略：in-place 小版本 / 藍綠大版本",
+        "節點 OS：Bottlerocket / Container-Optimized OS"
+      ],
+      "B2": [
+        "Pod / Deployment / StatefulSet / DaemonSet / Job 生命週期",
+        "HPA v2、VPA、Cluster Autoscaler 聯動與噪聲抑制",
+        "資源模型：request/limit、QoS class、cpuset/NUMA",
+        "工作負載身份：ServiceAccount、IRSA/Workload Identity"
+      ],
+      "B3": [
+        "CNI 對比：Cilium（eBPF）/ Calico，NetworkPolicy 預設拒絕",
+        "Service / EndpointSlice、Headless 與 gRPC 友好",
+        "Gateway API 替代 Ingress 的路由與 TLS 分層",
+        "CoreDNS 與叢集外 DNS/PrivateLink 聯調"
+      ],
+      "B4": [
+        "RBAC：Role/ClusterRole 最小化 + audit log",
+        "OPA Gatekeeper / Kyverno 策略即程式碼",
+        "Pod Security Admission（baseline/restricted）",
+        "映象供應鏈：cosign 驗籤、私有 Harbor、SBOM 掃描"
+      ],
+      "B5": [
+        "CSI 外掛：EBS / 雲盤快照策略",
+        "StorageClass 動態供給與拓撲感知（region/AZ）",
+        "有狀態工作負載與 volume resize / snapshot",
+        "臨時儲存：emptyDir 限額與本地 SSD"
+      ],
+      "B6": [
+        "Argo CD / Flux：ApplicationSet、多叢集 bootstrap",
+        "Prometheus + Thanos / Mimir，Recording rule 降噪",
+        "OpenTelemetry Operator + Tempo 鏈路",
+        "日誌：Loki / sidecar 採集，KPI：apiserver 延遲、etcd fysnc、控制面 SLO"
+      ]
+    },
+    "secondary_node_style": {
+      "shape": "rounded rectangle, corner radius 8px",
+      "fill": "branch color × 8% opacity",
+      "border": "1.2px solid 分支色",
+      "label": "mono 11pt"
+    }
+  },
+  "tertiary_nodes": {
+    "enabled": true,
+    "rule": "僅在 B6 的 'OpenTelemetry' 下再掛 2 個小葉：'Collector pipeline' 與 'trace → logs 關聯'，線更細 1px，避免其它域展開"
+  },
+  "highlights": {
+    "must_know": {
+      "enabled": true,
+      "rule": "星標 '★ Cilium'、'★ Gateway API'、'★ OPA / Kyverno' 與 '★ Argo CD'",
+      "starred_literal": [
+        "★ Cilium (eBPF)",
+        "★ Gateway API",
+        "★ OPA or Kyverno",
+        "★ Argo CD"
+      ]
+    }
+  },
+  "legend": {
+    "enabled": true,
+    "position": "bottom-right",
+    "content": "顏色 → 六大平臺域；★ → 新叢集落地必會；B6 有唯一 tertiary 展開允許",
+    "style": "small panel, mono 10pt"
+  },
+  "constraints": {
+    "must_keep": [
+      "六主分支等角排布、連線不壓字",
+      "服務名/元件名以英文可辨（Cilium, Gateway API, Argo CD, Prometheus）",
+      "節點層級與字號階梯清晰"
+    ],
+    "avoid": [
+      "K8s 徽標大貼圖（可文字標題代替）",
+      "超過 2 個 tertiary 全圖開花"
+    ]
+  }
+}
